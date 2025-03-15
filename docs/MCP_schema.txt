@@ -1,0 +1,13 @@
+// This example demonstrated an MCP server using the SSE format
+// The user should manually setup and run the server
+// This could be networked, to allow others to access it too
+{
+  "mcpServers": {
+    "server-name": {
+      "url": "http://localhost:3000/sse",
+      "env": {
+        "API_KEY": "value"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+make sure the map settings actually change the map on all the pages, including login changes, org, project, etc.
+
+Integrate OpenAI's Agent SDK - computer use and deep research
+
+All pages should have light/dark mode button in the upper right hand corner of every page.
+
+Animate the project score bar on the homepage just like the project status bar chart animates when first loaded and the funding allocation line graph animates as well when the page first loads.

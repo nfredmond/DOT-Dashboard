@@ -1,0 +1,18 @@
+/* Leaflet compatibility fixes */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  position: relative;
+}
+
+/* Fix for marker icons */
+.leaflet-default-icon-path {
+  background-image: url('https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png');
+}
+
+/* Fix for Leaflet Draw */
+.leaflet-draw-toolbar a {
+  background-image: url('https://unpkg.com/leaflet-draw@1.0.4/dist/images/spritesheet.png');
+  background-repeat: no-repeat;
+} 

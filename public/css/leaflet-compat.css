@@ -1,0 +1,38 @@
+/* Custom CSS to fix leaflet icon issues */
+
+/* Leaflet default marker icon styles extracted from the problematic CSS */
+.leaflet-default-icon-path {
+  background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png) !important;
+}
+
+/* Ensure marker icons display correctly */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  display: block !important;
+}
+
+/* Fix for marker positioning */
+.leaflet-marker-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* Make icons visible and clickable */
+.leaflet-interactive {
+  pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+  pointer-events: auto;
+}
+
+/* Fix for popup/tooltip containers */
+.leaflet-popup-pane,
+.leaflet-tooltip-pane {
+  pointer-events: none;
+}
+
+/* Override for default icon path */
+.leaflet-default-icon-path {
+  background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png) !important;
+} 

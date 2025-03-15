@@ -1,0 +1,17 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "react/no-unescaped-entities": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/patch-modules.js", "src/lib/patched-modules/*.js"],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off",
+        "import/no-anonymous-default-export": "off"
+      }
+    }
+  ]
+}

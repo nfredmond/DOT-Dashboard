@@ -1,0 +1,45 @@
+Overview
+This full-stack web application using Tailwind CSS and is designed for Regional Transportation Planning Agencies (RTPAs) to manage, analyze, and prioritize transportation projects. It leverages advanced technologies—such as Large Language Models (LLMs) for intelligent project assessments and reporting, robust GIS mapping for spatial analysis, and data-driven scoring aligned with California and federal guidelines—to reduce manual work and standardize evaluations. The system is modular and secure, using Next.js for a modern, responsive UI and Node.js with Supabase for scalable backend services (authentication, database, storage). Data governance ensures that each agency’s data remains isolated while allowing the solution to be adapted for use beyond California.
+
+Core Features
+
+LLM-Powered Assistance:
+
+Grant & Funding Support: LLMs (e.g., GPT-4, Claude) evaluate project descriptions against grant criteria, automating initial reviews and providing consistent scoring suggestions.
+Project Recommendations: The app suggests improvements or highlights similar successful projects based on project attributes. Customizations let agencies set priorities (e.g., equity, safety, climate) that the LLM factors into its analysis.
+Automated Reporting & Summaries: With a click, RTPA staff can generate draft reports—for transportation plans, grant applications, etc.—that include narratives, scoring rationales, and potential responses to public inquiries.
+Community Input Responses: Integrated LLM capabilities help draft replies to community feedback, ensuring a consistent tone that agencies can adjust.
+Customization per Agency: An admin panel enables agencies to configure LLM settings, choose providers, store API keys securely (routed through the backend), and adjust prompt templates.
+GIS and Mapping Integration:
+
+Interactive Mapping: The application uses Leaflet.js with optional layers from Mapbox or Google Maps. Users can pan/zoom and toggle overlays (e.g., road networks, transit lines, bike lanes) to visualize project extents.
+Project Layers: Agencies can plot project markers and draw polygons or polylines to depict transit routes or road segments. Imported GeoJSON or shapefiles enrich the spatial display.
+Multiple Basemap Options: Clients can choose between Google Maps for detailed imagery, MapLibre GL for open-source vector maps, or QGIS services for custom styling.
+User-Friendly Tools: Even non-GIS experts benefit from intuitive interactions (e.g., pin drops, address geocoding) and an “Add Project” wizard that simplifies spatial data input.
+Project Scoring and Prioritization:
+
+Standards-Based Scoring: Out-of-the-box, the app uses a rubric aligned with California and federal guidelines (e.g., safety, congestion relief, equity, sustainability) with pre-assigned weights (e.g., Safety 20%, Equity 15%).
+Customizable Methodologies: Agencies can modify criteria, adjust weights, or apply custom formulas via a no-code rules builder. All modifications are audit-trailed, allowing scenario testing and reversion.
+ML-Enhanced Prioritization: A machine learning model (e.g., logistic regression) analyzes historical outcomes and community support to predict project success. Its explainable outputs augment human-defined scores, guiding planners on adjustments.
+User Management and Security:
+
+Role-Based Access: The multi-tenant platform supports various roles (Admin, Editor, Viewer, Community) with data isolation via Supabase Authentication and PostgreSQL row-level security (RLS).
+Organization Management: Admins can invite team members and manage roles, with audit logs tracking key actions (project creation, score changes, logins) for accountability.
+Community Engagement Tools: A public portal enables surveys, open feedback (including map-based inputs and image uploads), and sentiment analysis on comments. Moderation features (e.g., reCAPTCHA, rate limiting) help ensure quality.
+External API Integrations:
+
+Caltrans & Federal Data: The app connects to Caltrans APIs (e.g., HPMS, SB1 projects) and federal sources (FHWA, DOT) to retrieve traffic, safety, and grant data.
+Census API: Integrates demographic data (population, income levels) to assess community impact and automatically populate grant applications.
+Other Integrations: Additional APIs (e.g., climate investment tools, real-time construction costs) can be added via a plugin-like architecture.
+Reporting and Dashboard:
+
+Interactive Dashboard: Real-time dashboards visualize KPIs (project statuses, funding needs, category scores) using charts and maps that refresh with data changes.
+LLM-Generated Reports: Agencies can generate comprehensive reports (transportation plans, grant summaries) in formats like Markdown, HTML, or PDF, complete with embedded maps and charts. Customizable templates let each agency meet its reporting needs.
+Technical Stack and Implementation
+
+Frontend: Developed with Next.js (React) using TypeScript and UI libraries (Material UI/Chakra UI, Tailwind CSS) for responsive, accessible design. Mapping is implemented via React-Leaflet.
+Backend: Built on Node.js with Next.js API routes, utilizing Supabase for PostgreSQL data management, authentication, storage, and RLS. RESTful endpoints handle projects, feedback, scoring, and report generation.
+LLM & ML Integration:
+Abstracted LLM service interfaces support multiple providers. API keys are stored securely, and usage is logged for cost management.
+The ML component uses historical data for training a predictive model (initially logistic regression) that updates with new outcomes, with retraining supported via CI/CD pipelines.
+Database Schema: Tables for Agencies, Profiles, Projects, Criteria, Feedback, Votes, Reports, Audit Logs, and LLM Configurations are defined with foreign keys, indexes, and RLS policies to ensure secure, isolated, and efficient data operations.

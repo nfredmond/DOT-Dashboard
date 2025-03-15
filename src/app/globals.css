@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force-refresh CSS rule */
+body::after {
+  content: '';
+  display: none;
+}
+
+@layer base {
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 240 10% 3.9%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 240 10% 3.9%;
+      --primary: 240 5.9% 10%;
+      --primary-foreground: 0 0% 98%;
+      --secondary: 240 4.8% 95.9%;
+      --secondary-foreground: 240 5.9% 10%;
+      --muted: 240 4.8% 95.9%;
+      --muted-foreground: 240 3.8% 46.1%;
+      --accent: 240 4.8% 95.9%;
+      --accent-foreground: 240 5.9% 10%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5.9% 10%;
+      --radius: 0.5rem;
+      --chart-1: 12 76% 61%;
+      --chart-2: 173 58% 39%;
+      --chart-3: 197 37% 24%;
+      --chart-4: 43 74% 66%;
+      --chart-5: 27 87% 67%;
+    }
+  
+    .dark {
+      --background: 240 10% 3.9%;
+      --foreground: 0 0% 98%;
+      --card: 240 10% 3.9%;
+      --card-foreground: 0 0% 98%;
+      --popover: 240 10% 3.9%;
+      --popover-foreground: 0 0% 98%;
+      --primary: 0 0% 98%;
+      --primary-foreground: 240 5.9% 10%;
+      --secondary: 240 3.7% 15.9%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 3.7% 15.9%;
+      --muted-foreground: 240 5% 64.9%;
+      --accent: 240 3.7% 15.9%;
+      --accent-foreground: 0 0% 98%;
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 3.7% 15.9%;
+      --input: 240 3.7% 15.9%;
+      --ring: 240 4.9% 83.9%;
+      --chart-1: 220 70% 50%;
+      --chart-2: 160 60% 45%;
+      --chart-3: 30 80% 55%;
+      --chart-4: 280 65% 60%;
+      --chart-5: 340 75% 55%;
+    }
+}
+
+@layer base {
+    * {
+      @apply border-border;
+    }
+    body {
+      @apply bg-background text-foreground;
+      font-feature-settings: "rlig" 1, "calt" 1;
+    }
+}
+
+/* Leaflet-specific styles */
+
+/* Fix for Leaflet images */
+.leaflet-container img {
+  height: auto;
+  width: auto;
+}
+
+/* Fix for marker icons */
+.leaflet-marker-icon {
+  box-shadow: none !important;
+  border: none !important;
+  background: none !important;
+}
+
+/* Ensure map controls stay on top of all map layers */
+.leaflet-control-container {
+  z-index: 9000 !important;
+}
+
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom {
+  z-index: 9000 !important;
+}
+
+.leaflet-control {
+  z-index: 9000 !important;
+}
+
+/* Set map panes to a lower z-index than controls */
+.leaflet-map-pane {
+  z-index: 800 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 600 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 700 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 900 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 950 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 1000 !important;
+}
+
+/* Marker styles for different project types */
+.project-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+.project-marker.highway { background-color: #f97316; }
+.project-marker.transit { background-color: #2563eb; }
+.project-marker.bike { background-color: #16a34a; }
+
+/* Feedback markers */
+.feedback-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+.feedback-marker.issue { background-color: #ef4444; }
+.feedback-marker.suggestion { background-color: #3b82f6; }
+.feedback-marker.support { background-color: #22c55e; }
+.feedback-marker.comment { background-color: #22c55e; }
+.feedback-marker.concern { background-color: #ef4444; }
+
+/* New feedback marker */
+.new-feedback-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  animation: pulse 1.5s infinite;
+}
+.new-feedback-marker.comment { background-color: #22c55e; }
+.new-feedback-marker.suggestion { background-color: #3b82f6; }
+.new-feedback-marker.concern { background-color: #ef4444; }
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+
+/* Drawing popup styles */
+.drawing-popup {
+  padding: 10px;
+  width: 250px;
+}
+
+.drawing-popup h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.drawing-popup textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.save-drawing-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.save-drawing-btn:hover {
+  background-color: #2563eb;
+}
+
+/* Marker cluster customization */
+.marker-cluster {
+  background-color: rgba(59, 130, 246, 0.6);
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+}
+
+.marker-cluster div {
+  background-color: rgba(59, 130, 246, 0.8);
+  border-radius: 50%;
+  margin: 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Layer control customization */
+.leaflet-control-layers {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Draw control customization */
+.leaflet-draw {
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+}
+
+.leaflet-draw-toolbar a {
+  background-color: white !important;
+  border-radius: 0 !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+  background-color: #f9fafb !important;
+}
+
+/* Improve tooltip readability */
+.leaflet-tooltip {
+  border-radius: 0.25rem !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  pointer-events: none !important;
+}
+
+/* Fix markers and popups in dark mode (but leave map tiles unchanged) */
+.dark .leaflet-marker-icon,
+.dark .leaflet-marker-shadow,
+.dark .leaflet-popup,
+.dark .leaflet-tooltip {
+  /* Apply styles to make markers and popups visible in dark mode if needed */
+  /* No filters applied to avoid changing their appearance */
+}
+
+  

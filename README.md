@@ -1,0 +1,239 @@
+# Planning Manager
+
+A comprehensive transportation project management system built with Next.js, React, and Supabase.
+
+## Overview
+
+Planning Manager is a sophisticated web application designed for transportation agencies to manage, score, prioritize, and visualize infrastructure projects. It combines modern web technologies with advanced GIS capabilities and AI integration to provide a complete solution for transportation project planning and management.
+
+![RTPA Planning Manager](public/Circle_Green_TranspRoad.png)
+
+## Features
+
+### 🚗 Project Management
+
+- Create, edit, and manage transportation projects
+- Track project status, budget, and timeline
+- Batch operations for efficient management
+- Customizable project metadata and categorization
+
+### 🗺️ GIS Mapping
+
+- Interactive maps powered by Leaflet
+- Multiple basemap layer options (OSM, Carto, Satellite)
+- Project location visualization with custom styling
+- Drawing and editing geographic features
+- Marker clustering for dense datasets
+- Measurement tools for distance and area calculation
+
+### 📊 Project Scoring & Prioritization
+
+- Customizable scoring criteria and categories
+- Weighted scoring algorithms with auto-calculation
+- Visual comparison tools and interactive charts
+- AI-assisted scoring suggestions
+- Multi-factor project evaluation framework
+
+### 🤖 AI Integration
+
+- Project analysis and enrichment using Claude and GPT models
+- Automated scoring assistance and suggestions
+- Report and documentation generation
+- Community feedback analysis and categorization
+- Contextual project assistant with document awareness
+
+### 👥 User Management
+
+- Multi-tenant architecture with organization support
+- Role-based access control (admin, member, viewer)
+- Customizable user profiles and preferences
+- Agency-specific settings and configurations
+- Secure authentication via Supabase Auth
+
+### 📈 Reporting
+
+- Custom report generation with templates
+- Interactive data visualizations and charts
+- Multiple export formats (PDF, CSV, JSON)
+- AI-assisted report writing and summarization
+- Analytics dashboard with key performance indicators
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 with App Router, React, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui, Radix UI primitives
+- **State Management**: React Context, SWR for data fetching
+- **Backend**: Supabase, PostgreSQL with PostGIS extension
+- **Authentication**: Supabase Auth with row-level security
+- **Database**: PostgreSQL with spatial capabilities
+- **GIS**: Leaflet.js, React-Leaflet, various Leaflet plugins
+- **AI**: OpenAI GPT-4, Anthropic Claude, model-agnostic integration
+- **Charts**: Recharts, D3.js for visualizations
+- **Styling**: Tailwind CSS with custom configurations
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18.x or later
+- npm or yarn
+- Supabase account
+- OpenAI or Anthropic API key (for AI features)
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/planning-manager.git
+cd planning-manager
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Set up environment variables:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Edit `.env.local` with your configuration:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+```
+
+4. Initialize the database:
+
+- Follow the instructions in `SUPABASE_SETUP_SQL.md`
+- Run the SQL setup scripts in your Supabase SQL editor
+
+5. Start the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+Visit `http://localhost:3000` to see the application.
+
+## Project Structure
+
+```
+planning-manager/
+├── src/
+│   ├── app/                 # Next.js app router pages and routes
+│   │   ├── api/             # API route handlers
+│   │   ├── projects/        # Project management pages
+│   │   ├── project-map/     # GIS mapping interface
+│   │   ├── project-scoring/ # Scoring and prioritization
+│   │   └── llm-assistant/   # AI assistant interface
+│   ├── components/          # Reusable React components
+│   ├── contexts/            # React context providers
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utility functions and services
+│   │   ├── api/             # API client functions
+│   │   ├── db/              # Database helpers
+│   │   ├── llm/             # AI/LLM integration
+│   │   └── map/             # Map utilities
+│   ├── styles/              # Global styles and Tailwind config
+│   └── types/               # TypeScript type definitions
+├── public/                  # Static assets
+├── docs/                    # Documentation
+└── project_templates/       # Project templates and examples
+```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs` directory:
+
+### Core Documentation
+
+- [System Architecture](docs/SYSTEM_ARCHITECTURE.md) - System design and component interactions
+- [Database Schema](docs/DATABASE_SCHEMA.md) - Database structure and relationships
+- [API Documentation](docs/API.md) - API endpoints and usage
+- [Deployment Guide](docs/DEPLOYMENT.md) - Deployment process and configuration
+
+### Feature Documentation
+
+- [GIS Features](docs/GIS_FEATURES.md) - Geographic Information System capabilities
+- [LLM Integration](docs/LLM_INTEGRATION.md) - AI/LLM integration details
+- [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) - Detailed technical implementation
+
+### Development & Operations
+
+- [Development Plan](docs/DEVELOPMENT_PLAN.md) - Project roadmap and development phases
+- [Testing Strategy](docs/TESTING_STRATEGY.md) - Testing approach and methodologies
+- [Security Documentation](docs/SECURITY.md) - Security measures and best practices
+
+## Current Status & Roadmap
+
+The Planning Manager is currently in active development, with the following status:
+
+### Phase 1: Core Infrastructure (Completed)
+
+- Database integration with PostgreSQL and PostGIS
+- Core project management interface
+- Authentication and user management system
+- Basic GIS implementation with Leaflet
+
+### Phase 2: Advanced Features (Current)
+
+- Enhanced GIS capabilities with drawing tools and data visualization
+- Project scoring and prioritization system
+- AI/LLM integration with OpenAI and Anthropic
+- Community engagement tools
+
+### Upcoming Phases
+
+1. **Integration & Expansion** (2-3 weeks)
+   - External API integrations
+   - Advanced reporting capabilities
+   - Mobile optimization
+
+2. **Performance & Polish** (2 weeks)
+   - Performance optimization
+   - UI/UX refinements
+   - Accessibility improvements
+
+3. **Extended Features** (Ongoing)
+   - Advanced analytics
+   - Customizable workflows
+   - Additional AI capabilities
+
+For detailed information about the development plan and timeline, see our [Development Plan](docs/DEVELOPMENT_PLAN.md).
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the development team.
+
+## Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Supabase](https://supabase.com/)
+- [Leaflet](https://leafletjs.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [OpenAI](https://openai.com/)
+- [Anthropic](https://www.anthropic.com/)
