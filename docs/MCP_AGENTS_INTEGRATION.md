@@ -77,6 +77,57 @@ High-level service that provides domain-specific functionality:
 - Comparative analysis
 - Domain-specific prompts
 
+## Database Schema Support
+
+In Planning Manager v6, MCP and Agents SDK integration is fully supported by dedicated database tables:
+
+### MCP Servers Table
+
+```sql
+CREATE TABLE mcp_servers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    api_key TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    capabilities TEXT[] NOT NULL,
+    models TEXT[],
+    max_tokens INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Agent Settings Table
+
+```sql
+CREATE TABLE agent_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    prefer_mcp_over_openai BOOLEAN DEFAULT FALSE,
+    analysis_agent_enabled BOOLEAN DEFAULT TRUE,
+    planning_agent_enabled BOOLEAN DEFAULT TRUE,
+    browser_agent_enabled BOOLEAN DEFAULT TRUE,
+    computer_agent_enabled BOOLEAN DEFAULT TRUE,
+    default_model_id UUID REFERENCES ai_models(id),
+    system_prompt TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Row-Level Security Policies
+
+```sql
+-- MCP and Agents SDK integration policies
+CREATE POLICY "Administrators can manage MCP servers" ON mcp_servers
+    USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.isGlobalAdmin = TRUE));
+
+CREATE POLICY "Agency admins can manage agent settings" ON agent_settings
+    USING (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'))
+    WITH CHECK (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+```
+
 ## Agent Types and Capabilities
 
 The integration supports these agent types:
@@ -237,6 +288,43 @@ function chooseProvider(agentType) {
   if (hasOpenAI) return 'OpenAI';
   
   throw new Error('No provider available');
+}
+```
+
+### Database Integration
+
+The integration uses the database to store and retrieve MCP server configurations and agent settings:
+
+```typescript
+// Fetching MCP servers from database
+export async function getActiveMCPServers(): Promise<MCPServerConfig[]> {
+  const { data, error } = await supabaseClient
+    .from('mcp_servers')
+    .select('*')
+    .eq('is_active', true);
+    
+  if (error) {
+    console.error('Error fetching MCP servers:', error);
+    return [];
+  }
+  
+  return data;
+}
+
+// Getting agent settings for an agency
+export async function getAgentSettings(agencyId: string): Promise<AgentSettings | null> {
+  const { data, error } = await supabaseClient
+    .from('agent_settings')
+    .select('*')
+    .eq('agency_id', agencyId)
+    .single();
+    
+  if (error) {
+    console.error('Error fetching agent settings:', error);
+    return null;
+  }
+  
+  return data;
 }
 ```
 

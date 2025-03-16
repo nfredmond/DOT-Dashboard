@@ -26,17 +26,17 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = memo(({ projectData, onSave,
   const { user } = useAuth();
   
   const [formData, setFormData] = useState({
-    name: projectData.name || '',
-    description: projectData.description || '',
-    category: projectData.category || 'Transit' as ProjectCategory,
-    status: projectData.status || 'Planned' as ProjectStatus,
-    priority: projectData.priority || 'Medium' as ProjectPriority,
-    startDate: projectData.startDate || new Date().toISOString().split('T')[0],
-    endDate: projectData.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    leadAgency: projectData.leadAgency || '',
-    tags: projectData.tags || [],
-    organizationId: projectData.organizationId || (user ? user.id : ''),
-    organizationName: projectData.organizationName || (user ? user.organization : ''),
+    name: projectData.name ?? '',
+    description: projectData.description ?? '',
+    category: projectData.category ?? 'Transit' as ProjectCategory,
+    status: projectData.status ?? 'Planned' as ProjectStatus,
+    priority: projectData.priority ?? 'Medium' as ProjectPriority,
+    startDate: projectData.startDate ?? new Date().toISOString().split('T')[0],
+    endDate: projectData.endDate ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    leadAgency: projectData.leadAgency ?? '',
+    tags: projectData.tags ?? [],
+    organizationId: projectData.organizationId ?? (user ? user.id : ''),
+    organizationName: projectData.organizationName ?? (user ? user.organization : ''),
   });
   
   const [tagInput, setTagInput] = useState('');

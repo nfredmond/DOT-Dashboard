@@ -3,16 +3,17 @@
 import React from "react";
 import { useRouter, usePathname } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/types/organization';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  userRole?: UserRole;
+  isAdmin?: boolean;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, userRole, isAdmin }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
   
   return (
     <ProtectedRoute>
@@ -51,15 +52,15 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="px-4 mt-3">
               <a 
                 href="#" 
-                onClick={(e) => { e.preventDefault(); router.push('/project-mapping'); }} 
-                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname === '/project-mapping' ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white font-medium' : ''}`}
+                onClick={(e) => { e.preventDefault(); router.push('/project-map'); }} 
+                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname === '/project-map' ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white font-medium' : ''}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-3">
                   <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
                   <line x1="8" y1="2" x2="8" y2="18" />
                   <line x1="16" y1="6" x2="16" y2="22" />
                 </svg>
-                Project Mapping
+                Project Map
               </a>
             </div>
             
@@ -148,7 +149,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </nav>
 
           <div className="absolute bottom-0 w-64 p-4">
-            {user?.role === "admin" && (
+            {userRole === "global_admin" && (
               <div className="px-4 mt-3">
                 <a 
                   href="#" 

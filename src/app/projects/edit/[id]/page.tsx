@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProjectWizardProvider } from '@/contexts/ProjectWizardContext';
 import { ProjectWizardWrapper } from '@/components/projects/ProjectWizardWrapper';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Project } from '@/types/project';
 
 export default function EditProjectPage() {
@@ -42,7 +42,7 @@ export default function EditProjectPage() {
           name: "Sample Transportation Project",
           description: "This is a sample transportation project for demonstration purposes.",
           category: "Highway",
-          status: "In Progress",
+          status: "Planning",
           priority: "High",
           location: "San Francisco Bay Area, CA",
           leadAgency: "Caltrans",
@@ -57,7 +57,11 @@ export default function EditProjectPage() {
             climate: 70,
             congestion: 85,
             costEffectiveness: 75,
-            multimodal: 60
+            multimodal: 60,
+            environmental: 75,
+            economic: 70,
+            feasibility: 85,
+            overall: 75
           },
           coordinates: {
             latitude: 37.7749,

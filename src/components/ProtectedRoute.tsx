@@ -2,7 +2,8 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useContext } from 'react';
+import { AuthContext } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,11 +11,24 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  
+  // Get auth context but don't throw if not available
+  const context = useContext(AuthContext);
+  
+  // If context is undefined, we're outside an AuthProvider
+  const isAuthenticated = context?.isAuthenticated || false;
+  const isLoading = context?.isLoading || false;
+  const user = context?.user || null;
 
   useEffect(() => {
+    // If we don't have an auth context, redirect to login
+    if (!context) {
+      router.push('/login');
+      return;
+    }
+    
     // If authentication check is complete
     if (!isLoading) {
       // If not authenticated, redirect to login
@@ -30,10 +44,10 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         setIsAuthorized(true);
       }
     }
-  }, [isAuthenticated, isLoading, requiredRole, router, user?.role]);
+  }, [isAuthenticated, isLoading, requiredRole, router, user?.role, context]);
 
-  // Show loading state while checking authentication
-  if (isLoading || !isAuthorized) {
+  // If no auth context or loading/unauthorized, show loading state
+  if (!context || isLoading || !isAuthorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

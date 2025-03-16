@@ -1,10 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { useAuth } from './AuthContext';
 import { getClient } from '@/lib/supabase-service';
 import { isOfflineDatabaseEnabled } from '@/lib/env-service';
+import { createClient } from '@/utils/supabase/client';
 
 // Define a User type for the auth context
 interface Organization {
@@ -45,11 +46,8 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const initClient = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Preferably use the server client if the app is running on the server
-      const client = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      // Use the same client creation method as AuthContext
+      const client = createClient();
       setSupabase(client);
       setError(null);
     } catch (err: any) {

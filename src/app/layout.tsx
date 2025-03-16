@@ -14,6 +14,8 @@ import { LLMProvider } from '@/contexts/LLMContext';
 import { OnboardingDialog } from '@/components/OnboardingDialog';
 import { VoiceProvider } from "@/contexts/VoiceContext";
 import { ModelProvider } from '@/lib/models/model-context';
+import Script from 'next/script';
+import { ProjectsProvider } from '@/contexts/ProjectsContext';
 
 export default function AppLayout({
   children,
@@ -78,13 +80,63 @@ export default function AppLayout({
         <link rel="shortcut icon" href="/favicons/favicon.ico" />
         <meta name="theme-color" content="#ffffff" />
         
-        {/* Preload Leaflet CSS */}
+        {/* Preconnect to Leaflet CDN */}
+        <link rel="preconnect" href="https://unpkg.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://unpkg.com" />
+        
+        {/* Load Leaflet CSS directly without integrity check */}
         <link
           rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
         />
+        
+        {/* Leaflet JS with next/script */}
+        <Script
+          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          strategy="beforeInteractive"
+          onLoad={() => console.log('Leaflet script loaded with next/script')}
+        />
+        
+        {/* Fallback JS loader for Leaflet */}
+        <Script id="leaflet-fallback">{`
+          // Ensure Leaflet is available
+          document.addEventListener('DOMContentLoaded', function() {
+            if (!window.L) {
+              console.log('Leaflet not detected via script tag, loading fallback');
+              var script = document.createElement('script');
+              script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+              script.onload = function() {
+                console.log('Leaflet loaded via fallback script');
+              };
+              document.head.appendChild(script);
+            } else {
+              console.log('Leaflet already loaded via script tag');
+            }
+          });
+        `}
+        </Script>
+        
+        {/* Fallback CSS for Leaflet */}
+        <link rel="stylesheet" href="/leaflet-fallback.css" />
+        
+        {/* Fallback for Leaflet marker icons */}
+        <style>
+          {`
+            .leaflet-default-icon-path {
+              background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png) !important;
+            }
+            .leaflet-marker-icon,
+            .leaflet-marker-shadow {
+              display: block !important;
+            }
+            .leaflet-container {
+              min-height: 500px;
+              width: 100%;
+              height: 100%;
+            }
+          `}
+        </style>
       </head>
       <body className={`font-sans bg-gray-50 dark:bg-gray-900 min-h-screen ${geistSans.className}`}>
         <ThemeProvider
@@ -93,27 +145,29 @@ export default function AppLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ModelProvider>
-            <AuthProvider>
-              <VoiceProvider>
-                <SupabaseProvider>
-                  <LLMProvider>
-                    <div className="flex flex-col min-h-screen">
-                      <Header />
-                      <div className="flex flex-1">
-                        <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
-                        <main className="flex-1 p-6 overflow-auto">
-                          {children}
-                        </main>
+          <ProjectsProvider>
+            <SupabaseProvider>
+              <AuthProvider>
+                <ModelProvider>
+                  <VoiceProvider>
+                    <LLMProvider>
+                      <div className="flex flex-col min-h-screen">
+                        <Header />
+                        <div className="flex flex-1">
+                          <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
+                          <main className="flex-1 p-6 overflow-auto">
+                            {children}
+                          </main>
+                        </div>
                       </div>
-                    </div>
-                    <Toaster />
-                    <OnboardingDialog />
-                  </LLMProvider>
-                </SupabaseProvider>
-              </VoiceProvider>
-            </AuthProvider>
-          </ModelProvider>
+                      <Toaster />
+                      <OnboardingDialog />
+                    </LLMProvider>
+                  </VoiceProvider>
+                </ModelProvider>
+              </AuthProvider>
+            </SupabaseProvider>
+          </ProjectsProvider>
         </ThemeProvider>
       </body>
     </html>

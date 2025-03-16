@@ -52,6 +52,7 @@ export default function LoginPage() {
                 alt="Planning Manager" 
                 width={80} 
                 height={80}
+                priority={true}
               />
             </div>
           </div>

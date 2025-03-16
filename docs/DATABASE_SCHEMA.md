@@ -1,35 +1,61 @@
-# Database Schema Documentation
+# Planning Manager v6 Database Schema
 
-This document outlines the database schema for the Planning Manager application, including tables, relationships, and indexes.
+This document provides a comprehensive reference for the Planning Manager v6 database schema. The schema is designed to support full project management integration, LLM capabilities, MCP servers, and Agents SDK.
 
 ## Overview
 
-The application uses PostgreSQL with PostGIS extension for spatial data handling. The database is hosted on Supabase.
+The database schema is organized into the following categories:
 
-## Tables
+1. **Core Tables**: Basic entities like agencies, profiles, and projects
+2. **Project Management**: Project details, milestones, funding, and attachments
+3. **Scoring & Prioritization**: Criteria definition and project scoring
+4. **Scenario Planning**: Alternative project scenarios and comparisons
+5. **AI & LLM Integration**: AI model definitions and voice settings
+6. **MCP & Agents Integration**: Model Context Protocol and Agents SDK settings
+7. **User Settings**: User preferences and voice configurations
 
-### Users
+## Database Extensions
+
+The schema requires the following PostgreSQL extensions:
 
 ```sql
-CREATE TABLE users (
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+## Core Tables
+
+### Agencies
+
+```sql
+CREATE TABLE agencies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email TEXT UNIQUE NOT NULL,
-    name TEXT,
-    role TEXT NOT NULL DEFAULT 'user',
-    preferences JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    name TEXT NOT NULL,
+    subdomain TEXT UNIQUE NOT NULL,
+    logo_url TEXT,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+```
 
--- Indexes
-CREATE INDEX users_email_idx ON users (email);
-CREATE INDEX users_role_idx ON users (role);
+### Profiles
 
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
+```sql
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    first_name TEXT,
+    last_name TEXT,
+    role TEXT NOT NULL CHECK (role IN ('admin', 'editor', 'viewer')),
+    isGlobalAdmin BOOLEAN DEFAULT FALSE,
+    preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id),
+    UNIQUE(agency_id, user_id)
+);
 ```
 
 ### Projects
@@ -37,222 +63,238 @@ CREATE TRIGGER set_updated_at
 ```sql
 CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
-    status TEXT NOT NULL DEFAULT 'draft',
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    organization_id UUID REFERENCES organizations(id),
-    location GEOMETRY(POINT, 4326),
-    metadata JSONB DEFAULT '{}',
-    score NUMERIC(5,2),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT valid_status CHECK (status IN ('draft', 'active', 'completed', 'archived')),
-    CONSTRAINT valid_score CHECK (score >= 0 AND score <= 100)
-);
-
--- Indexes
-CREATE INDEX projects_user_id_idx ON projects (user_id);
-CREATE INDEX projects_organization_id_idx ON projects (organization_id);
-CREATE INDEX projects_status_idx ON projects (status);
-CREATE INDEX projects_score_idx ON projects (score);
-CREATE INDEX projects_location_idx ON projects USING GIST (location);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON projects
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Project Criteria
-
-```sql
-CREATE TABLE project_criteria (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-    category TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    weight NUMERIC(3,2) NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT valid_score CHECK (score >= 0 AND score <= 5),
-    CONSTRAINT valid_weight CHECK (weight >= 0 AND weight <= 1)
-);
-
--- Indexes
-CREATE INDEX project_criteria_project_id_idx ON project_criteria (project_id);
-CREATE INDEX project_criteria_category_idx ON project_criteria (category);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON project_criteria
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Organizations
-
-```sql
-CREATE TABLE organizations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL,
-    description TEXT,
-    logo_url TEXT,
-    settings JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX organizations_name_idx ON organizations (name);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON organizations
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Organization Members
-
-```sql
-CREATE TABLE organization_members (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL DEFAULT 'member',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT valid_role CHECK (role IN ('admin', 'member', 'viewer'))
-);
-
--- Indexes
-CREATE INDEX organization_members_organization_id_idx ON organization_members (organization_id);
-CREATE INDEX organization_members_user_id_idx ON organization_members (user_id);
-CREATE INDEX organization_members_role_idx ON organization_members (role);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON organization_members
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Attachments
-
-```sql
-CREATE TABLE attachments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('planning', 'active', 'completed', 'cancelled')),
     type TEXT NOT NULL,
-    size INTEGER NOT NULL,
+    category TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'medium',
+    location TEXT,
+    geometry GEOMETRY,
+    metadata JSONB DEFAULT '{}',
+    score_data JSONB,
+    analysis_results JSONB,
+    
+    -- Enhanced project management fields
+    allocated_budget DECIMAL(12, 2),
+    estimated_cost DECIMAL(12, 2),
+    pse_budget DECIMAL(12, 2), -- Plans, Specifications & Estimates budget
+    ce_budget DECIMAL(12, 2), -- Construction Engineering budget
+    construction_budget DECIMAL(12, 2), -- Total construction cost
+    right_of_way_budget DECIMAL(12, 2), -- Right of Way acquisition cost
+    
+    -- Environmental documentation fields
+    nepa_status TEXT CHECK (nepa_status IN ('not_started', 'in_progress', 'completed', 'not_required')),
+    ceqa_status TEXT CHECK (ceqa_status IN ('not_started', 'in_progress', 'completed', 'not_required')),
+    environmental_document_type TEXT,
+    environmental_clearance_date TIMESTAMPTZ,
+    
+    -- Project dates
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    
+    -- Map integration fields
+    coordinates JSONB, -- {latitude: number, longitude: number}
+    geojson JSONB,
+    map_type TEXT DEFAULT 'standard',
+    
+    -- Other metadata
+    lead_agency TEXT,
+    partners TEXT[],
+    tags TEXT[],
+    is_public BOOLEAN DEFAULT TRUE,
+    
+    -- Tracking fields
+    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+```
+
+### Project Users
+
+```sql
+CREATE TABLE project_users (
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('manager', 'contributor', 'viewer')),
+    PRIMARY KEY (project_id, user_id)
+);
+```
+
+## Project Management Tables
+
+### Project Milestones
+
+```sql
+CREATE TABLE project_milestones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    due_date TIMESTAMPTZ,
+    completion_date TIMESTAMPTZ,
+    status TEXT NOT NULL CHECK (status IN ('not_started', 'in_progress', 'completed', 'delayed')),
+    dependencies UUID[] DEFAULT '{}', -- Array of other milestone IDs
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+```
+
+### Funding Sources
+
+```sql
+CREATE TABLE funding_sources (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    fiscal_year TEXT,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'secured', 'cancelled')),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+```
+
+### Document Attachments
+
+```sql
+CREATE TABLE document_attachments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    description TEXT,
+    uploaded_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+```
+
+## MCP & Agents Integration
+
+### MCP Servers
+
+```sql
+CREATE TABLE mcp_servers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
     url TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX attachments_project_id_idx ON attachments (project_id);
-CREATE INDEX attachments_type_idx ON attachments (type);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON attachments
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Comments
-
-```sql
-CREATE TABLE comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    content TEXT NOT NULL,
-    parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX comments_project_id_idx ON comments (project_id);
-CREATE INDEX comments_user_id_idx ON comments (user_id);
-CREATE INDEX comments_parent_id_idx ON comments (parent_id);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON comments
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
-```
-
-### Activities
-
-```sql
-CREATE TABLE activities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-    action TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Indexes
-CREATE INDEX activities_user_id_idx ON activities (user_id);
-CREATE INDEX activities_project_id_idx ON activities (project_id);
-CREATE INDEX activities_action_idx ON activities (action);
-CREATE INDEX activities_created_at_idx ON activities (created_at);
-```
-
-### User Settings
-
-```sql
-CREATE TABLE user_settings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    settings JSONB NOT NULL DEFAULT '{}',
+    api_key TEXT NOT NULL,
+    capabilities JSONB DEFAULT '{"thinking": true, "vision": false, "research": true}',
+    provider TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    config JSONB DEFAULT '{}',
+    priority INTEGER DEFAULT 10,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Indexes
-CREATE INDEX user_settings_user_id_idx ON user_settings (user_id);
-
--- Triggers
-CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON user_settings
-    FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at_timestamp();
 ```
 
-### API Keys
+### Agent Settings
 
 ```sql
-CREATE TABLE api_keys (
+CREATE TABLE agent_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    agent_type TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'openai',
+    model TEXT NOT NULL,
+    settings JSONB DEFAULT '{}',
+    capabilities JSONB DEFAULT '{"thinking": true, "vision": false, "research": true}',
+    is_active BOOLEAN DEFAULT TRUE,
+    priority INTEGER DEFAULT 10,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Sync Logs
+
+```sql
+CREATE TABLE sync_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    sync_type TEXT NOT NULL CHECK (sync_type IN ('upload', 'download', 'full')),
+    entities_synced JSONB,
+    sync_status TEXT NOT NULL CHECK (sync_status IN ('started', 'completed', 'failed')),
+    error_details TEXT,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+```
+
+## Scoring & Prioritization
+
+### Criteria
+
+```sql
+CREATE TABLE criteria (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    key TEXT NOT NULL UNIQUE,
-    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-    permissions TEXT[],
-    last_used_at TIMESTAMPTZ,
+    description TEXT,
+    weight NUMERIC NOT NULL CHECK (weight >= 0 AND weight <= 1),
+    category TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('numeric', 'boolean', 'enum')),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+```
+
+### Scoring
+
+```sql
+CREATE TABLE scoring (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    criteria_id UUID NOT NULL REFERENCES criteria(id) ON DELETE CASCADE,
+    score NUMERIC NOT NULL,
+    notes TEXT,
+    evaluated_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ,
-    is_active BOOLEAN DEFAULT TRUE
+    UNIQUE(project_id, criteria_id),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
 );
-
--- Indexes
-CREATE INDEX api_keys_user_id_idx ON api_keys(user_id);
-CREATE INDEX api_keys_organization_id_idx ON api_keys(organization_id);
-CREATE INDEX api_keys_expires_at_idx ON api_keys(expires_at);
 ```
+
+## Scenario Planning
 
 ### Project Scenarios
 
@@ -274,13 +316,6 @@ CREATE TABLE project_scenarios (
     created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
     parent_scenario_id UUID REFERENCES project_scenarios(id) ON DELETE SET NULL
 );
-
--- Indexes
-CREATE INDEX project_scenarios_project_id_idx ON project_scenarios(project_id);
-CREATE INDEX project_scenarios_created_by_idx ON project_scenarios(created_by);
-CREATE INDEX project_scenarios_parent_scenario_id_idx ON project_scenarios(parent_scenario_id);
-CREATE INDEX project_scenarios_created_at_idx ON project_scenarios(created_at);
-CREATE INDEX project_scenarios_feasibility_idx ON project_scenarios(feasibility);
 ```
 
 ### Scenario Comparisons
@@ -297,315 +332,278 @@ CREATE TABLE scenario_comparisons (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
-
--- Indexes
-CREATE INDEX scenario_comparisons_project_id_idx ON scenario_comparisons(project_id);
-CREATE INDEX scenario_comparisons_scenario1_id_idx ON scenario_comparisons(scenario1_id);
-CREATE INDEX scenario_comparisons_scenario2_id_idx ON scenario_comparisons(scenario2_id);
-CREATE INDEX scenario_comparisons_created_by_idx ON scenario_comparisons(created_by);
-CREATE INDEX scenario_comparisons_created_at_idx ON scenario_comparisons(created_at);
 ```
 
-## Functions and Triggers
+## AI & LLM Integration
 
-### Updated Timestamp
+### AI Models
 
 ```sql
-CREATE OR REPLACE FUNCTION set_updated_at_timestamp()
+CREATE TABLE ai_models (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    version TEXT NOT NULL,
+    description TEXT,
+    thinking_capable BOOLEAN DEFAULT TRUE,
+    vision_capable BOOLEAN DEFAULT FALSE,
+    research_capable BOOLEAN DEFAULT TRUE,
+    code_capable BOOLEAN DEFAULT FALSE,
+    voice_capable BOOLEAN DEFAULT FALSE,
+    max_token_limit INTEGER NOT NULL,
+    cost_per_1k_tokens DECIMAL(10, 6) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Voice Settings
+
+```sql
+CREATE TABLE voice_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    voice_type TEXT DEFAULT 'natural',
+    speed DECIMAL(4, 2) DEFAULT 1.0,
+    pitch DECIMAL(4, 2) DEFAULT 1.0,
+    volume DECIMAL(4, 2) DEFAULT 1.0,
+    preferred_model_id UUID REFERENCES ai_models(id),
+    wake_word TEXT DEFAULT 'hey assistant',
+    language TEXT DEFAULT 'en-US',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Voice Command Logs
+
+```sql
+CREATE TABLE voice_command_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    command_text TEXT NOT NULL,
+    model_id UUID REFERENCES ai_models(id),
+    command_type TEXT NOT NULL,
+    response_text TEXT,
+    duration_ms INTEGER,
+    was_successful BOOLEAN DEFAULT TRUE,
+    context JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+## User Settings
+
+```sql
+CREATE TABLE user_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    theme TEXT DEFAULT 'light',
+    notifications_enabled BOOLEAN DEFAULT TRUE,
+    email_notifications BOOLEAN DEFAULT TRUE,
+    voice_settings_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+## Row-Level Security Policies
+
+The schema implements comprehensive Row-Level Security (RLS) policies to ensure proper data isolation and authorization:
+
+### Agency Security
+
+```sql
+CREATE POLICY agency_select_policy ON agencies
+    FOR SELECT USING (auth.uid() IN (
+        SELECT user_id FROM profiles WHERE agency_id = agencies.id
+    ));
+
+CREATE POLICY agency_insert_policy ON agencies
+    FOR INSERT WITH CHECK (
+        EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND isGlobalAdmin = TRUE)
+    );
+
+CREATE POLICY agency_update_policy ON agencies
+    FOR UPDATE USING (
+        EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND agency_id = agencies.id AND role = 'admin')
+    );
+```
+
+### Project Security
+
+```sql
+CREATE POLICY project_select_policy ON projects
+    FOR SELECT USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY project_insert_policy ON projects
+    FOR INSERT WITH CHECK (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role IN ('admin', 'editor'))
+    );
+
+CREATE POLICY project_update_policy ON projects
+    FOR UPDATE USING (
+        auth.uid() = created_by OR
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role IN ('admin', 'editor')) OR
+        EXISTS (SELECT 1 FROM project_users WHERE project_id = projects.id AND user_id = auth.uid() AND role IN ('manager', 'contributor'))
+    );
+
+CREATE POLICY project_delete_policy ON projects
+    FOR DELETE USING (
+        auth.uid() = created_by OR
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+```
+
+### MCP & Agents Security
+
+```sql
+CREATE POLICY mcp_servers_select_policy ON mcp_servers
+    FOR SELECT USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY mcp_servers_insert_policy ON mcp_servers
+    FOR INSERT WITH CHECK (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY mcp_servers_update_policy ON mcp_servers
+    FOR UPDATE USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY mcp_servers_delete_policy ON mcp_servers
+    FOR DELETE USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY agent_settings_select_policy ON agent_settings
+    FOR SELECT USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY agent_settings_insert_policy ON agent_settings
+    FOR INSERT WITH CHECK (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY agent_settings_update_policy ON agent_settings
+    FOR UPDATE USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY agent_settings_delete_policy ON agent_settings
+    FOR DELETE USING (
+        agency_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid() AND role = 'admin')
+    );
+```
+
+## Database Functions
+
+### Version Management for Sync
+
+```sql
+CREATE OR REPLACE FUNCTION increment_version() 
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-### Project Score Calculation
-
-```sql
-CREATE OR REPLACE FUNCTION calculate_project_score(project_id UUID)
-RETURNS NUMERIC AS $$
-DECLARE
-    total_score NUMERIC := 0;
-    total_weight NUMERIC := 0;
-BEGIN
-    SELECT 
-        SUM(score * weight) / SUM(weight) INTO total_score
-    FROM 
-        project_criteria
-    WHERE 
-        project_id = $1;
-    
-    UPDATE projects
-    SET score = total_score
-    WHERE id = $1;
-    
-    RETURN total_score;
+  NEW.version := OLD.version + 1;
+  NEW.is_synced := TRUE;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger for automatic score calculation
-CREATE TRIGGER update_project_score
-    AFTER INSERT OR UPDATE OR DELETE ON project_criteria
-    FOR EACH ROW
-    EXECUTE FUNCTION calculate_project_score(NEW.project_id);
-```
+-- Triggers for projects
+CREATE TRIGGER update_projects_version
+BEFORE UPDATE ON projects
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
-## Row Level Security (RLS)
+-- Triggers for criteria
+CREATE TRIGGER update_criteria_version
+BEFORE UPDATE ON criteria
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
-### Projects
+-- Triggers for scoring
+CREATE TRIGGER update_scoring_version
+BEFORE UPDATE ON scoring
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
-```sql
--- Enable RLS
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+-- Triggers for project_milestones
+CREATE TRIGGER update_project_milestones_version
+BEFORE UPDATE ON project_milestones
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
--- Policies
-CREATE POLICY "Users can view their own projects"
-    ON projects FOR SELECT
-    USING (auth.uid() = user_id);
+-- Triggers for funding_sources
+CREATE TRIGGER update_funding_sources_version
+BEFORE UPDATE ON funding_sources
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
-CREATE POLICY "Users can view organization projects"
-    ON projects FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM organization_members
-            WHERE organization_id = projects.organization_id
-            AND user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can modify their own projects"
-    ON projects FOR UPDATE
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Organization admins can modify organization projects"
-    ON projects FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM organization_members
-            WHERE organization_id = projects.organization_id
-            AND user_id = auth.uid()
-            AND role = 'admin'
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM organization_members
-            WHERE organization_id = projects.organization_id
-            AND user_id = auth.uid()
-            AND role = 'admin'
-        )
-    );
-```
-
-### Comments
-
-```sql
--- Enable RLS
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-
--- Policies
-CREATE POLICY "Users can view project comments"
-    ON comments FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM projects
-            WHERE id = comments.project_id
-            AND (
-                user_id = auth.uid()
-                OR EXISTS (
-                    SELECT 1 FROM organization_members
-                    WHERE organization_id = projects.organization_id
-                    AND user_id = auth.uid()
-                )
-            )
-        )
-    );
-
-CREATE POLICY "Users can create comments"
-    ON comments FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM projects
-            WHERE id = comments.project_id
-            AND (
-                user_id = auth.uid()
-                OR EXISTS (
-                    SELECT 1 FROM organization_members
-                    WHERE organization_id = projects.organization_id
-                    AND user_id = auth.uid()
-                )
-            )
-        )
-    );
-```
-
-## Views
-
-### Project Summary
-
-```sql
-CREATE VIEW project_summary AS
-SELECT 
-    p.id,
-    p.name,
-    p.status,
-    p.score,
-    u.name as owner_name,
-    o.name as organization_name,
-    COUNT(DISTINCT a.id) as attachment_count,
-    COUNT(DISTINCT c.id) as comment_count,
-    p.created_at,
-    p.updated_at
-FROM 
-    projects p
-    LEFT JOIN users u ON p.user_id = u.id
-    LEFT JOIN organizations o ON p.organization_id = o.id
-    LEFT JOIN attachments a ON p.id = a.project_id
-    LEFT JOIN comments c ON p.id = c.project_id
-GROUP BY 
-    p.id, p.name, p.status, p.score, u.name, o.name, p.created_at, p.updated_at;
-```
-
-### User Activity Summary
-
-```sql
-CREATE VIEW user_activity_summary AS
-SELECT 
-    u.id as user_id,
-    u.name as user_name,
-    COUNT(DISTINCT p.id) as project_count,
-    COUNT(DISTINCT c.id) as comment_count,
-    COUNT(DISTINCT a.id) as activity_count,
-    MAX(a.created_at) as last_activity
-FROM 
-    users u
-    LEFT JOIN projects p ON u.id = p.user_id
-    LEFT JOIN comments c ON u.id = c.user_id
-    LEFT JOIN activities a ON u.id = a.user_id
-GROUP BY 
-    u.id, u.name;
+-- Triggers for document_attachments
+CREATE TRIGGER update_document_attachments_version
+BEFORE UPDATE ON document_attachments
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 ```
 
 ## Indexes
 
-### Spatial Indexes
-
 ```sql
--- Project location index
-CREATE INDEX projects_location_gist_idx ON projects USING GIST (location);
+-- Improve query performance for projects
+CREATE INDEX idx_projects_agency ON projects(agency_id);
+CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX idx_projects_created_by ON projects(created_by);
+CREATE INDEX idx_projects_type_category ON projects(type, category);
+CREATE INDEX idx_projects_geometry ON projects USING GIST(geometry);
 
--- Spatial clustering index
-CREATE INDEX projects_location_cluster_idx ON projects 
-USING GIST (ST_ClusterDBSCAN(location, eps := 0.01, minpoints := 3) OVER ());
+-- Improve performance for project associations
+CREATE INDEX idx_project_milestones_project ON project_milestones(project_id);
+CREATE INDEX idx_funding_sources_project ON funding_sources(project_id);
+CREATE INDEX idx_document_attachments_project ON document_attachments(project_id);
+CREATE INDEX idx_scores_project ON scoring(project_id);
+CREATE INDEX idx_scores_criteria ON scoring(criteria_id);
+
+-- Improve performance for MCP and agent settings
+CREATE INDEX idx_mcp_servers_agency ON mcp_servers(agency_id);
+CREATE INDEX idx_mcp_servers_active ON mcp_servers(is_active);
+CREATE INDEX idx_agent_settings_agency ON agent_settings(agency_id);
+CREATE INDEX idx_agent_settings_active ON agent_settings(is_active);
 ```
 
-### Full Text Search
+## Schema Management
+
+### Full Schema Reset Script
 
 ```sql
--- Project search index
-CREATE INDEX projects_search_idx ON projects 
-USING GIN (to_tsvector('english', name || ' ' || COALESCE(description, '')));
+-- Drop everything and reinstall from scratch
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
 
--- Comment search index
-CREATE INDEX comments_search_idx ON comments
-USING GIN (to_tsvector('english', content));
+-- Re-create extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Run all of the table creation SQL statements from above
 ```
 
-## Materialized Views
+## Using the Schema
 
-### Project Statistics
+This schema definition is comprehensive and designed to support all aspects of the Planning Manager v6 application. To use it:
 
-```sql
-CREATE MATERIALIZED VIEW project_statistics AS
-SELECT 
-    DATE_TRUNC('month', created_at) as month,
-    status,
-    COUNT(*) as project_count,
-    AVG(score) as avg_score,
-    MIN(score) as min_score,
-    MAX(score) as max_score
-FROM 
-    projects
-GROUP BY 
-    DATE_TRUNC('month', created_at),
-    status
-WITH DATA;
+1. Connect to your Supabase PostgreSQL database
+2. Run the complete `supabase_schema.sql` script
+3. Verify all tables, functions, and policies are created correctly
+4. Set up any initial seed data required for your application
 
--- Refresh schedule
-CREATE OR REPLACE FUNCTION refresh_project_statistics()
-RETURNS void AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW project_statistics;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create a daily refresh job
-SELECT cron.schedule('0 0 * * *', 'SELECT refresh_project_statistics()');
-```
-
-## Extensions
-
-```sql
--- Required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
-CREATE EXTENSION IF NOT EXISTS "postgis";        -- Spatial functionality
-CREATE EXTENSION IF NOT EXISTS "pg_stat_statements"; -- Query analysis
-CREATE EXTENSION IF NOT EXISTS "pg_cron";        -- Job scheduling
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";       -- Encryption
-```
-
-## Backup and Recovery
-
-```sql
--- Backup function
-CREATE OR REPLACE FUNCTION backup_database()
-RETURNS void AS $$
-BEGIN
-    -- Create backup
-    PERFORM pg_dump_all();
-    
-    -- Archive backup
-    PERFORM archive_backup();
-    
-    -- Clean old backups
-    PERFORM cleanup_old_backups();
-END;
-$$ LANGUAGE plpgsql;
-
--- Schedule daily backups
-SELECT cron.schedule('0 0 * * *', 'SELECT backup_database()');
-```
-
-## Performance Considerations
-
-1. **Partitioning**
-   - Consider partitioning large tables by date
-   - Implement partitioning for activities and comments
-
-2. **Vacuum**
-   - Regular VACUUM ANALYZE on heavily modified tables
-   - Monitor table bloat
-
-3. **Maintenance**
-   - Regular index maintenance
-   - Statistics updates
-   - Query optimization
-
-## Security Considerations
-
-1. **Access Control**
-   - Row Level Security (RLS) policies
-   - Role-based access control
-   - Object-level permissions
-
-2. **Data Protection**
-   - Encryption at rest
-   - Secure connections
-   - Audit logging
-
-3. **Monitoring**
-   - Query performance
-   - Resource usage
-   - Security events
+The schema supports both normal online operation with full Supabase integration and offline capabilities with synchronization support.

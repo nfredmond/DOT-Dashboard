@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
   MessageSquare,
   Mic,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { AuthContext } from "@/contexts/AuthContext";
 import { useVoice } from "@/contexts/VoiceContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { VoiceInputOutput } from "@/components/VoiceInputOutput";
@@ -33,7 +33,11 @@ import { VoiceInputOutput } from "@/components/VoiceInputOutput";
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isVoiceInputOpen, setIsVoiceInputOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const authContext = useContext(AuthContext);
+  // Handle the case when auth context isn't available
+  const user = authContext?.user || null;
+  const logout = authContext?.logout || (() => {});
+  
   const router = useRouter();
   const { voiceEnabled } = useVoice();
 

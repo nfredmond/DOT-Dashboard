@@ -16,6 +16,10 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Track project status, budget, and timeline
 - Batch operations for efficient management
 - Customizable project metadata and categorization
+- **Real-time project synchronization** between management and mapping systems
+- **Event-driven integration** for consistent project visualization
+- **Multi-step project wizard** with quick-add form for rapid project creation
+- **Offline-capable project storage** with seamless synchronization
 
 ### 🗺️ GIS Mapping
 
@@ -25,6 +29,8 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Drawing and editing geographic features
 - Marker clustering for dense datasets
 - Measurement tools for distance and area calculation
+- **Synchronized project visualization** with automatic updates
+- **GeoJSON-compatible geometry** for standardized spatial data
 
 ### 📊 Project Scoring & Prioritization
 
@@ -104,9 +110,14 @@ Planning Manager is a sophisticated web application designed for transportation 
 
 ### Database Options
 
-Planning Manager v5 supports two database options:
+Planning Manager v6 supports two database options:
 
-1. **Supabase Database (Default)**: A fully-featured PostgreSQL database hosted on Supabase with PostGIS support for geospatial data. This option requires a Supabase account and provides real-time synchronization, multi-user collaboration, and advanced querying capabilities.
+1. **Supabase Database (Default)**: A fully-featured PostgreSQL database hosted on Supabase with PostGIS support for geospatial data. This option requires a Supabase account and provides real-time synchronization, multi-user collaboration, and advanced querying capabilities. The v6 schema includes:
+   - Enhanced project management tables with environmental documentation fields
+   - Comprehensive funding source and milestone tracking
+   - MCP and Agents SDK integration tables
+   - Offline synchronization capabilities
+   - Complete Row-Level Security (RLS) policies
 
 2. **Offline Database**: A local IndexedDB-based database that operates entirely within the browser. This option is ideal for:
    - Agencies with strict data sovereignty requirements
@@ -159,8 +170,14 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 4. Initialize the database:
 
 For Supabase (Default):
-- Follow the instructions in `SUPABASE_SETUP_SQL.md`
+- Follow the instructions in `supabase_schema.sql` 
 - Run the SQL setup scripts in your Supabase SQL editor
+- This comprehensive script sets up the complete database schema including:
+  - Project management tables
+  - AI models and integration
+  - MCP servers configuration
+  - Agent settings
+  - Offline synchronization support
 
 For Offline Database:
 - Set `OFFLINE_DATABASE_ENABLED=true` in your .env.local file
@@ -186,11 +203,13 @@ planning-manager/
 │   │   ├── api/             # API route handlers
 │   │   ├── projects/        # Project management pages
 │   │   ├── project-map/     # GIS mapping interface
+│   │   ├── project-mapping-wrapper/ # Map integration components
 │   │   ├── project-scoring/ # Scoring and prioritization
 │   │   ├── llm-assistant/   # AI assistant interface
 │   │   └── agent-tools/     # OpenAI Agents interface
 │   ├── components/          # Reusable React components
 │   ├── contexts/            # React context providers
+│   │   └── ProjectsContext.tsx # Central project management context
 │   ├── hooks/               # Custom React hooks
 │   ├── lib/                 # Utility functions and services
 │   │   ├── api/             # API client functions
@@ -202,6 +221,7 @@ planning-manager/
 │   └── types/               # TypeScript type definitions
 ├── public/                  # Static assets
 ├── docs/                    # Documentation
+│   └── PROJECT_MANAGEMENT_INTEGRATION.md # Project integration documentation
 └── project_templates/       # Project templates and examples
 ```
 
@@ -222,7 +242,9 @@ Comprehensive documentation is available in the `docs` directory:
 - [GIS Features](docs/GIS_FEATURES.md) - Geographic Information System capabilities
 - [LLM Integration](docs/LLM_INTEGRATION.md) - AI/LLM integration details
 - [Agents Integration](docs/AGENTS_INTEGRATION.md) - OpenAI Agents SDK integration
+- [MCP Agents Integration](docs/MCP_AGENTS_INTEGRATION.md) - Model Context Protocol integration
 - [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) - Detailed technical implementation
+- [Project Management Integration](docs/PROJECT_MANAGEMENT_INTEGRATION.md) - Project management and map synchronization
 
 ### Development & Operations
 
@@ -241,33 +263,30 @@ The Planning Manager is currently in active development, with the following stat
 - Authentication and user management system
 - Basic GIS implementation with Leaflet
 
-### Phase 2: Advanced Features (Current)
+### Phase 2: Advanced Features (Completed)
 
 - Enhanced GIS capabilities with drawing tools and data visualization
 - Project scoring and prioritization system
 - AI/LLM integration with OpenAI and Anthropic
 - Community engagement tools
 - OpenAI Agents SDK integration with computer and web browsing capabilities
+- Project management integration with real-time synchronization
+
+### Phase 3: Integration & Expansion (Current)
+
+- External API integrations with transportation data sources
+- Advanced reporting capabilities with templates
+- Mobile optimization for field use
+- Enhanced offline functionality for remote usage
+- Improved agent tools for analyzing transportation impact data
 
 ### Upcoming Phases
 
-1. **Integration & Expansion** (2-3 weeks)
-   - External API integrations
-   - Advanced reporting capabilities
-   - Mobile optimization
-
-2. **Performance & Polish** (2 weeks)
-   - Performance optimization
-   - UI/UX refinements
-   - Accessibility improvements
-
-3. **Extended Features** (Ongoing)
-   - Advanced analytics
-   - Customizable workflows
-   - Additional AI capabilities
-   - Enhanced agent tools and domain-specific agents
-
-For detailed information about the development plan and timeline, see our [Development Plan](docs/DEVELOPMENT_PLAN.md).
+- Performance optimization for large datasets
+- Accessibility improvements (WCAG compliance)
+- Advanced analytics and custom dashboards
+- Workflow automation and templates
+- Multi-language support
 
 ## Contributing
 

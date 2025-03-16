@@ -26,7 +26,8 @@ export default function Error({
               src="/Circle_Green_TranspRoad.png" 
               alt="Planning Manager" 
               width={80} 
-              height={80} 
+              height={80}
+              priority={true}
               className="opacity-50"
             />
           </div>

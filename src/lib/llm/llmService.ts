@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/client';
 import { getProjectAreaContext } from './dataUtils';
 
 // Define interfaces
@@ -41,14 +41,18 @@ const DEFAULT_OPTIONS: LLMRequestOptions = {
  */
 export async function submitLLMQuery(request: LLMRequest): Promise<LLMResponse> {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase credentials not configured');
+    // For demonstration mode, return mock data
+    if (typeof window !== 'undefined' && localStorage.getItem('planning_manager_demo_user')) {
+      return generateMockResponse(request);
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    if (!supabaseUrl) {
+      throw new Error('Supabase URL not configured');
+    }
+    
+    const supabase = createClient();
     
     // Merge default options with provided options
     const options = { ...DEFAULT_OPTIONS, ...request.options };
@@ -58,34 +62,32 @@ export async function submitLLMQuery(request: LLMRequest): Promise<LLMResponse> 
     const { data, error } = await supabase.functions.invoke('llm-query', {
       body: {
         query: request.query,
-        context: request.context || '',
-        project_id: request.project_id || '',
-        options: options,
-      },
+        context: request.context,
+        project_id: request.project_id,
+        project_location: request.project_location,
+        project_county: request.project_county,
+        project_state: request.project_state,
+        project_name: request.project_name,
+        project_type: request.project_type,
+        options
+      }
     });
     
     if (error) {
-      console.error('Error calling LLM API:', error);
-      throw new Error(`LLM API error: ${error.message}`);
+      console.error('Error calling LLM function:', error);
+      throw new Error(`Failed to get response: ${error.message}`);
     }
     
-    // For demo purposes, if we can't connect to Supabase Functions
-    // or they're not set up yet, generate a mock response
-    if (!data) {
-      return generateMockResponse(request);
-    }
-    
-    return {
-      response: data.response,
-      model: data.model || options.model || DEFAULT_OPTIONS.model || 'unknown',
-      tokens_used: data.tokens_used || 0,
-      feedback_id: data.feedback_id,
-    };
+    return data;
   } catch (error) {
     console.error('Error in LLM service:', error);
     
-    // Fallback to mock response for demo/development
-    return generateMockResponse(request);
+    // Return fallback response
+    return {
+      response: "I'm sorry, I couldn't process your request at this time. Please try again later.",
+      model: "fallback",
+      tokens_used: 0
+    };
   }
 }
 
@@ -94,26 +96,36 @@ export async function submitLLMQuery(request: LLMRequest): Promise<LLMResponse> 
  */
 export async function submitLLMFeedback(feedbackId: string, isPositive: boolean, comments?: string): Promise<void> {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase credentials not configured, feedback not submitted');
+    // For demonstration mode, just log to console
+    if (typeof window !== 'undefined' && localStorage.getItem('planning_manager_demo_user')) {
+      console.log(`Demo feedback: ${isPositive ? 'Positive' : 'Negative'} for ID ${feedbackId}`);
+      if (comments) console.log(`Comments: ${comments}`);
       return;
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     
-    await supabase.functions.invoke('llm-feedback', {
+    if (!supabaseUrl) {
+      throw new Error('Supabase URL not configured');
+    }
+    
+    const supabase = createClient();
+    
+    const { error } = await supabase.functions.invoke('llm-feedback', {
       body: {
         feedback_id: feedbackId,
         is_positive: isPositive,
-        comments: comments || '',
-      },
+        comments: comments || ''
+      }
     });
+    
+    if (error) {
+      console.error('Error submitting feedback:', error);
+      throw new Error(`Failed to submit feedback: ${error.message}`);
+    }
   } catch (error) {
-    console.error('Error submitting LLM feedback:', error);
-    // Silently fail in case of error - feedback is not critical
+    console.error('Error in feedback service:', error);
+    throw error;
   }
 }
 

@@ -210,7 +210,7 @@ export default function AdminPanel() {
   ];
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="global_admin">
       <div className="p-8 space-y-6">
         <div className="flex items-center justify-between mb-2">
           <Button 

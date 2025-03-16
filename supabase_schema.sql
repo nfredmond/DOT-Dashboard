@@ -1,4 +1,4 @@
--- Planning Manager v5 - Supabase Schema
+-- Planning Manager v6 - Supabase Schema
 -- Complete schema setup for the Planning Manager application
 
 -- Drop everything and reinstall from scratch
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     UNIQUE(agency_id, user_id)
 );
 
--- Create projects table
+-- Create projects table with enhanced fields for project management integration
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
@@ -47,14 +47,52 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     status TEXT NOT NULL CHECK (status IN ('planning', 'active', 'completed', 'cancelled')),
     type TEXT NOT NULL,
+    category TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'medium',
     location TEXT,
     geometry GEOMETRY,
     metadata JSONB DEFAULT '{}',
     score_data JSONB,
     analysis_results JSONB,
+    
+    -- Enhanced project management fields
+    allocated_budget DECIMAL(12, 2),
+    estimated_cost DECIMAL(12, 2),
+    pse_budget DECIMAL(12, 2), -- Plans, Specifications & Estimates budget
+    ce_budget DECIMAL(12, 2), -- Construction Engineering budget
+    construction_budget DECIMAL(12, 2), -- Total construction cost
+    right_of_way_budget DECIMAL(12, 2), -- Right of Way acquisition cost
+    
+    -- Environmental documentation fields
+    nepa_status TEXT CHECK (nepa_status IN ('not_started', 'in_progress', 'completed', 'not_required')),
+    ceqa_status TEXT CHECK (ceqa_status IN ('not_started', 'in_progress', 'completed', 'not_required')),
+    environmental_document_type TEXT,
+    environmental_clearance_date TIMESTAMPTZ,
+    
+    -- Project dates
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    
+    -- Map integration fields
+    coordinates JSONB, -- {latitude: number, longitude: number}
+    geojson JSONB,
+    map_type TEXT DEFAULT 'standard',
+    
+    -- Other metadata
+    lead_agency TEXT,
+    partners TEXT[],
+    tags TEXT[],
+    is_public BOOLEAN DEFAULT TRUE,
+    
+    -- Tracking fields
     created_by UUID NOT NULL REFERENCES auth.users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
 );
 
 -- Create project_users junction table
@@ -75,7 +113,12 @@ CREATE TABLE IF NOT EXISTS criteria (
     category TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('numeric', 'boolean', 'enum')),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
 );
 
 -- Create scoring table
@@ -88,7 +131,12 @@ CREATE TABLE IF NOT EXISTS scoring (
     evaluated_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(project_id, criteria_id)
+    UNIQUE(project_id, criteria_id),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
 );
 
 -- Create project_scenarios table
@@ -183,11 +231,113 @@ CREATE TABLE IF NOT EXISTS voice_command_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Create document_attachments table for project files
+CREATE TABLE IF NOT EXISTS document_attachments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    description TEXT,
+    uploaded_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Sync fields
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+
+-- Create project_milestones table
+CREATE TABLE IF NOT EXISTS project_milestones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    due_date TIMESTAMPTZ NOT NULL,
+    completed_date TIMESTAMPTZ,
+    status TEXT NOT NULL CHECK (status IN ('not_started', 'in_progress', 'completed', 'delayed')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID NOT NULL REFERENCES profiles(id)
+);
+
+-- Create funding_sources table
+CREATE TABLE IF NOT EXISTS funding_sources (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    source_name TEXT NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    type TEXT NOT NULL,
+    fiscal_year TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create MCP servers table for Model Context Protocol integration
+CREATE TABLE IF NOT EXISTS mcp_servers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    api_key TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    capabilities TEXT[] NOT NULL,
+    models TEXT[],
+    max_tokens INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create agent_settings table for AI agent configuration
+CREATE TABLE IF NOT EXISTS agent_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    prefer_mcp_over_openai BOOLEAN DEFAULT FALSE,
+    analysis_agent_enabled BOOLEAN DEFAULT TRUE,
+    planning_agent_enabled BOOLEAN DEFAULT TRUE,
+    browser_agent_enabled BOOLEAN DEFAULT TRUE,
+    computer_agent_enabled BOOLEAN DEFAULT TRUE,
+    default_model_id UUID REFERENCES ai_models(id),
+    system_prompt TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create sync_status table for offline sync tracking
+CREATE TABLE IF NOT EXISTS sync_status (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    record_id UUID NOT NULL,
+    table_name TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    last_sync_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    client_version INTEGER,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    UNIQUE(record_id, table_name)
+);
+
+-- Create sync_queue table for pending changes
+CREATE TABLE IF NOT EXISTS sync_queue (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    record_id UUID NOT NULL,
+    table_name TEXT NOT NULL,
+    operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+    data JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ,
+    client_id TEXT NOT NULL,
+    conflict_resolution TEXT,
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE
+);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_agency_id ON profiles(agency_id);
 CREATE INDEX IF NOT EXISTS idx_projects_agency_id ON projects(agency_id);
 CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
+CREATE INDEX IF NOT EXISTS idx_projects_geometry ON projects USING GIST (geometry);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_category ON projects(category);
 CREATE INDEX IF NOT EXISTS idx_criteria_agency_id ON criteria(agency_id);
 CREATE INDEX IF NOT EXISTS idx_scoring_project_id ON scoring(project_id);
 CREATE INDEX IF NOT EXISTS idx_scoring_criteria_id ON scoring(criteria_id);
@@ -200,6 +350,17 @@ CREATE INDEX IF NOT EXISTS idx_scenario_comparisons_scenario2_id ON scenario_com
 CREATE INDEX IF NOT EXISTS idx_voice_settings_user_id ON voice_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_voice_command_logs_user_id ON voice_command_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_voice_command_logs_model_id ON voice_command_logs(model_id);
+CREATE INDEX IF NOT EXISTS idx_document_attachments_project_id ON document_attachments(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_milestones_project_id ON project_milestones(project_id);
+CREATE INDEX IF NOT EXISTS idx_funding_sources_project_id ON funding_sources(project_id);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_is_active ON mcp_servers(is_active);
+CREATE INDEX IF NOT EXISTS idx_agent_settings_agency_id ON agent_settings(agency_id);
+CREATE INDEX IF NOT EXISTS idx_sync_status_record_id ON sync_status(record_id);
+CREATE INDEX IF NOT EXISTS idx_sync_status_table_name ON sync_status(table_name);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_record_id ON sync_queue(record_id);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_agency_id ON sync_queue(agency_id);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_client_id ON sync_queue(client_id);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_processed_at ON sync_queue(processed_at);
 
 -- Insert sample AI models if they don't exist
 DO $$
@@ -364,6 +525,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create function to increment version on update for sync tables
+CREATE OR REPLACE FUNCTION increment_version()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.version = OLD.version + 1;
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create function for spatial project queries
+CREATE OR REPLACE FUNCTION find_projects_in_area(
+    p_lat FLOAT, 
+    p_lng FLOAT, 
+    p_radius_meters FLOAT,
+    p_agency_id UUID
+)
+RETURNS SETOF projects AS $$
+BEGIN
+    RETURN QUERY
+    SELECT p.*
+    FROM projects p
+    WHERE 
+        p.agency_id = p_agency_id AND
+        ST_DWithin(
+            p.geometry,
+            ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326),
+            p_radius_meters
+        );
+END;
+$$ LANGUAGE plpgsql;
+
 -- Create or replace the views
 CREATE OR REPLACE VIEW voice_activity_summary AS
 SELECT
@@ -395,6 +588,39 @@ LEFT JOIN
     voice_command_logs vcl ON am.id = vcl.model_id
 GROUP BY
     am.id, am.name, am.provider;
+
+CREATE OR REPLACE VIEW project_status_summary AS
+SELECT
+    agency_id,
+    status,
+    COUNT(*) as count,
+    SUM(estimated_cost) as total_estimated_cost,
+    SUM(allocated_budget) as total_allocated_budget
+FROM
+    projects
+GROUP BY
+    agency_id, status;
+
+-- Create triggers for version increments
+CREATE TRIGGER projects_version_trigger
+BEFORE UPDATE ON projects
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
+
+CREATE TRIGGER criteria_version_trigger
+BEFORE UPDATE ON criteria
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
+
+CREATE TRIGGER scoring_version_trigger
+BEFORE UPDATE ON scoring
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
+
+CREATE TRIGGER document_attachments_version_trigger
+BEFORE UPDATE ON document_attachments
+FOR EACH ROW
+EXECUTE FUNCTION increment_version();
 
 -- Create RLS policies if they don't exist
 DO $$
@@ -429,6 +655,30 @@ BEGIN
         CREATE POLICY "Administrators can view all voice command logs" ON voice_command_logs FOR SELECT
             USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.isGlobalAdmin = TRUE));
     END IF;
+    
+    -- Project management integration policies
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'projects' AND policyname = 'Users can view projects from their agency') THEN
+        CREATE POLICY "Users can view projects from their agency" ON projects FOR SELECT
+            USING (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid()));
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'projects' AND policyname = 'Editors and Admins can modify projects from their agency') THEN
+        CREATE POLICY "Editors and Admins can modify projects from their agency" ON projects FOR INSERT UPDATE DELETE
+            USING (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role IN ('admin', 'editor')))
+            WITH CHECK (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role IN ('admin', 'editor')));
+    END IF;
+    
+    -- MCP and Agents SDK integration policies
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mcp_servers' AND policyname = 'Administrators can manage MCP servers') THEN
+        CREATE POLICY "Administrators can manage MCP servers" ON mcp_servers
+            USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.isGlobalAdmin = TRUE));
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'agent_settings' AND policyname = 'Agency admins can manage agent settings') THEN
+        CREATE POLICY "Agency admins can manage agent settings" ON agent_settings
+            USING (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'))
+            WITH CHECK (agency_id IN (SELECT agency_id FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.role = 'admin'));
+    END IF;
 END $$;
 
 -- Set up Row Level Security for all tables
@@ -444,3 +694,10 @@ ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_command_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE funding_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mcp_servers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_queue ENABLE ROW LEVEL SECURITY;

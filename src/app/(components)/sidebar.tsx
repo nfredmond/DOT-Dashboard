@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useContext } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
   ListChecksIcon,
   MonitorIcon,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { AuthContext } from "@/contexts/AuthContext";
 
 interface MenuItem {
   id: string;
@@ -37,7 +37,12 @@ interface SidebarProps {
 
 export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const authContext = useContext(AuthContext);
+  
+  // Handle the case when auth context isn't available
+  const user = authContext?.user || null;
+  const logout = authContext?.logout || (() => router.push('/login'));
+  
   const isAdmin = user?.role === "global_admin" || user?.role === "org_admin";
   
   const menuItems: MenuItem[] = [

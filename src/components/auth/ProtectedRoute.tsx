@@ -3,28 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
-
-// This is a simplified version for demonstration
-// In a real app, this would check with your auth provider
-const useAuth = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  
-  useEffect(() => {
-    // Simulate auth check with a timeout
-    const checkAuth = setTimeout(() => {
-      // For demo, always authenticate
-      setIsAuthenticated(true);
-      
-      // In a real app, you would check session/token:
-      // const token = localStorage.getItem('authToken');
-      // setIsAuthenticated(!!token);
-    }, 500);
-    
-    return () => clearTimeout(checkAuth);
-  }, []);
-  
-  return { isAuthenticated };
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -33,34 +12,35 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   
-  // Handle redirect if not authenticated
+  // Handle redirect and authorization
   useEffect(() => {
-    if (isAuthenticated === false) {
-      router.push('/login');
+    // If authentication check is complete
+    if (!isLoading) {
+      // If not authenticated, redirect to login
+      if (!isAuthenticated) {
+        router.push('/login');
+      } 
+      // If authenticated but role is required and user doesn't have it
+      else if (requiredRole && user?.role !== requiredRole) {
+        router.push('/homepage');
+      }
+      // User is authenticated and has required role (or no role required)
+      else {
+        setIsAuthorized(true);
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, requiredRole, router, user?.role]);
   
   // Show loading state while checking auth
-  if (isAuthenticated === null) {
+  if (isLoading || !isAuthorized) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
           <Spinner size="lg" className="mb-4" />
           <p className="text-muted-foreground">Verifying your access...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show loading while redirecting to login
-  if (!isAuthenticated) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="text-center">
-          <Spinner size="lg" className="mb-4" />
-          <p className="text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
     );

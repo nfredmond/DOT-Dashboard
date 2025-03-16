@@ -1,12 +1,108 @@
 /* Fallback CSS for Leaflet and Leaflet Draw */
 
-/* Basic Leaflet styles */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-  background: #ddd;
+/* Essential Leaflet CSS (fallback in case CDN fails) */
+
+/* required styles */
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
+.leaflet-container {
+  overflow: hidden;
+  background-color: #ddd; /* Default background color */
+}
+
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Necessary size for map container */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 500px; /* Important: set minimum height */
+  z-index: 1;
+}
+
+/* Marker icons fix */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  display: block !important;
+}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+  pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+  pointer-events: auto;
+}
+
+/* Default icon path */
+.leaflet-default-icon-path {
+  background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png) !important;
+}
+
+/* Tile layer animations */
+.leaflet-tile-loaded {
+  visibility: inherit;
+}
+
+/* Ensure Leaflet attribution is visible */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0 5px;
+  font-size: 11px;
+}
+
+/* Control positioning */
+.leaflet-top,
+.leaflet-bottom {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.leaflet-top {
+  top: 0;
+}
+
+.leaflet-right {
+  right: 0;
+}
+
+.leaflet-bottom {
+  bottom: 0;
+}
+
+.leaflet-left {
+  left: 0;
+}
+
+/* Controls should be clickable */
+.leaflet-control {
+  float: left;
+  clear: both;
+  pointer-events: auto;
+}
+
+/* Basic Leaflet styles */
 .leaflet-control-container .leaflet-top,
 .leaflet-control-container .leaflet-bottom {
   position: absolute;

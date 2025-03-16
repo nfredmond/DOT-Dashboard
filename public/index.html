@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transportation Planning Suite</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/leaflet-fallback.css" />
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Fallback script to ensure Leaflet is available -->
+  <script>
+    // This script ensures Leaflet is properly loaded
+    window.addEventListener('DOMContentLoaded', function() {
+      if (!window.L) {
+        console.log('Leaflet not detected, loading fallback');
+        var script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = function() {
+          console.log('Leaflet loaded via fallback');
+        };
+        document.head.appendChild(script);
+      } else {
+        console.log('Leaflet already loaded');
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="__next">
+    <!-- Next.js will render the app here -->
+  </div>
+</body>
+</html> 

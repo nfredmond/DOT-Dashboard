@@ -1,6 +1,14 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// Import full Leaflet library directly
+import * as L from 'leaflet';
+
+// Assign to window object to ensure global availability
+if (typeof window !== 'undefined') {
+  window.L = L;
+}
+
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   MapContainer, 
@@ -13,7 +21,6 @@ import {
   GeoJSON
 } from 'react-leaflet';
 import { divIcon } from 'leaflet';
-import L from 'leaflet';
 import { SearchControl } from './SearchControl';
 import { LayerSelector, BaseMapOption, OverlayLayer } from './LayerSelector';
 import { GeolocateControl } from './GeolocateControl';
@@ -22,8 +29,17 @@ import { cn } from '@/lib/utils';
 import { useLeaflet } from '@/hooks/useLeaflet';
 import { getMapForUser } from '@/lib/map-config-service';
 import { getMapTiles } from '@/lib/map-service';
-import { useAuth } from '@/contexts/AuthContext';
+import { AuthContext } from '@/contexts/AuthContext';
 import 'leaflet/dist/leaflet.css';
+import { cleanupLeafletMapById, resetLeafletGlobalState, markContainerAsInitialized, isContainerInitialized } from '@/lib/leaflet-cleanup';
+import LeafletMapWrapper from '@/lib/LeafletMapWrapper';
+
+// Add the leafletMapInstance property to the Window interface
+declare global {
+  interface Window {
+    leafletMapInstance: any;
+  }
+}
 
 // Define the possible base maps to select from
 const DEFAULT_BASE_MAPS: BaseMapOption[] = [
@@ -88,28 +104,82 @@ function MapEventHandler() {
       console.log('Map loaded');
       // Store map reference globally for utility functions
       if (typeof window !== 'undefined') {
-        (window as any).leafletMapInstance = map;
+        window.leafletMapInstance = map;
+        
+        // Store the map element's ID for easier cleanup
+        if (map && map.getContainer()) {
+          const container = map.getContainer();
+          const parent = container.closest('[data-map-id]') as HTMLElement;
+          
+          if (parent && parent.dataset.mapId) {
+            console.log(`Map associated with container ID: ${parent.dataset.mapId}`);
+            // Store the ID for cleanup reference
+            (map as any)._parentContainerId = parent.dataset.mapId;
+          }
+        }
       }
+    },
+    // Add these events to debug map loading
+    tileerror: (e) => {
+      console.error('Tile loading error:', e);
+    },
+    tileload: () => {
+      console.log('Tiles loaded successfully');
     }
   });
 
   // Set global map instance on component mount
   useEffect(() => {
     if (typeof window !== 'undefined' && map) {
-      (window as any).leafletMapInstance = map;
+      window.leafletMapInstance = map;
       
-      // Signal that the map is ready for components that might need it
-      const mapReadyEvent = new CustomEvent('leaflet-map-ready', { detail: { map } });
-      window.dispatchEvent(mapReadyEvent);
-      console.log('Dispatched leaflet-map-ready event');
-    }
-    
-    return () => {
-      // Clean up global reference on unmount
-      if (typeof window !== 'undefined') {
-        delete (window as any).leafletMapInstance;
+      // Try to find and associate the container ID
+      try {
+        const container = map.getContainer();
+        const parent = container.closest('[data-map-id]') as HTMLElement;
+        
+        if (parent && parent.dataset.mapId) {
+          console.log(`Map associated with container ID: ${parent.dataset.mapId}`);
+          // Store the ID for cleanup reference
+          (map as any)._parentContainerId = parent.dataset.mapId;
+        }
+      } catch (e) {
+        console.warn('Error finding map container ID:', e);
       }
+      
+      // Return cleanup function
+      return () => {
+        console.log('MapEventHandler unmounting, cleaning up references');
+        if (window.leafletMapInstance === map) {
+          window.leafletMapInstance = null;
+        }
+      };
+    }
+  }, [map]);
+
+  // Add useEffect to check map size after it's mounted
+  useEffect(() => {
+    if (!map) return;
+    
+    console.log('Map container size:', 
+      map.getContainer().clientWidth,
+      map.getContainer().clientHeight
+    );
+    
+    // Force map to update its size
+    setTimeout(() => {
+      map.invalidateSize();
+      console.log('Map size invalidated');
+    }, 100);
+    
+    // Update map when window resizes
+    const handleResize = () => {
+      map.invalidateSize();
+      console.log('Map size updated on resize');
     };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [map]);
 
   return null;
@@ -174,7 +244,12 @@ export function ProjectMapping({
   onMarkerClick,
   testingMode = true, // Default to testing mode
 }: ProjectMappingProps) {
-  const { user } = useAuth();
+  // Update how we access AuthContext to avoid warning
+  // Get auth context via useContext but with safe fallback
+  const authContext = useContext(AuthContext);
+  // Set safe default if context is missing
+  const user = authContext?.user || null;
+  
   const { leafletLoaded, leafletInstance } = useLeaflet();
   const mapRef = useRef(null);
   
@@ -184,6 +259,50 @@ export function ProjectMapping({
   // Add test projects for Nevada City when in testing mode
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
   
+  // Create a unique ID for the map container
+  const mapId = useRef(`map-${Math.random().toString(36).substr(2, 9)}`);
+
+  // State
+  const [activeBasemap, setActiveBasemap] = useState<BaseMapOption>(DEFAULT_BASE_MAPS[0]);
+  const [availableBasemaps, setAvailableBasemaps] = useState<BaseMapOption[]>(DEFAULT_BASE_MAPS);
+  const [activeOverlays, setActiveOverlays] = useState<OverlayLayer[]>([]);
+  const [availableOverlays, setAvailableOverlays] = useState<OverlayLayer[]>([]);
+  const [mapReady, setMapReady] = useState(false);
+  const [showAttribution, setShowAttribution] = useState(true);
+
+  // Import LeafletMapWrapper dynamically to prevent SSR issues
+  const LeafletMapWrapper = useMemo(() => 
+    dynamic(() => import('@/lib/LeafletMapWrapper'), { ssr: false }),
+  []);
+  
+  // Add cleanup logic to ensure the map is properly destroyed when the component unmounts
+  useEffect(() => {
+    // Generate a fixed mapId for this component instance
+    if (!mapId.current) {
+      mapId.current = `map-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Add a timeout to force invalidate the map size after it has loaded
+    const invalidateSizeTimer = setTimeout(() => {
+      if (typeof window !== 'undefined' && window.leafletMapInstance) {
+        try {
+          window.leafletMapInstance.invalidateSize();
+          console.log('Map size invalidated after initial load');
+        } catch (e) {
+          console.warn('Error invalidating map size:', e);
+        }
+      }
+    }, 500);
+
+    // Cleanup function to properly destroy the Leaflet map when component unmounts
+    return () => {
+      clearTimeout(invalidateSizeTimer);
+      // Clean up this specific map
+      cleanupLeafletMapById(mapId.current);
+      resetLeafletGlobalState();
+    };
+  }, []);
+
   useEffect(() => {
     if (testingMode) {
       // Add test Nevada City projects if in testing mode
@@ -621,60 +740,74 @@ export function ProjectMapping({
   };
 
   return (
-    <div 
-      className={cn("relative overflow-hidden rounded-md border", className)}
-      style={{ height, width }}
-    >
-      <MapContainer
-        center={initialCenter}
-        zoom={initialZoom}
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={false}
-        ref={mapRef}
-        className="leaflet-container"
-        whenReady={() => {
-          console.log('MapContainer is ready');
-        }}
-      >
-        {/* Base maps */}
-        <TileLayer
-          url={selectedBaseMap.url}
-          attribution={selectedBaseMap.attribution}
-        />
-        
-        {/* Map event handling and global setup - This MUST come before other components */}
-        <MapEventHandler />
-        
-        {/* Only add controls once map is initialized */}
-        {isMapInitialized && (
-          <>
-            <MapControlsComponent 
-              mapCenter={initialCenter}
-              defaultZoom={initialZoom}
+    <div className={cn("relative w-full h-full", className)} style={{ height, width }}>
+      {/* Only render map once ready - this prevents double initialization */}
+      {leafletLoaded && (
+        <LeafletMapWrapper id={mapId.current}>
+          <MapContainer
+            key={`leaflet-map-${mapId.current}`}
+            center={initialCenter}
+            zoom={initialZoom}
+            style={{ height: '100%', width: '100%', minHeight: '600px' }}
+            zoomControl={false}
+            attributionControl={showAttribution}
+            whenReady={() => {
+              console.log('MapContainer is ready');
+              // Mark this container as initialized
+              markContainerAsInitialized(mapId.current);
+              setMapReady(true);
+              
+              // Dispatch a custom event to notify the map is ready
+              const event = new CustomEvent('leaflet-map-ready');
+              window.dispatchEvent(event);
+              
+              // Store reference to map in window
+              if (typeof window !== 'undefined') {
+                window.leafletMapInstance = (window as any).leafletMapInstance || null;
+              }
+            }}
+          >
+            {/* Base maps */}
+            <TileLayer
+              url={selectedBaseMap.url}
+              attribution={selectedBaseMap.attribution}
             />
             
-            {/* Project markers */}
-            {renderProjectMarkers()}
+            {/* Map event handling and global setup - This MUST come before other components */}
+            <MapEventHandler />
             
-            {/* GeoJSON layers from configuration */}
-            {overlayLayers
-              .filter(layer => layer.id !== 'projects' && layer.visible && layer.url)
-              .map(layer => (
-                <GeoJSONLayer 
-                  key={layer.id} 
-                  url={layer.url || ''} 
-                  visible={layer.visible} 
+            {/* Only add controls once map is initialized */}
+            {mapReady && (
+              <>
+                <MapControlsComponent 
+                  mapCenter={initialCenter}
+                  defaultZoom={initialZoom}
                 />
-              ))}
-            
-            {/* Custom zoom control - using our own component instead of Leaflet's */}
-            <ZoomControl 
-              mapCenter={initialCenter}
-              defaultZoom={initialZoom}
-            />
-          </>
-        )}
-      </MapContainer>
+                
+                {/* Project markers */}
+                {renderProjectMarkers()}
+                
+                {/* GeoJSON layers from configuration */}
+                {overlayLayers
+                  .filter(layer => layer.id !== 'projects' && layer.visible && layer.url)
+                  .map(layer => (
+                    <GeoJSONLayer 
+                      key={layer.id} 
+                      url={layer.url || ''} 
+                      visible={layer.visible} 
+                    />
+                  ))}
+                
+                {/* Custom zoom control - using our own component instead of Leaflet's */}
+                <ZoomControl 
+                  mapCenter={initialCenter}
+                  defaultZoom={initialZoom}
+                />
+              </>
+            )}
+          </MapContainer>
+        </LeafletMapWrapper>
+      )}
       
       {/* UI Controls - positioned above the map - ONLY show when map is initialized */}
       {isMapInitialized && (
