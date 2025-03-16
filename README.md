@@ -294,4 +294,4 @@ For support, please open an issue in the GitHub repository or contact the develo
 - [OpenAI](https://openai.com/)
 - [OpenAI Agents SDK](https://platform.openai.com/docs/agents)
 - [Anthropic](https://www.anthropic.com/)
-- Green DOT Transportation Solutions
+- [Green DOT Transportation Solutions](https://greendottransportation.com)
