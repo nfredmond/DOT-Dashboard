@@ -96,6 +96,21 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="px-4 mt-3">
               <a 
                 href="#" 
+                onClick={(e) => { e.preventDefault(); router.push('/agent-tools'); }} 
+                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname === '/agent-tools' ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-3">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+                Agent Tools
+              </a>
+            </div>
+
+            <div className="px-4 mt-3">
+              <a 
+                href="#" 
                 onClick={(e) => { e.preventDefault(); router.push('/reports'); }} 
                 className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname === '/reports' ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
               >

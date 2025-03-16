@@ -1,12 +1,47 @@
-import { 
-  getMCPServers,
-  isMCPEnabled,
-  MCPServerConfig,
-  MCPCapability
-} from './env-service';
+/**
+ * Model Context Protocol (MCP) Service
+ * 
+ * Manages connections to MCP-compatible servers
+ * Provides streaming API for LLM text generation with MCP servers
+ */
+
+import { getEnvVariable } from '@/lib/env-service';
 
 /**
- * MCP Function Call
+ * MCP Server Configuration Interface
+ */
+export interface MCPServerConfig {
+  id: string;
+  name: string;
+  url: string;
+  apiKey?: string;
+  isActive: boolean;
+  capabilities: MCPCapability[];
+  models?: string[];
+  maxTokens?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * MCP Capabilities
+ * These represent the different functions an MCP server can perform
+ */
+export enum MCPCapability {
+  CHAT = 'chat',
+  COMPLETION = 'completion',
+  EMBEDDING = 'embedding',
+  ANALYSIS = 'analysis',
+  PLANNING = 'planning',
+  WEB_BROWSE = 'web_browse',
+  CODE_INTERPRETER = 'code_interpreter',
+  FILE_SEARCH = 'file_search',
+  FUNCTION_CALLING = 'function_calling',
+  MULTI_MODAL = 'multi_modal'
+}
+
+/**
+ * MCP Function Call Interface
  */
 export interface MCPFunctionCall {
   name: string;
@@ -14,7 +49,7 @@ export interface MCPFunctionCall {
 }
 
 /**
- * MCP Tool Definition
+ * MCP Tool Interface
  */
 export interface MCPTool {
   type: 'function';
@@ -26,431 +61,217 @@ export interface MCPTool {
 }
 
 /**
- * MCP Request Message
+ * MCP Request Options Interface
  */
-export interface MCPMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
-  name?: string;
-  tool_call_id?: string;
-}
-
-/**
- * MCP Response Configuration
- */
-export interface MCPResponseConfig {
-  tools?: MCPTool[];
-  temperature?: number;
+export interface MCPRequestOptions {
+  prompt: string;
+  system_prompt?: string;
   max_tokens?: number;
-  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  temperature?: number;
+  model?: string;
+  stream?: boolean;
+  tools?: MCPTool[];
+  capabilities?: MCPCapability[];
 }
 
 /**
- * Result of an MCP request
+ * MCP Stream Handler Type
  */
-export interface MCPResult {
-  message: MCPMessage;
-  tool_calls?: MCPFunctionCall[];
-  finish_reason: string;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+export type MCPStreamHandler = (chunk: any) => void;
+
+/**
+ * Get all configured MCP servers
+ * @returns Array of MCP server configurations
+ */
+export function getMCPServers(): MCPServerConfig[] {
+  // This would typically come from localStorage or a backend service
+  const storedServers = typeof window !== 'undefined' 
+    ? localStorage.getItem('mcp_servers') 
+    : null;
+    
+  if (storedServers) {
+    try {
+      return JSON.parse(storedServers);
+    } catch (e) {
+      console.error('Failed to parse MCP servers from storage', e);
+    }
+  }
+  
+  return [];
 }
 
 /**
- * Check if the MCP capability is available
+ * Get all active MCP servers
+ * @returns Array of active MCP server configurations
+ */
+export function getActiveMCPServers(): MCPServerConfig[] {
+  return getMCPServers().filter(server => server.isActive);
+}
+
+/**
+ * Check if a specific MCP capability is available in any active server
+ * @param capability The capability to check for
+ * @returns True if any active server has the capability
  */
 export function hasMCPCapability(capability: MCPCapability): boolean {
-  if (!isMCPEnabled()) {
-    return false;
-  }
-  
-  const servers = getMCPServers();
-  const activeServers = servers.filter(server => server.isActive);
-  
-  return activeServers.some(server => server.capabilities.includes(capability));
+  const activeServers = getActiveMCPServers();
+  return activeServers.some(server => 
+    server.capabilities.includes(capability)
+  );
 }
 
 /**
- * Get an appropriate MCP server for the given capability
+ * Get the first available MCP server with a specific capability
+ * @param capability The capability to check for
+ * @returns MCP server with the capability, or null if none found
  */
-export function getMCPServerForCapability(capability: MCPCapability): MCPServerConfig | null {
-  if (!isMCPEnabled()) {
-    return null;
-  }
-  
-  const servers = getMCPServers();
-  const activeServers = servers.filter(server => server.isActive);
-  
-  // Find a server that supports this capability
-  return activeServers.find(server => server.capabilities.includes(capability)) || null;
+export function getMCPServerWithCapability(capability: MCPCapability): MCPServerConfig | null {
+  const activeServers = getActiveMCPServers();
+  return activeServers.find(server => 
+    server.capabilities.includes(capability)
+  ) || null;
 }
 
 /**
- * Send a message to an MCP server
+ * Send a request to an MCP server
+ * @param server The MCP server configuration
+ * @param options Request options
+ * @param streamHandler Optional handler for streaming responses
+ * @returns Promise resolving to the MCP response
  */
-export async function sendMCPMessage(
-  messages: MCPMessage[],
-  config: MCPResponseConfig = {},
-  preferredServer?: MCPServerConfig
-): Promise<MCPResult> {
-  if (!isMCPEnabled() && !preferredServer) {
-    throw new Error('MCP is not enabled');
-  }
-  
-  // Use preferred server or find an appropriate one
-  const server = preferredServer || getMCPServers().find(s => s.isActive);
-  
-  if (!server) {
-    throw new Error('No active MCP server available');
-  }
-  
-  // Prepare the request based on the provider
-  const endpoint = prepareEndpoint(server);
-  const requestPayload = prepareRequestPayload(server, messages, config);
-  
+export async function sendMCPRequest(
+  server: MCPServerConfig,
+  options: MCPRequestOptions,
+  streamHandler?: MCPStreamHandler
+): Promise<any> {
   try {
-    const response = await fetch(endpoint, {
+    const apiKey = server.apiKey || getEnvVariable('MCP_API_KEY', '');
+    
+    const response = await fetch(server.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${server.apiKey}`
+        'Authorization': apiKey ? `Bearer ${apiKey}` : ''
       },
-      body: JSON.stringify(requestPayload)
+      body: JSON.stringify(options)
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`MCP server responded with status ${response.status}: ${errorText}`);
+      throw new Error(`MCP server error: ${response.status} ${response.statusText}`);
     }
     
-    const responseData = await response.json();
+    // Handle streaming
+    if (options.stream && streamHandler && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.trim() === 'data: [DONE]') continue;
+          
+          try {
+            const dataMatch = line.match(/^data: (.+)$/);
+            if (dataMatch) {
+              const json = JSON.parse(dataMatch[1]);
+              streamHandler(json);
+            }
+          } catch (e) {
+            console.error('Error parsing MCP stream chunk', e);
+          }
+        }
+      }
+      
+      return { success: true, message: 'Stream completed' };
+    } else {
+      // Non-streaming response
+      const data = await response.json();
+      return data;
+    }
     
-    // Transform the response based on the provider
-    return transformResponse(server, responseData);
   } catch (error) {
-    console.error('Error communicating with MCP server:', error);
+    console.error('MCP request error:', error);
     throw error;
   }
 }
 
 /**
- * Prepare the endpoint URL based on the server provider
+ * Send a completion request to an MCP server
+ * @param prompt The prompt text
+ * @param options Additional completion options
+ * @param streamHandler Optional handler for streaming responses
+ * @returns Promise resolving to the completion result
  */
-function prepareEndpoint(server: MCPServerConfig): string {
-  const baseUrl = server.url.endsWith('/') ? server.url : `${server.url}/`;
+export async function sendMCPCompletion(
+  prompt: string,
+  options: {
+    systemPrompt?: string;
+    maxTokens?: number;
+    temperature?: number;
+    model?: string;
+    stream?: boolean;
+    tools?: MCPTool[];
+  } = {},
+  streamHandler?: MCPStreamHandler
+): Promise<string> {
+  const activeMCPServers = getActiveMCPServers();
   
-  switch (server.provider) {
-    case 'openai':
-      return `${baseUrl}chat/completions`;
-    case 'anthropic':
-      return `${baseUrl}messages`;
-    case 'meta':
-      return `${baseUrl}completions`;
-    case 'custom':
-    default:
-      return `${baseUrl}chat/completions`;
+  if (activeMCPServers.length === 0) {
+    throw new Error('No active MCP servers available');
   }
-}
-
-/**
- * Prepare the request payload based on the server provider
- */
-function prepareRequestPayload(
-  server: MCPServerConfig,
-  messages: MCPMessage[],
-  config: MCPResponseConfig
-): any {
-  switch (server.provider) {
-    case 'openai':
-      return {
-        model: 'gpt-4o',
-        messages,
-        temperature: config.temperature || 0.7,
-        max_tokens: config.max_tokens || 2000,
-        tools: config.tools || [],
-        tool_choice: config.tool_choice || 'auto'
-      };
-      
-    case 'anthropic':
-      // Transform messages to Anthropic format
-      return {
-        model: 'claude-3-opus-20240229',
-        messages,
-        temperature: config.temperature || 0.7,
-        max_tokens: config.max_tokens || 2000,
-        tools: config.tools || [],
-        tool_choice: config.tool_choice || 'auto',
-        system: extractSystemMessage(messages)
-      };
-      
-    case 'meta':
-      // Transform for Meta's format
-      return {
-        model: 'llama-3-70b-instruct',
-        messages: transformMessagesForMeta(messages),
-        temperature: config.temperature || 0.7,
-        max_tokens: config.max_tokens || 2000
-      };
-      
-    case 'custom':
-    default:
-      // Use OpenAI format as default
-      return {
-        model: 'default',
-        messages,
-        temperature: config.temperature || 0.7,
-        max_tokens: config.max_tokens || 2000,
-        tools: config.tools || [],
-        tool_choice: config.tool_choice || 'auto'
-      };
-  }
-}
-
-/**
- * Extract system message from messages array
- */
-function extractSystemMessage(messages: MCPMessage[]): string {
-  const systemMessage = messages.find(msg => msg.role === 'system');
-  return systemMessage?.content || '';
-}
-
-/**
- * Transform messages for Meta's API format
- */
-function transformMessagesForMeta(messages: MCPMessage[]): any[] {
-  return messages.map(msg => {
-    if (msg.role === 'tool') {
-      // Meta may not support tool messages directly
-      return {
-        role: 'assistant',
-        content: `Tool Result (${msg.name}): ${msg.content}`
-      };
-    }
-    return msg;
-  });
-}
-
-/**
- * Transform the response based on the server provider
- */
-function transformResponse(server: MCPServerConfig, responseData: any): MCPResult {
-  switch (server.provider) {
-    case 'openai':
-      return {
-        message: responseData.choices[0].message,
-        tool_calls: responseData.choices[0].message.tool_calls,
-        finish_reason: responseData.choices[0].finish_reason,
-        usage: responseData.usage
-      };
-      
-    case 'anthropic':
-      // Transform Anthropic response to standard format
-      return {
-        message: {
-          role: 'assistant',
-          content: responseData.content[0].text
-        },
-        tool_calls: transformAnthropicToolCalls(responseData.tool_calls),
-        finish_reason: responseData.stop_reason,
-        usage: responseData.usage
-      };
-      
-    case 'meta':
-      // Transform Meta response to standard format
-      return {
-        message: {
-          role: 'assistant',
-          content: responseData.choices[0].text
-        },
-        finish_reason: responseData.choices[0].finish_reason,
-        usage: {
-          prompt_tokens: responseData.usage?.prompt_tokens || 0,
-          completion_tokens: responseData.usage?.completion_tokens || 0,
-          total_tokens: responseData.usage?.total_tokens || 0
-        }
-      };
-      
-    case 'custom':
-    default:
-      // Return as is, assuming OpenAI-like format
-      return {
-        message: responseData.choices[0].message,
-        tool_calls: responseData.choices[0].message.tool_calls,
-        finish_reason: responseData.choices[0].finish_reason,
-        usage: responseData.usage
-      };
-  }
-}
-
-/**
- * Transform Anthropic tool calls to standard format
- */
-function transformAnthropicToolCalls(toolCalls: any[] | undefined): MCPFunctionCall[] | undefined {
-  if (!toolCalls) return undefined;
   
-  return toolCalls.map(tool => ({
-    name: tool.name,
-    arguments: JSON.parse(tool.input)
-  }));
-}
-
-/**
- * Execute a tool call from an MCP server
- */
-export async function executeMCPToolCall(
-  toolCall: MCPFunctionCall
-): Promise<{ role: 'tool'; content: string; name: string; tool_call_id?: string }> {
-  // Register available tools
-  const availableTools: Record<string, (args: any) => Promise<string>> = {
-    // File operations
-    search_files: async (args) => {
-      const { query, extension } = args;
-      // Implementation would go here
-      return JSON.stringify({ files: [`test-file.${extension || 'txt'}`] });
-    },
-    
-    // Web search operations
-    web_search: async (args) => {
-      const { query } = args;
-      // Implementation would go here
-      return JSON.stringify({ results: [`Result for ${query}`] });
-    },
-    
-    // GIS operations
-    gis_query: async (args) => {
-      const { location, radius } = args;
-      // Implementation would go here
-      return JSON.stringify({ points: [{ lat: 0, lng: 0, name: 'Test Point' }] });
-    },
-    
-    // Database operations
-    database_query: async (args) => {
-      const { table, filters } = args;
-      // Implementation would go here
-      return JSON.stringify({ rows: [{ id: 1, name: 'Test' }] });
-    }
+  // Find a server with completion capability
+  const server = activeMCPServers.find(s => 
+    s.capabilities.includes(MCPCapability.COMPLETION) || 
+    s.capabilities.includes(MCPCapability.CHAT)
+  );
+  
+  if (!server) {
+    throw new Error('No MCP server with completion capability available');
+  }
+  
+  const requestOptions: MCPRequestOptions = {
+    prompt,
+    system_prompt: options.systemPrompt,
+    max_tokens: options.maxTokens || 1000,
+    temperature: options.temperature || 0.7,
+    model: options.model,
+    stream: options.stream,
+    tools: options.tools,
+    capabilities: [MCPCapability.COMPLETION]
   };
   
-  try {
-    // Check if tool is available
-    const toolFunction = availableTools[toolCall.name];
+  if (options.stream && streamHandler) {
+    // For streaming, collect chunks and return the full text at the end
+    let fullResponse = '';
     
-    if (!toolFunction) {
-      return {
-        role: 'tool',
-        name: toolCall.name,
-        content: JSON.stringify({ error: `Tool '${toolCall.name}' not found` })
-      };
+    await sendMCPRequest(server, requestOptions, (chunk) => {
+      if (chunk.choices && chunk.choices.length > 0) {
+        const content = chunk.choices[0].delta?.content || chunk.choices[0].text || '';
+        fullResponse += content;
+        streamHandler(chunk);
+      }
+    });
+    
+    return fullResponse;
+  } else {
+    // For non-streaming, just return the text
+    const response = await sendMCPRequest(server, requestOptions);
+    
+    if (response.choices && response.choices.length > 0) {
+      return response.choices[0].message?.content || response.choices[0].text || '';
     }
     
-    // Execute the tool
-    const result = await toolFunction(toolCall.arguments);
-    
-    return {
-      role: 'tool',
-      name: toolCall.name,
-      content: result
-    };
-  } catch (error) {
-    console.error(`Error executing tool ${toolCall.name}:`, error);
-    
-    return {
-      role: 'tool',
-      name: toolCall.name,
-      content: JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
-      })
-    };
+    return '';
   }
-}
-
-/**
- * Get available MCP tools
- */
-export function getAvailableMCPTools(): MCPTool[] {
-  return [
-    {
-      type: 'function',
-      function: {
-        name: 'search_files',
-        description: 'Search for files in the application',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'The search query'
-            },
-            extension: {
-              type: 'string',
-              description: 'Filter by file extension'
-            }
-          },
-          required: ['query']
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'web_search',
-        description: 'Search the web for information',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'The search query'
-            }
-          },
-          required: ['query']
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'gis_query',
-        description: 'Query geographic information',
-        parameters: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
-              description: 'The location to query'
-            },
-            radius: {
-              type: 'number',
-              description: 'The radius in meters'
-            }
-          },
-          required: ['location']
-        }
-      }
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'database_query',
-        description: 'Query the database',
-        parameters: {
-          type: 'object',
-          properties: {
-            table: {
-              type: 'string',
-              description: 'The table to query'
-            },
-            filters: {
-              type: 'object',
-              description: 'Filters to apply to the query'
-            }
-          },
-          required: ['table']
-        }
-      }
-    }
-  ];
 } 

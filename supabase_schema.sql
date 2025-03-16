@@ -331,26 +331,64 @@ CREATE TABLE notifications (
 
 -- Create user_settings table
 CREATE TABLE user_settings (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     theme TEXT DEFAULT 'light',
     language TEXT DEFAULT 'en',
+    timezone TEXT DEFAULT 'UTC',
     notifications_enabled BOOLEAN DEFAULT TRUE,
     email_notifications_enabled BOOLEAN DEFAULT TRUE,
-    dashboard_layout JSONB DEFAULT '{}',
-    other_settings JSONB DEFAULT '{}'
+    ui_preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id)
 );
 
 -- Create API keys table
 CREATE TABLE api_keys (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
-    key_hash TEXT NOT NULL,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    key TEXT NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     permissions TEXT[],
-    expires_at TIMESTAMPTZ,
     last_used_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Create project scenarios table
+CREATE TABLE project_scenarios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    timeline TEXT NOT NULL,
+    cost DECIMAL(12, 2) NOT NULL,
+    benefits TEXT[],
+    drawbacks TEXT[],
+    feasibility DECIMAL(4, 2) NOT NULL,
+    impact JSONB,
+    analysis TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    parent_scenario_id UUID REFERENCES project_scenarios(id) ON DELETE SET NULL
+);
+
+-- Create scenario comparisons table
+CREATE TABLE scenario_comparisons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    scenario1_id UUID NOT NULL REFERENCES project_scenarios(id) ON DELETE CASCADE,
+    scenario2_id UUID NOT NULL REFERENCES project_scenarios(id) ON DELETE CASCADE,
+    comparison TEXT NOT NULL,
+    recommendation TEXT,
+    scores JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
 
 -- Create indices for all tables
@@ -494,6 +532,8 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_scenarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scenario_comparisons ENABLE ROW LEVEL SECURITY;
 
 -- Create sample data for demo mode
 INSERT INTO agencies (id, name, subdomain, settings)
@@ -582,4 +622,72 @@ VALUES
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '44444444-4444-4444-4444-444444444444', 0.15),
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '55555555-5555-5555-5555-555555555555', 0.15),
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '66666666-6666-6666-6666-666666666666', 0.1),
-  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '77777777-7777-7777-7777-777777777777', 0.1); 
+  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '77777777-7777-7777-7777-777777777777', 0.1);
+
+-- Create project scenarios
+INSERT INTO project_scenarios (id, project_id, name, description, timeline, cost, benefits, drawbacks, feasibility, impact, analysis)
+VALUES
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '99999999-9999-9999-9999-999999999999', 'Safety Focus Scenario', 'Scenario description', '2024-01-01 to 2025-12-31', 1000000, ARRAY['Safety improvements'], ARRAY['Cost'], 0.75, '{"safety": 0.85, "cost": 0.65}', 'Safety improvements analysis'),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Cost Focus Scenario', 'Scenario description', '2024-01-01 to 2025-12-31', 800000, ARRAY['Cost effectiveness'], ARRAY['Safety'], 0.60, '{"cost": 0.75, "safety": 0.80}', 'Cost effectiveness analysis');
+
+-- Create scenario comparisons
+INSERT INTO scenario_comparisons (project_id, scenario1_id, scenario2_id, comparison, recommendation, scores)
+VALUES
+  ('99999999-9999-9999-9999-999999999999', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Safety vs. Cost', 'Safety Focus Scenario is more beneficial', '{"safety": 0.85, "cost": 0.65}'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Safety vs. Cost', 'Safety Focus Scenario is more beneficial', '{"safety": 0.85, "cost": 0.65}');
+
+-- Scenario indexes
+CREATE INDEX project_scenarios_project_id_idx ON project_scenarios(project_id);
+CREATE INDEX project_scenarios_created_by_idx ON project_scenarios(created_by);
+CREATE INDEX project_scenarios_parent_scenario_id_idx ON project_scenarios(parent_scenario_id);
+CREATE INDEX project_scenarios_created_at_idx ON project_scenarios(created_at);
+CREATE INDEX project_scenarios_feasibility_idx ON project_scenarios(feasibility);
+
+-- Scenario comparison indexes
+CREATE INDEX scenario_comparisons_project_id_idx ON scenario_comparisons(project_id);
+CREATE INDEX scenario_comparisons_scenario1_id_idx ON scenario_comparisons(scenario1_id);
+CREATE INDEX scenario_comparisons_scenario2_id_idx ON scenario_comparisons(scenario2_id);
+CREATE INDEX scenario_comparisons_created_by_idx ON scenario_comparisons(created_by);
+CREATE INDEX scenario_comparisons_created_at_idx ON scenario_comparisons(created_at);
+
+-- Scenario policies
+CREATE POLICY "Users can read scenarios in their organization" ON project_scenarios FOR SELECT USING (
+    EXISTS (
+        SELECT 1 FROM projects p
+        JOIN profiles pr ON p.organization_id = pr.organization_id
+        WHERE p.id = project_scenarios.project_id
+        AND pr.user_id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can create scenarios for their organization's projects" ON project_scenarios FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM projects p
+        JOIN profiles pr ON p.organization_id = pr.organization_id
+        WHERE p.id = project_scenarios.project_id
+        AND pr.user_id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can update scenarios they created" ON project_scenarios FOR UPDATE USING (
+    created_by = (SELECT id FROM profiles WHERE user_id = auth.uid())
+);
+
+-- Scenario comparison policies
+CREATE POLICY "Users can read scenario comparisons in their organization" ON scenario_comparisons FOR SELECT USING (
+    EXISTS (
+        SELECT 1 FROM projects p
+        JOIN profiles pr ON p.organization_id = pr.organization_id
+        WHERE p.id = scenario_comparisons.project_id
+        AND pr.user_id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can create scenario comparisons for their organization's projects" ON scenario_comparisons FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM projects p
+        JOIN profiles pr ON p.organization_id = pr.organization_id
+        WHERE p.id = scenario_comparisons.project_id
+        AND pr.user_id = auth.uid()
+    )
+); 

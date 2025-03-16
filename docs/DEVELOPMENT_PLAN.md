@@ -46,6 +46,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - ✅ Advanced filtering and search capabilities
 - ✅ Community engagement features
 - ✅ Data visualization and charting
+- ✅ OpenAI Agents SDK integration with computer and web browsing capabilities
 - 🔄 Extended reporting capabilities
 - 🔄 Comprehensive API for external integration
 
@@ -58,19 +59,20 @@ The development of Planning Manager follows a phased approach, with each phase b
 - SWR for data fetching and caching
 - React Context for state management
 
-### Phase 3: Integration and Expansion
+### Phase 3: Integration & Expansion
 
 **Duration**: 3 weeks  
-**Status**: Planned (Starting in 2 weeks)
+**Status**: Planned (Starting after Phase 2)
 
 #### Phase 3 Key Deliverables
 
-- 📅 External API integrations (federal/state transportation data)
-- 📅 Mobile optimization and responsive design enhancements
-- 📅 Advanced reporting with export capabilities
-- 📅 Batch operations for project management
-- 📅 Integration with common GIS data formats
-- 📅 Enhanced notification system
+- 🔄 External API integrations with transportation data sources
+- 🔄 Advanced reporting capabilities with templates
+- 🔄 Mobile optimization for field use
+- 🔄 Offline functionality for remote usage
+- 🔄 Enhanced agent capabilities with custom domain-specific agents
+- 🔄 Agent integration with external transportation planning systems
+- 🔄 Improved agent tools for analyzing transportation impact data
 
 #### Phase 3 Technical Details
 

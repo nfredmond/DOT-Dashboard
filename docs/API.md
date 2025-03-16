@@ -548,4 +548,212 @@ ws.onmessage = (event) => {
     "timestamp": "2024-01-01T00:00:00Z"
   }
 }
+```
+
+# Project Feedback
+
+## Get Project Feedback
+
+**URL**: `/api/projects/{project_id}/feedback`  
+**Method**: `GET`  
+**Auth Required**: Yes
+
+### Response
+
+```json
+{
+  "feedback": [
+    {
+      "id": "feedback-id",
+      "content": "Feedback content",
+      "rating": 4,
+      "category": "Environment",
+      "user_id": "user-id",
+      "created_at": "2023-11-15T10:30:45Z"
+    }
+  ]
+}
+```
+
+# Project Scenarios
+
+## List Project Scenarios
+
+**URL**: `/api/projects/{projectId}/scenarios`  
+**Method**: `GET`  
+**Auth Required**: Yes
+
+### Response
+
+```json
+[
+  {
+    "id": "scenario-id",
+    "projectId": "project-id",
+    "name": "Enhanced Safety Focus",
+    "description": "A scenario that prioritizes safety improvements with pedestrian and bicycle facilities",
+    "timeline": "2024-2026",
+    "cost": 1200000.00,
+    "benefits": ["Improved pedestrian safety", "Dedicated bike lanes", "Reduced vehicle speeds"],
+    "drawbacks": ["Higher cost", "Longer implementation time"],
+    "feasibility": 0.85,
+    "impact": {"safety": 0.9, "mobility": 0.7, "cost": 0.6},
+    "analysis": "This scenario would significantly improve safety metrics for all road users...",
+    "createdAt": "2023-11-15T10:30:45Z"
+  }
+]
+```
+
+## Create Project Scenario
+
+**URL**: `/api/projects/{projectId}/scenarios`  
+**Method**: `POST`  
+**Auth Required**: Yes
+
+### Request
+
+```json
+{
+  "name": "Enhanced Safety Focus",
+  "description": "A scenario that prioritizes safety improvements with pedestrian and bicycle facilities",
+  "timeline": "2024-2026",
+  "cost": 1200000.00,
+  "benefits": ["Improved pedestrian safety", "Dedicated bike lanes", "Reduced vehicle speeds"],
+  "drawbacks": ["Higher cost", "Longer implementation time"],
+  "feasibility": 0.85,
+  "impact": {"safety": 0.9, "mobility": 0.7, "cost": 0.6},
+  "analysis": "This scenario would significantly improve safety metrics for all road users..."
+}
+```
+
+### Response
+
+```json
+{
+  "id": "scenario-id",
+  "projectId": "project-id",
+  "name": "Enhanced Safety Focus",
+  "description": "A scenario that prioritizes safety improvements with pedestrian and bicycle facilities",
+  "timeline": "2024-2026",
+  "cost": 1200000.00,
+  "benefits": ["Improved pedestrian safety", "Dedicated bike lanes", "Reduced vehicle speeds"],
+  "drawbacks": ["Higher cost", "Longer implementation time"],
+  "feasibility": 0.85,
+  "impact": {"safety": 0.9, "mobility": 0.7, "cost": 0.6},
+  "analysis": "This scenario would significantly improve safety metrics for all road users...",
+  "createdAt": "2023-11-15T10:30:45Z"
+}
+```
+
+## Get Specific Scenario
+
+**URL**: `/api/projects/{projectId}/scenarios/{scenarioId}`  
+**Method**: `GET`  
+**Auth Required**: Yes
+
+### Response
+
+```json
+{
+  "id": "scenario-id",
+  "projectId": "project-id",
+  "name": "Enhanced Safety Focus",
+  "description": "A scenario that prioritizes safety improvements with pedestrian and bicycle facilities",
+  "timeline": "2024-2026",
+  "cost": 1200000.00,
+  "benefits": ["Improved pedestrian safety", "Dedicated bike lanes", "Reduced vehicle speeds"],
+  "drawbacks": ["Higher cost", "Longer implementation time"],
+  "feasibility": 0.85,
+  "impact": {"safety": 0.9, "mobility": 0.7, "cost": 0.6},
+  "analysis": "This scenario would significantly improve safety metrics for all road users...",
+  "createdAt": "2023-11-15T10:30:45Z"
+}
+```
+
+## Update Scenario
+
+**URL**: `/api/projects/{projectId}/scenarios/{scenarioId}`  
+**Method**: `PATCH`  
+**Auth Required**: Yes
+
+### Request
+
+```json
+{
+  "name": "Updated Scenario Name",
+  "description": "Updated description",
+  "cost": 1300000.00
+}
+```
+
+### Response
+
+```json
+{
+  "id": "scenario-id",
+  "projectId": "project-id",
+  "name": "Updated Scenario Name",
+  "description": "Updated description",
+  "timeline": "2024-2026",
+  "cost": 1300000.00,
+  "benefits": ["Improved pedestrian safety", "Dedicated bike lanes", "Reduced vehicle speeds"],
+  "drawbacks": ["Higher cost", "Longer implementation time"],
+  "feasibility": 0.85,
+  "impact": {"safety": 0.9, "mobility": 0.7, "cost": 0.6},
+  "analysis": "This scenario would significantly improve safety metrics for all road users...",
+  "createdAt": "2023-11-15T10:30:45Z",
+  "updatedAt": "2023-11-16T14:22:33Z"
+}
+```
+
+## Delete Scenario
+
+**URL**: `/api/projects/{projectId}/scenarios/{scenarioId}`  
+**Method**: `DELETE`  
+**Auth Required**: Yes
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Scenario deleted successfully"
+}
+```
+
+## Compare Scenarios
+
+**URL**: `/api/projects/{projectId}/scenarios/compare`  
+**Method**: `PUT`  
+**Auth Required**: Yes
+
+### Request
+
+```json
+{
+  "scenario1Id": "scenario1-id",
+  "scenario2Id": "scenario2-id"
+}
+```
+
+### Response
+
+```json
+{
+  "id": "comparison-id",
+  "projectId": "project-id",
+  "scenario1Id": "scenario1-id",
+  "scenario2Id": "scenario2-id",
+  "comparison": "The Enhanced Safety Focus provides comprehensive safety improvements but at a higher cost and longer timeline. The Cost-Efficient Alternative addresses critical issues with a more limited budget and faster implementation.",
+  "recommendation": "Recommend the Enhanced Safety Focus scenario if budget allows, as it provides superior long-term safety benefits and aligns better with community feedback.",
+  "scores": {
+    "overall": {"scenario1": 0.85, "scenario2": 0.75},
+    "categories": {
+      "safety": {"scenario1": 0.9, "scenario2": 0.7},
+      "cost": {"scenario1": 0.6, "scenario2": 0.85},
+      "timeline": {"scenario1": 0.7, "scenario2": 0.8}
+    }
+  },
+  "createdAt": "2023-11-16T09:45:12Z"
+}
 ``` 

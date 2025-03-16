@@ -70,6 +70,7 @@ const nextConfig = {
   // Disable image optimizer for marker icons
   images: {
     disableStaticImages: true,
+    domains: ['i.imgur.com'],
   },
 };
 

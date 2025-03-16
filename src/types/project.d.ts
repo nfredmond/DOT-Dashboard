@@ -173,18 +173,25 @@ export interface CustomFieldConfig {
 
 // Main Project interface
 export interface Project {
-  id: string;
+  id?: string;
   name: string;
-  description: string;
-  status: ProjectStatus;
-  category: ProjectCategory;
-  phase: ProjectPhase;
-  lead: string; // Project manager/lead
-  sponsor: string; // Agency/organization
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;
-  updatedBy: string;
+  description?: string;
+  location?: string;
+  type?: string;
+  status?: string;
+  budget?: number;
+  startDate?: string;
+  endDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  category?: string;
+  priority?: string;
+  geoJson?: any;
+  scoreData?: Record<ProjectScoreCategory, number>;
+  analysisResults?: Record<string, AnalysisResult>;
+  scenarios?: ScenarioAnalysis[];
   
   // Core project details
   funding: ProjectFunding;
@@ -247,4 +254,97 @@ export type WizardStepType =
   | "environmental"
   | "scoring"
   | "metrics"
-  | "custom"; 
+  | "custom";
+
+// AI Analysis Result Types
+export interface ScenarioAnalysis {
+  id: string;
+  name: string;
+  description: string;
+  timeline?: string;
+  cost?: number;
+  benefits?: string[];
+  drawbacks?: string[];
+  feasibility?: number;
+  createdAt?: string;
+  updatedBy?: string;
+}
+
+// Collision Data Types for Safety Analysis
+export type CollisionSeverity = 'fatal' | 'severe' | 'visible' | 'complaint' | 'pdo';
+export type CollisionType = 'pedestrian' | 'bicycle' | 'motorcycle' | 'vehicle' | 'fixed_object' | 'other';
+
+export interface CollisionData {
+  totalCollisions: number;
+  collisionsPerYear: number;
+  collisionsPerMile: number;
+  collisionRate: number;
+  severityCounts: Record<CollisionSeverity, number>;
+  typeCounts: Record<CollisionType, number>;
+  timeOfDayCounts: {
+    morning: number;
+    midday: number;
+    evening: number;
+    night: number;
+  };
+  weatherCounts: {
+    clear: number;
+    rain: number;
+    snow: number;
+    fog: number;
+    other: number;
+  };
+  hotspots: Array<{
+    location: string;
+    description: string;
+    collisionCount: number;
+  }>;
+  years: number;
+  radius: number;
+  location: string;
+  source: string;
+  lastUpdated: string;
+}
+
+// Demographic Data Types for Equity Analysis
+export interface AgeDistribution {
+  under18: number;
+  age18to24: number;
+  age25to44: number;
+  age45to64: number;
+  age65Plus: number;
+}
+
+export interface EthnicityDistribution {
+  white: number;
+  black: number;
+  hispanic: number;
+  asian: number;
+  nativeAmerican: number;
+  pacificIslander: number;
+  multiRacial: number;
+  other: number;
+}
+
+export interface DemographicData {
+  totalPopulation: number;
+  medianIncome: number;
+  percentMinority: number;
+  percentLowIncome: number;
+  percentWithDisability: number;
+  percentWithoutVehicle: number;
+  ageDistribution?: AgeDistribution;
+  ethnicityDistribution?: EthnicityDistribution;
+  source?: string;
+  year?: number;
+}
+
+// Project Score Categories
+export enum ProjectScoreCategory {
+  SAFETY = 'safety',
+  EQUITY = 'equity',
+  ENVIRONMENTAL = 'environmental',
+  ECONOMIC = 'economic',
+  FEASIBILITY = 'feasibility',
+  OVERALL = 'overall'
+} 

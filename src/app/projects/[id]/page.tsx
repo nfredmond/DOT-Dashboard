@@ -33,8 +33,17 @@ import {
   CheckCircle2,
   Clock,
   UserCircle2,
-  Plus as PlusIcon
+  Plus as PlusIcon,
+  ChevronLeft,
+  Edit,
+  Trash,
+  Map,
+  BarChart4,
+  FileSpreadsheet,
+  SquareStack
 } from "lucide-react";
+import { Project } from "@/types/project";
+import Loading from "@/components/ui/loading";
 
 // Importing a mock database of projects
 // In a real app, this would be replaced with a database call
@@ -84,55 +93,40 @@ export default function ProjectDetail() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const projectId = params?.id as string;
-  const [project, setProject] = useState<any>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading project data from an API
-    setLoading(true);
-    
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      const foundProject = mockProjects.find(p => p.id === projectId);
-      if (foundProject) {
-        setProject(foundProject);
-      } else {
-        // Project not found
+    const fetchProject = async () => {
+      setLoading(true);
+      try {
+        // Fetch project data
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (!response.ok) throw new Error('Failed to fetch project');
+        const data = await response.json();
+        
+        setProject(data);
+      } catch (error) {
+        console.error('Error fetching project:', error);
         toast({
-          title: "Project not found",
-          description: "The requested project could not be found.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to load project data',
+          variant: 'destructive'
         });
-        router.push('/projects');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 500);
-  }, [projectId, router, toast]);
+    };
+    
+    fetchProject();
+  }, [projectId, toast]);
 
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
-          <div className="flex justify-between items-center mb-6">
-            <div className="h-8 w-64 bg-gray-200 animate-pulse rounded"></div>
-            <div className="h-10 w-28 bg-gray-200 animate-pulse rounded"></div>
-          </div>
-          <div className="grid gap-6">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="animate-pulse shadow-sm border border-gray-200 dark:border-gray-800">
-                <CardHeader className="pb-3">
-                  <div className="h-7 w-48 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 w-full bg-gray-100 rounded"></div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    <div className="h-4 w-full bg-gray-100 rounded"></div>
-                    <div className="h-4 w-3/4 bg-gray-100 rounded"></div>
-                    <div className="h-4 w-5/6 bg-gray-100 rounded"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        <div className="container py-8">
+          <div className="flex justify-center my-12">
+            <Loading size="lg" />
           </div>
         </div>
       </ProtectedRoute>
@@ -142,18 +136,20 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <ProtectedRoute>
-        <div className="container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
-          <div className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Project Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              The project you are looking for does not exist or has been removed.
-            </p>
-            <Button onClick={() => router.push('/projects')}>
-              <ArrowLeftIcon className="mr-2 h-4 w-4" />
-              Back to Projects
-            </Button>
-          </div>
+        <div className="container py-8">
+          <Card>
+            <CardContent className="pt-6">
+              <p>Project not found or you don't have access to it.</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => router.push('/projects')}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back to Projects
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </ProtectedRoute>
     );
@@ -364,6 +360,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="funding">Funding</TabsTrigger>
+            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -697,6 +694,47 @@ export default function ProjectDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+          
+          <TabsContent value="scenarios">
+            <Card className="shadow-sm border border-gray-200 dark:border-gray-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Project Scenarios</CardTitle>
+                <CardDescription>
+                  Potential outcomes and scenarios for this project
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-0">
+                <div className="flex flex-col space-y-4">
+                  <p>Generate and compare alternative scenarios for this project to evaluate different approaches and outcomes.</p>
+                  
+                  {project.scenarios && project.scenarios.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {project.scenarios.slice(0, 4).map((scenario: any, index: number) => (
+                        <div key={index} className="border rounded-md p-4 bg-gray-50 dark:bg-gray-800/50">
+                          <h3 className="font-semibold mb-2">{scenario.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{scenario.description}</p>
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>Cost: ${scenario.cost.toLocaleString()}</span>
+                            <span>Timeline: {scenario.timeline}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-dashed rounded-md">
+                      <p className="mb-4 text-gray-500">No scenarios have been created for this project yet.</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-center mt-4">
+                    <Button onClick={() => router.push(`/projects/${project.id}/scenarios`)}>
+                      {project.scenarios && project.scenarios.length > 0 ? 'View All Scenarios' : 'Create Scenarios'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Actions */}
@@ -710,6 +748,13 @@ export default function ProjectDetail() {
           >
             <PencilIcon className="mr-2 h-4 w-4" />
             Edit Project
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/projects/${project.id}/scenarios`)}
+          >
+            <SquareStack className="mr-2 h-4 w-4" />
+            Project Scenarios
           </Button>
           <Button 
             variant="default"

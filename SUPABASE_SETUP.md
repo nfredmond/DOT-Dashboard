@@ -73,59 +73,54 @@ The application supports two modes of operation:
 
 ## Schema Overview
 
-The database consists of these main components:
+The database schema is organized around the following key concepts:
 
-1. **Core Tables** - agencies, organizations, projects
-2. **Scoring System** - criteria, scoring, templates, prioritization scenarios
-3. **User Management** - profiles, permissions
-4. **Document Management** - documents, comments, feedback
-5. **Location Data** - spatial features with PostGIS support
-6. **Audit and Reporting** - logs, notifications, reports
-
-The database schema follows these design principles:
-
-- **Multi-tenant**: Isolated data per agency through row-level security
-- **Role-based access**: Different permissions for admins, editors, and viewers
-- **Audit logging**: Comprehensive tracking of all data changes
-- **Spatial support**: PostGIS integration for location-based data
-- **Performance optimized**: Strategic indices for common query patterns
-- **Offline capability**: Support for working offline with synchronization
+1. **Multi-Tenancy**: The system supports multiple transportation agencies, each with their own isolated data.
+2. **Organizations**: Within an agency, multiple organizations (e.g., departments, member agencies) can exist.
+3. **Projects**: The central entity representing transportation projects with various attributes.
+4. **Scoring**: A flexible scoring system for evaluating and prioritizing projects.
+5. **Geospatial Data**: Support for location-based analysis and visualization.
+6. **Scenarios**: Alternative project approaches that can be compared and analyzed.
 
 ## Core Tables
 
-### Agencies & Users
+### Agency and Organization Tables
 
-Each organization using the system is represented as an "agency" with its own isolated data. Users are assigned to an agency with a specific role that determines their permissions.
+- **agencies**: Top-level entities representing transportation planning agencies
+- **organizations**: Departments or member agencies within a parent agency
+- **profiles**: User profiles with authentication information
 
-```txt
-┌─────────────┐       ┌────────────┐       ┌────────────────┐
-│   agencies  │       │    users   │       │    profiles    │
-├─────────────┤       ├────────────┤       ├────────────────┤
-│ id          │       │ id         │       │ id             │
-│ name        │◄──┐   │ email      │   ┌──►│ user_id        │
-│ subdomain   │   │   │ created_at │   │   │ agency_id      │
-│ settings    │   │   └────────────┘   │   │ role           │
-│ created_at  │   │                    │   │ preferences    │
-└─────────────┘   └────────────────────┘   └────────────────┘
-```
+### Project Tables
 
-### Projects & Scoring
+- **projects**: Transportation projects with metadata, location, and status
+- **project_users**: Users assigned to specific projects
+- **project_milestones**: Key milestones and deadlines for projects
+- **spatial_features**: Geospatial features related to projects
+- **documents**: Files and attachments for projects
+- **comments**: User comments on projects
+- **feedback**: Public or stakeholder feedback
 
-Projects are the central entity, representing transportation initiatives that are scored against customizable criteria.
+### Scoring Tables
 
-```txt
-┌─────────────┐       ┌────────────┐       ┌────────────────┐
-│  projects   │       │  criteria  │       │    scoring     │
-├─────────────┤       ├────────────┤       ├────────────────┤
-│ id          │       │ id         │       │ id             │
-│ agency_id   │       │ agency_id  │       │ project_id     │
-│ name        │       │ name       │◄──────┤ criteria_id    │
-│ description │       │ description│       │ score          │
-│ status      │◄──────┤ weight     │       │ notes          │
-│ type        │       │ category   │       │ created_by     │
-│ geometry    │       │ type       │       │ created_at     │
-└─────────────┘       └────────────┘       └────────────────┘
-```
+- **criteria**: Scoring criteria definitions (safety, mobility, etc.)
+- **scoring**: Individual scores for projects against criteria
+- **scoring_templates**: Reusable templates for scoring projects
+- **prioritization_scenarios**: Budget scenarios for prioritizing project lists
+
+### Scenario Tables
+
+- **project_scenarios**: Alternative project approaches and design options
+- **scenario_comparisons**: Comparisons between different project scenarios
+
+### System Tables
+
+- **reports**: Saved and scheduled reports
+- **audit_logs**: System audit trail
+- **notifications**: User notifications
+- **user_settings**: Per-user configuration
+- **api_keys**: API access keys
+- **llm_config**: Configuration for LLM (AI) features
+- **llm_logs**: Logs of LLM interactions
 
 ## Security Implementation
 

@@ -73,6 +73,7 @@ import {
   LayoutDashboardIcon,
   SlidersHorizontal,
   Settings2Icon,
+  BrainIcon,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
@@ -119,6 +120,9 @@ import {
   GrantAlignment
 } from "@/lib/scoring-service";
 import { Project } from "@/types/project";
+import { ScoringLLMAssistant } from "./components/ScoringLLMAssistant";
+import { ProjectScoringLLMAssistant } from "./components/ProjectScoringLLMAssistant";
+import { GrantAlignmentLLM } from "./components/GrantAlignmentLLM";
 
 export default function ProjectScoring() {
   const router = useRouter();
@@ -145,6 +149,9 @@ export default function ProjectScoring() {
   const [criteriaWeights, setCriteriaWeights] = useState<Record<string, number>>({});
   const [scoringTemplates, setScoringTemplates] = useState<ScoringTemplate[]>([]);
   const [activeTemplate, setActiveTemplate] = useState(null);
+  const [showLLMAssistant, setShowLLMAssistant] = useState(false);
+  const [selectedCriterion, setSelectedCriterion] = useState<Criterion | null>(null);
+  const [selectedProjectAnalysis, setSelectedProjectAnalysis] = useState<any | null>(null);
   
   useEffect(() => {
     const loadData = async () => {
@@ -768,177 +775,201 @@ export default function ProjectScoring() {
     );
   };
   
-  const renderProjectDetails = () => {
-    if (!selectedProject || !projectDetails) {
-      return null;
+  const handleUpdateScoresFromLLM = (updatedScores: any[]) => {
+    if (selectedProject) {
+      const updatedProjectScores = { ...projectScores };
+      updatedProjectScores[selectedProject.id] = updatedScores;
+      setProjectScores(updatedProjectScores);
+      
+      // Also update the selected project scores
+      setSelectedProjectScores(updatedScores);
+      
+      // Show a success toast
+      toast({
+        title: "Scores Updated",
+        description: "Project scores have been updated based on AI recommendations",
+        variant: "default",
+      });
     }
-    
-    const project = projectDetails;
-    
+  };
+  
+  const renderProjectDetails = () => {
+    if (!selectedProject) return null;
+
     return (
-      <Dialog open={!!selectedProject} onOpenChange={(open) => {
-        if (!open) setSelectedProject(null);
-      }}>
-        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{project.name}</DialogTitle>
-            <DialogDescription>
-              Detailed scoring and prioritization analysis
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-medium mb-2">Project Information</h4>
-                <div className="text-sm">
-                  <div className="grid grid-cols-3 gap-2 mb-1">
-                    <div className="font-medium">Type:</div>
-                    <div className="col-span-2 capitalize">{project.type || 'N/A'}</div>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
+            <div className="flex gap-2 mt-1">
+              <Badge variant="outline">{selectedProject.status}</Badge>
+              <Badge>{selectedProject.category}</Badge>
+              {selectedProject.is_federal && (
+                <Badge variant="secondary">Federal</Badge>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setSelectedProject(null)}
+          >
+            Back to List
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-semibold">Description</h3>
+                  <p className="text-muted-foreground">{selectedProject.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold">Category</h3>
+                    <p className="text-muted-foreground">{selectedProject.category}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mb-1">
-                    <div className="font-medium">Location:</div>
-                    <div className="col-span-2">{project.location || 'N/A'}</div>
+                  <div>
+                    <h3 className="font-semibold">Status</h3>
+                    <p className="text-muted-foreground">{selectedProject.status}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mb-1">
-                    <div className="font-medium">Status:</div>
-                    <div className="col-span-2 capitalize">{project.status || 'N/A'}</div>
+                  <div>
+                    <h3 className="font-semibold">Budget</h3>
+                    <p className="text-muted-foreground">${selectedProject.budget?.toLocaleString()}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mb-1">
-                    <div className="font-medium">Budget:</div>
-                    <div className="col-span-2">
-                      ${project.metadata?.budget?.toLocaleString() || 'N/A'}
+                  <div>
+                    <h3 className="font-semibold">Location</h3>
+                    <p className="text-muted-foreground">{selectedProject.location}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Scoring summary card */}
+            {selectedProjectScoreSummary && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Scoring Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Overall Score</span>
+                      <span className="text-2xl font-bold">{selectedProjectScoreSummary.overall_score.toFixed(1)}</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-2">Overall Score</h4>
-                <div className="flex flex-col items-center">
-                  <div className={`text-4xl font-bold ${getScoreColor(project.totalScore || 0)}`}>
-                    {project.totalScore?.toFixed(1) || 'N/A'}
-                  </div>
-                  <Progress 
-                    value={project.totalScore || 0} 
-                    className="h-2 w-full mt-2" 
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-2">Detailed Scores</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Criterion</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Weight</TableHead>
-                    <TableHead>Raw Score</TableHead>
-                    <TableHead>Weighted Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {project.weightedScores?.map((score: WeightedScore) => (
-                    <TableRow key={score.criterionId}>
-                      <TableCell className="font-medium">{score.criterionName}</TableCell>
-                      <TableCell className="capitalize">{score.category}</TableCell>
-                      <TableCell>{score.weight}%</TableCell>
-                      <TableCell>{score.rawScore.toFixed(1)}</TableCell>
-                      <TableCell className={getScoreColor(score.weightedScore)}>
-                        {score.weightedScore.toFixed(1)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {project.scenarioAnalysis && Object.keys(project.scenarioAnalysis).length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-2">Prioritization Analysis</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Scenario</TableHead>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Score</TableHead>
-                      <TableHead>Comparison</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(project.scenarioAnalysis).map(([scenarioId, result]) => {
-                      const scenario = prioritizationScenarios.find(s => s.id === scenarioId);
-                      return (
-                        <TableRow key={scenarioId}>
-                          <TableCell className="font-medium">{scenario?.name || 'Unknown'}</TableCell>
-                          <TableCell>#{result.rank}</TableCell>
-                          <TableCell>{result.normalizedScore.toFixed(1)}</TableCell>
-                          <TableCell>
-                            {(() => {
-                              const avgScore = scenarioResults.reduce((sum, r) => sum + r.normalizedScore, 0) / 
-                                             scenarioResults.length;
-                              const diff = result.normalizedScore - avgScore;
-                              
-                              if (diff > 5) {
-                                return <Badge className="bg-green-100 text-green-800">Above Average (+{diff.toFixed(1)})</Badge>;
-                              } else if (diff < -5) {
-                                return <Badge className="bg-red-100 text-red-800">Below Average ({diff.toFixed(1)})</Badge>;
-                              } else {
-                                return <Badge className="bg-gray-100 text-gray-800">Average</Badge>;
-                              }
-                            })()}
-                          </TableCell>
+                    <Progress value={selectedProjectScoreSummary.overall_score * 20} className="h-2" />
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Category</TableHead>
+                          <TableHead className="text-right">Score</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {Object.entries(selectedProjectScoreSummary.category_scores).map(([category, score]) => (
+                          <TableRow key={category}>
+                            <TableCell>{category}</TableCell>
+                            <TableCell className="text-right font-medium">{score.toFixed(1)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-            
-            {project.grantAlignments && project.grantAlignments.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-2">Grant Alignment</h4>
+
+            {/* Add our new GrantAlignmentLLM component */}
+            <GrantAlignmentLLM
+              projectId={selectedProject.id}
+              projectName={selectedProject.name}
+              projectDescription={selectedProject.description}
+              projectType={selectedProject.category}
+            />
+          </div>
+
+          <div className="space-y-4">
+            {/* Scoring criteria card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Scoring Criteria</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Grant Program</TableHead>
-                      <TableHead>Alignment Score</TableHead>
-                      <TableHead>Key Strengths</TableHead>
+                      <TableHead>Criterion</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-right">Score</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {project.grantAlignments.map((alignment) => (
-                      <TableRow key={alignment.grantId}>
-                        <TableCell className="font-medium">
-                          {alignment.grantName || 'Unknown Grant'}
-                        </TableCell>
-                        <TableCell className={getScoreColor(alignment.alignmentScore)}>
-                          {alignment.alignmentScore.toFixed(1)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {alignment.recommendations.slice(0, 2).map((rec, i) => (
-                              <Badge key={i} className="bg-blue-100 text-blue-800" variant="outline">
-                                {rec}
-                              </Badge>
-                            ))}
-                            {alignment.recommendations.length > 2 && (
-                              <Badge variant="outline">+{alignment.recommendations.length - 2} more</Badge>
-                            )}
-                          </div>
-                        </TableCell>
+                    {selectedProjectCriteria?.map((criterion) => (
+                      <TableRow key={criterion.id} className="cursor-pointer hover:bg-muted" onClick={() => setSelectedCriterion(criterion)}>
+                        <TableCell>{criterion.name}</TableCell>
+                        <TableCell>{criterion.category}</TableCell>
+                        <TableCell className="text-right font-medium">{criterion.score?.toFixed(1) || 'N/A'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Add our new ProjectScoringLLMAssistant component */}
+            {selectedCriterion ? (
+              <ProjectScoringLLMAssistant
+                projectId={selectedProject.id}
+                projectName={selectedProject.name}
+                projectDescription={selectedProject.description}
+                projectType={selectedProject.category}
+                projectStatus={selectedProject.status}
+                criterionName={selectedCriterion.name}
+                category={selectedCriterion.category}
+                currentScore={selectedCriterion.score}
+              />
+            ) : (
+              <ProjectScoringLLMAssistant
+                projectId={selectedProject.id}
+                projectName={selectedProject.name}
+                projectDescription={selectedProject.description}
+                projectType={selectedProject.category}
+                projectStatus={selectedProject.status}
+              />
+            )}
+
+            {/* Project analysis results */}
+            {selectedProjectAnalysis && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {selectedProjectAnalysis.impact_analysis && (
+                      <div>
+                        <h3 className="font-semibold">Impact Analysis</h3>
+                        <p className="text-muted-foreground">{selectedProjectAnalysis.impact_analysis}</p>
+                      </div>
+                    )}
+                    {selectedProjectAnalysis.risk_factors && (
+                      <div>
+                        <h3 className="font-semibold">Risk Factors</h3>
+                        <p className="text-muted-foreground">{selectedProjectAnalysis.risk_factors}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   };
 

@@ -209,6 +209,102 @@ CREATE INDEX activities_action_idx ON activities (action);
 CREATE INDEX activities_created_at_idx ON activities (created_at);
 ```
 
+### User Settings
+
+```sql
+CREATE TABLE user_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    settings JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX user_settings_user_id_idx ON user_settings (user_id);
+
+-- Triggers
+CREATE TRIGGER set_updated_at
+    BEFORE UPDATE ON user_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at_timestamp();
+```
+
+### API Keys
+
+```sql
+CREATE TABLE api_keys (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    key TEXT NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    permissions TEXT[],
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Indexes
+CREATE INDEX api_keys_user_id_idx ON api_keys(user_id);
+CREATE INDEX api_keys_organization_id_idx ON api_keys(organization_id);
+CREATE INDEX api_keys_expires_at_idx ON api_keys(expires_at);
+```
+
+### Project Scenarios
+
+```sql
+CREATE TABLE project_scenarios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    timeline TEXT NOT NULL,
+    cost DECIMAL(12, 2) NOT NULL,
+    benefits TEXT[],
+    drawbacks TEXT[],
+    feasibility DECIMAL(4, 2) NOT NULL,
+    impact JSONB,
+    analysis TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    parent_scenario_id UUID REFERENCES project_scenarios(id) ON DELETE SET NULL
+);
+
+-- Indexes
+CREATE INDEX project_scenarios_project_id_idx ON project_scenarios(project_id);
+CREATE INDEX project_scenarios_created_by_idx ON project_scenarios(created_by);
+CREATE INDEX project_scenarios_parent_scenario_id_idx ON project_scenarios(parent_scenario_id);
+CREATE INDEX project_scenarios_created_at_idx ON project_scenarios(created_at);
+CREATE INDEX project_scenarios_feasibility_idx ON project_scenarios(feasibility);
+```
+
+### Scenario Comparisons
+
+```sql
+CREATE TABLE scenario_comparisons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    scenario1_id UUID NOT NULL REFERENCES project_scenarios(id) ON DELETE CASCADE,
+    scenario2_id UUID NOT NULL REFERENCES project_scenarios(id) ON DELETE CASCADE,
+    comparison TEXT NOT NULL,
+    recommendation TEXT,
+    scores JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL
+);
+
+-- Indexes
+CREATE INDEX scenario_comparisons_project_id_idx ON scenario_comparisons(project_id);
+CREATE INDEX scenario_comparisons_scenario1_id_idx ON scenario_comparisons(scenario1_id);
+CREATE INDEX scenario_comparisons_scenario2_id_idx ON scenario_comparisons(scenario2_id);
+CREATE INDEX scenario_comparisons_created_by_idx ON scenario_comparisons(created_by);
+CREATE INDEX scenario_comparisons_created_at_idx ON scenario_comparisons(created_at);
+```
+
 ## Functions and Triggers
 
 ### Updated Timestamp

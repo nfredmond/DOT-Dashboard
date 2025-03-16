@@ -579,3 +579,41 @@ graph TD
    - Performance optimization
    - Documentation updates
    - Dependency updates
+
+## Core Features
+
+### Project Management
+The system allows transportation planners to manage projects throughout their lifecycle:
+- Create and edit project details
+- Track project status and milestones
+- Associate documents and feedback
+- Assign team members
+
+### GIS Integration
+Geospatial functionality is core to the application:
+- Interactive maps for project visualization
+- Drawing tools for creating project geometries
+- Spatial analysis for demographic impact
+- Integration with transportation network data
+
+### Project Scoring
+The system includes a flexible scoring framework:
+- Customizable criteria with weights
+- Multiple scoring templates
+- Automated scoring suggestions
+- Prioritization scenarios
+
+### Scenario Development
+The application enables planners to evaluate alternative approaches:
+- AI-assisted generation of project scenarios
+- Comparison between different project alternatives
+- Cost-benefit analysis of scenarios
+- Refinement based on feedback
+- Impact assessment across multiple dimensions
+
+### AI Integration
+The system leverages advanced AI capabilities:
+- Project analysis using LLMs
+- Automated reporting
+- Scenario generation and comparison
+- Impact predictions

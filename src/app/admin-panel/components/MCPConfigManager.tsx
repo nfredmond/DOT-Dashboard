@@ -49,6 +49,12 @@ import {
   PlugIcon
 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import {
+  getMCPServerForCapability,
+  setPreferMCPOverAgentsSdk,
+  preferMCPOverAgentsSdk,
+  isAgentsSdkEnabled
+} from "@/lib/mcp-agents-utils";
 
 export function MCPConfigManager() {
   const [servers, setServers] = useState<MCPServerConfig[]>([]);
@@ -70,6 +76,9 @@ export function MCPConfigManager() {
     { value: 'custom_tool', label: 'Custom Tool' }
   ];
 
+  // State for Agent integration settings
+  const [preferMCP, setPreferMCP] = useState(preferMCPOverAgentsSdk);
+  
   // Load servers on component mount
   useEffect(() => {
     const loadedServers = getMCPServers();
@@ -213,6 +222,72 @@ export function MCPConfigManager() {
       return capInfo ? capInfo.label : cap;
     }).join(", ");
   };
+
+  // Check if any capability is available across active servers
+  const hasCapability = (capability: MCPCapability): boolean => {
+    return servers.some(server => 
+      server.isActive && server.capabilities.includes(capability)
+    );
+  };
+
+  // Count active servers
+  const activeServerCount = (): number => {
+    return servers.filter(server => server.isActive).length;
+  };
+
+  // Check if there's any active server
+  const hasAnyActiveServer = (): boolean => {
+    return servers.some(server => server.isActive);
+  };
+
+  // Check if OpenAI API key is configured
+  const hasOpenAIKey = (): boolean => {
+    return !!servers.find(server => 
+      server.provider === 'openai' && 
+      server.isActive && 
+      !!server.apiKey
+    );
+  };
+
+  // Update the preference when changed
+  const handlePreferMCPChange = (value: boolean) => {
+    setPreferMCP(value);
+    setPreferMCPOverAgentsSdk(value);
+    
+    // Save preference to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferMCPOverAgentsSdk', value ? 'true' : 'false');
+    }
+  };
+
+  // Helper functions for checking capabilities
+  const checkCapability = (capability: string): boolean => {
+    return getMCPServerForCapability(capability as any) !== null;
+  };
+  
+  const getActiveServerCount = () => {
+    return getMCPServers().filter(server => server.isActive).length;
+  };
+  
+  const checkAnyActiveServer = () => {
+    return getActiveServerCount() > 0;
+  };
+  
+  const checkOpenAIKey = () => {
+    return isAgentsSdkEnabled();
+  };
+  
+  // Initialize preferences from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferMCPOverAgentsSdk');
+      if (saved) {
+        const value = saved === 'true';
+        setPreferMCP(value);
+        setPreferMCPOverAgentsSdk(value);
+      }
+    }
+  }, []);
 
   return (
     <Card className="w-full">
@@ -541,6 +616,127 @@ export function MCPConfigManager() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PlugIcon className="h-5 w-5 text-blue-500" />
+            Agent Integration
+          </CardTitle>
+          <CardDescription>
+            Configure how MCP servers interact with agent functions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="rounded-md border p-4">
+              <h3 className="text-sm font-medium mb-2">Agent Capabilities</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                MCP servers can be used alongside or in place of the OpenAI Agents SDK for the following capabilities:
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">Analysis Agent</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">Transportation planning analysis</p>
+                  </div>
+                  <Badge variant={checkCapability('data_analysis') ? 'outline' : 'secondary'} className="justify-self-end">
+                    {checkCapability('data_analysis') ? 
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" /> : 
+                      <XCircleIcon className="h-3 w-3 text-gray-400 mr-1" />}
+                    {checkCapability('data_analysis') ? 'Available' : 'Unavailable'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">Computer Agent</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">File system operations</p>
+                  </div>
+                  <Badge variant={checkCapability('file_search') ? 'outline' : 'secondary'} className="justify-self-end">
+                    {checkCapability('file_search') ? 
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" /> : 
+                      <XCircleIcon className="h-3 w-3 text-gray-400 mr-1" />}
+                    {checkCapability('file_search') ? 'Available' : 'Unavailable'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">Browser Agent</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">Web search and browsing</p>
+                  </div>
+                  <Badge variant={checkCapability('web_search') ? 'outline' : 'secondary'} className="justify-self-end">
+                    {checkCapability('web_search') ? 
+                      <CheckCircleIcon className="h-3 w-3 text-green-500 mr-1" /> : 
+                      <XCircleIcon className="h-3 w-3 text-gray-400 mr-1" />}
+                    {checkCapability('web_search') ? 'Available' : 'Unavailable'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            <div className="rounded-md border p-4">
+              <h3 className="text-sm font-medium mb-2">Agent Priority</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose whether to prefer MCP servers over OpenAI Agents SDK when both are available:
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="mcp-priority">
+                    Prefer MCP Servers
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, MCP servers will be used before OpenAI Agents SDK
+                  </p>
+                </div>
+                <Switch 
+                  id="mcp-priority" 
+                  checked={preferMCP}
+                  onCheckedChange={handlePreferMCPChange}
+                  disabled={!checkAnyActiveServer() || !checkOpenAIKey()}
+                />
+              </div>
+            </div>
+            
+            <div className="rounded-md border p-4 bg-muted/30">
+              <h3 className="text-sm font-medium mb-2">Capabilities Status</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Current status of agent capabilities integration:
+              </p>
+              
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-sm font-medium">MCP Enabled:</div>
+                  <div className="flex items-center">
+                    {preferMCP ? 
+                      <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" /> : 
+                      <XCircleIcon className="h-4 w-4 text-red-500 mr-1" />}
+                    {preferMCP ? 'Yes' : 'No'}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-sm font-medium">Active MCP Servers:</div>
+                  <div>{getActiveServerCount()}</div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-sm font-medium">OpenAI Agents SDK:</div>
+                  <div className="flex items-center">
+                    {checkOpenAIKey() ? 
+                      <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" /> : 
+                      <XCircleIcon className="h-4 w-4 text-red-500 mr-1" />}
+                    {checkOpenAIKey() ? 'Available' : 'Unavailable'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </Card>
   );
 } 

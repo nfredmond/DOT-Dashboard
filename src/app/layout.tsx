@@ -10,6 +10,7 @@ import { Header } from '@/app/(components)/header';
 import { Sidebar } from '@/app/(components)/sidebar';
 import Loading from './loading';
 import { geistSans, geistMono } from '@/lib/fonts';
+import { LLMProvider } from '@/contexts/LLMContext';
 
 export default function AppLayout({
   children,
@@ -85,22 +86,24 @@ export default function AppLayout({
       <body className={`font-sans bg-gray-50 dark:bg-gray-900 min-h-screen ${geistSans.className}`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           <AuthProvider>
             <SupabaseProvider>
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <div className="flex flex-1">
-                  <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
-                  <main className="flex-1 p-6 overflow-auto">
-                    {children}
-                  </main>
+              <LLMProvider>
+                <div className="flex flex-col min-h-screen">
+                  <Header />
+                  <div className="flex flex-1">
+                    <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
+                    <main className="flex-1 p-6 overflow-auto">
+                      {children}
+                    </main>
+                  </div>
                 </div>
-              </div>
-              <Toaster />
+                <Toaster />
+              </LLMProvider>
             </SupabaseProvider>
           </AuthProvider>
         </ThemeProvider>

@@ -41,6 +41,10 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Report and documentation generation
 - Community feedback analysis and categorization
 - Contextual project assistant with document awareness
+- **Agent capabilities** with computer access and web browsing using OpenAI Agents SDK
+- Real-time streaming of agent reasoning and decision-making
+- Specialized agents for analysis, file retrieval, and web research
+- Agent handoffs for complex multi-stage tasks
 
 ### 👥 User Management
 
@@ -58,6 +62,14 @@ Planning Manager is a sophisticated web application designed for transportation 
 - AI-assisted report writing and summarization
 - Analytics dashboard with key performance indicators
 
+### 📝 Scenario Development
+
+- Generate and compare alternative project scenarios with AI assistance
+- Create variations based on cost, timeline, design, funding sources, or phasing
+- Compare scenarios side-by-side with AI-powered analysis
+- Refine scenarios based on stakeholder feedback
+- Make data-driven decisions with comparative metrics
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14 with App Router, React, TypeScript, Tailwind CSS
@@ -67,7 +79,7 @@ Planning Manager is a sophisticated web application designed for transportation 
 - **Authentication**: Supabase Auth with row-level security
 - **Database**: PostgreSQL with spatial capabilities
 - **GIS**: Leaflet.js, React-Leaflet, various Leaflet plugins
-- **AI**: OpenAI GPT-4, Anthropic Claude, model-agnostic integration
+- **AI**: OpenAI GPT-4, Anthropic Claude, model-agnostic integration, OpenAI Agents SDK
 - **Charts**: Recharts, D3.js for visualizations
 - **Styling**: Tailwind CSS with custom configurations
 
@@ -78,7 +90,8 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Node.js 18.x or later
 - npm or yarn
 - Supabase account
-- OpenAI or Anthropic API key (for AI features)
+- OpenAI API key (for AI features and Agents SDK)
+- Anthropic API key (optional, for Claude models)
 
 ### Installation
 
@@ -137,7 +150,8 @@ planning-manager/
 │   │   ├── projects/        # Project management pages
 │   │   ├── project-map/     # GIS mapping interface
 │   │   ├── project-scoring/ # Scoring and prioritization
-│   │   └── llm-assistant/   # AI assistant interface
+│   │   ├── llm-assistant/   # AI assistant interface
+│   │   └── agent-tools/     # OpenAI Agents interface
 │   ├── components/          # Reusable React components
 │   ├── contexts/            # React context providers
 │   ├── hooks/               # Custom React hooks
@@ -145,6 +159,7 @@ planning-manager/
 │   │   ├── api/             # API client functions
 │   │   ├── db/              # Database helpers
 │   │   ├── llm/             # AI/LLM integration
+│   │   ├── agents-service.ts # OpenAI Agents integration
 │   │   └── map/             # Map utilities
 │   ├── styles/              # Global styles and Tailwind config
 │   └── types/               # TypeScript type definitions
@@ -163,11 +178,13 @@ Comprehensive documentation is available in the `docs` directory:
 - [Database Schema](docs/DATABASE_SCHEMA.md) - Database structure and relationships
 - [API Documentation](docs/API.md) - API endpoints and usage
 - [Deployment Guide](docs/DEPLOYMENT.md) - Deployment process and configuration
+- [User Manual](/public/docs/user-manual.md) - Comprehensive guide for end users
 
 ### Feature Documentation
 
 - [GIS Features](docs/GIS_FEATURES.md) - Geographic Information System capabilities
 - [LLM Integration](docs/LLM_INTEGRATION.md) - AI/LLM integration details
+- [Agents Integration](docs/AGENTS_INTEGRATION.md) - OpenAI Agents SDK integration
 - [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) - Detailed technical implementation
 
 ### Development & Operations
@@ -193,6 +210,7 @@ The Planning Manager is currently in active development, with the following stat
 - Project scoring and prioritization system
 - AI/LLM integration with OpenAI and Anthropic
 - Community engagement tools
+- OpenAI Agents SDK integration with computer and web browsing capabilities
 
 ### Upcoming Phases
 
@@ -210,6 +228,7 @@ The Planning Manager is currently in active development, with the following stat
    - Advanced analytics
    - Customizable workflows
    - Additional AI capabilities
+   - Enhanced agent tools and domain-specific agents
 
 For detailed information about the development plan and timeline, see our [Development Plan](docs/DEVELOPMENT_PLAN.md).
 
@@ -236,4 +255,83 @@ For support, please open an issue in the GitHub repository or contact the develo
 - [Leaflet](https://leafletjs.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [OpenAI](https://openai.com/)
+- [OpenAI Agents SDK](https://platform.openai.com/docs/agents)
 - [Anthropic](https://www.anthropic.com/)
+
+# Planning Manager v5
+
+A comprehensive tool for planning, analyzing, and managing transportation projects with integrated AI capabilities.
+
+## Features
+
+- **Project Management**: Create, track, and manage transportation projects
+- **Interactive Mapping**: Visualize projects on a map with GeoJSON support
+- **Project Scoring**: Score and prioritize projects with customizable criteria
+- **Scenario Development**: Generate and compare alternative project scenarios with AI assistance
+- **AI-Powered Analysis**: Analyze project impacts using AI and structured prompts
+- **Document Management**: Upload and organize project-related documents
+- **Multi-user Collaboration**: Team collaboration with role-based permissions
+- **Reporting**: Generate reports on project status, scoring, and prioritization
+- **Analytics Dashboard**: Visualize key metrics and project distribution
+- **Model Context Protocol**: Integration with flexible AI providers
+
+## AI Integration
+
+The application integrates Model Context Protocol (MCP) and OpenAI Agents SDK to provide intelligent analysis capabilities:
+
+- **Project Analysis**: Analyze projects across various dimensions including environmental impact, equity, safety, and economic factors
+- **Scenario Development**: Generate and compare alternative project scenarios
+- **Demographic Analysis**: Analyze census data for equity considerations
+- **Safety Analysis**: Analyze collision data to identify safety improvement opportunities
+
+### Model Context Protocol Integration
+
+The application supports using multiple LLM providers through the Model Context Protocol (MCP). This allows:
+
+- Seamless switching between LLM providers
+- Using specialized models for different analysis types
+- Fallback to OpenAI when MCP is unavailable
+- Enhanced capabilities with MCP-compatible servers
+
+See [MCP_AGENTS_INTEGRATION.md](docs/MCP_AGENTS_INTEGRATION.md) for detailed documentation.
+
+### Project Scenario Development
+
+The Planning Manager includes a powerful scenario development tool that enables planners to:
+
+- Generate multiple alternative scenarios for any project
+- Create variations based on cost, timeline, design, funding sources, or phasing 
+- Compare scenarios side-by-side with AI-powered analysis
+- Refine scenarios based on stakeholder feedback
+- Make data-driven decisions with comparative metrics
+
+This feature leverages the PLANNING agent type and can work with any MCP-compatible provider or OpenAI.
+
+See [SCENARIO_DEVELOPMENT.md](docs/SCENARIO_DEVELOPMENT.md) for complete documentation.
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies with `npm install`
+3. Configure environment variables
+4. Run the development server with `npm run dev`
+
+## Environment Variables
+
+```
+DATABASE_URL=
+NEXT_PUBLIC_MAPBOX_TOKEN=
+NEXT_PUBLIC_BASE_URL=
+OPENAI_API_KEY=
+```
+
+## Documentation
+
+- [MCP and Agents SDK Integration](docs/MCP_AGENTS_INTEGRATION.md)
+- [Scenario Development](docs/SCENARIO_DEVELOPMENT.md)
+- [Project Analysis](docs/PROJECT_ANALYSIS.md)
+- [API Documentation](docs/API.md)
+
+## License
+
+MIT

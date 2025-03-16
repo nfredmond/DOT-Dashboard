@@ -37,6 +37,8 @@ import {
   ServerIcon,
   BrainCircuitIcon,
   ArrowLeftIcon,
+  Zap,
+  ExternalLink,
 } from "lucide-react";
 import { EnvironmentVariableManager } from "@/components/EnvironmentVariableManager";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -237,7 +239,7 @@ export default function AdminPanel() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-8 w-full mb-8">
+          <TabsList className="grid grid-cols-9 w-full mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -265,6 +267,10 @@ export default function AdminPanel() {
             <TabsTrigger value="mcp" className="flex items-center gap-2">
               <BrainCircuitIcon className="h-4 w-4" />
               <span className="hidden sm:inline">MCP</span>
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">Agents</span>
             </TabsTrigger>
             <TabsTrigger value="layers" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
@@ -308,6 +314,63 @@ export default function AdminPanel() {
           
           <TabsContent value="mcp" className="mt-0">
             <MCPConfigManager />
+          </TabsContent>
+          
+          <TabsContent value="agents" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Agent Management</CardTitle>
+                <CardDescription>
+                  Configure and manage OpenAI Agent capabilities including computer and browser access
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="rounded-lg border p-6 bg-card text-card-foreground shadow-sm">
+                  <h3 className="font-medium text-lg mb-2">Agent Tools</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Access the dedicated Agent Tools interface to test and utilize computer access and web browsing capabilities
+                  </p>
+                  <Button 
+                    className="gap-2" 
+                    onClick={() => router.push('/agent-tools')}
+                  >
+                    <Zap className="h-4 w-4" />
+                    Open Agent Tools
+                    <ExternalLink className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                
+                <div className="rounded-lg border p-6 bg-card text-card-foreground shadow-sm">
+                  <h3 className="font-medium text-lg mb-2">Agent Configuration</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Set up API keys, access controls, and configure tool permissions for the OpenAI Agents SDK
+                  </p>
+                  <div className="flex flex-col gap-4 max-w-lg">
+                    <div className="grid grid-cols-2 items-center">
+                      <span className="text-sm font-medium">API Key Status:</span>
+                      <Badge variant="outline" className="justify-self-start flex items-center gap-1">
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                        Configured
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 items-center">
+                      <span className="text-sm font-medium">Computer Access:</span>
+                      <Badge variant="outline" className="justify-self-start flex items-center gap-1 bg-green-50">
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                        Enabled
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 items-center">
+                      <span className="text-sm font-medium">Browser Access:</span>
+                      <Badge variant="outline" className="justify-self-start flex items-center gap-1 bg-green-50">
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                        Enabled
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="layers" className="mt-0">

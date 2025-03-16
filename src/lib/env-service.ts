@@ -646,3 +646,24 @@ export function setEnvVariable(key: string, value: string): boolean {
     return false;
   }
 }
+
+/**
+ * Get a suitable MCP server for a specific capability
+ * @param capability The capability needed
+ * @returns MCP server config or null if none found
+ */
+export function getMCPServerForCapability(capability: MCPCapability): MCPServerConfig | null {
+  if (!isMCPEnabled()) {
+    return null;
+  }
+  
+  const servers = getMCPServers();
+  
+  // First try to find an active server with the specific capability
+  const server = servers.find(server => 
+    server.isActive && 
+    server.capabilities.includes(capability)
+  );
+  
+  return server || null;
+}

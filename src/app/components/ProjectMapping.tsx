@@ -67,14 +67,15 @@ export interface Project {
 }
 
 interface ProjectMappingProps {
-  projects?: Project[];
+  projects?: any[]; // Make this more flexible
   initialCenter?: [number, number];
   initialZoom?: number;
   height?: string;
   width?: string;
   className?: string;
-  selectedProject?: Project | null;
-  onMarkerClick?: (project: Project) => void;
+  selectedProject?: any; // Make this more flexible
+  onMarkerClick?: (project: any) => void;
+  testingMode?: boolean;
 }
 
 // Component to handle map events and set up global map instance
@@ -164,13 +165,14 @@ function GeoJSONLayer({ url, visible }: { url: string, visible: boolean }) {
 
 export function ProjectMapping({
   projects = [],
-  initialCenter = [39.8283, -98.5795], // Center of the US
-  initialZoom = 4,
+  initialCenter = [39.2615, -121.0149], // Nevada City, CA
+  initialZoom = 13, // Higher zoom level for city view
   height = '100%',
   width = '100%',
   className = '',
   selectedProject = null,
   onMarkerClick,
+  testingMode = true, // Default to testing mode
 }: ProjectMappingProps) {
   const { user } = useAuth();
   const { leafletLoaded, leafletInstance } = useLeaflet();
@@ -178,6 +180,57 @@ export function ProjectMapping({
   
   // Track map initialization state
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+  
+  // Add test projects for Nevada City when in testing mode
+  const [localProjects, setLocalProjects] = useState<Project[]>(projects);
+  
+  useEffect(() => {
+    if (testingMode) {
+      // Add test Nevada City projects if in testing mode
+      const nevadaCityProjects: Project[] = [
+        {
+          id: 'test-1',
+          name: 'Nevada City Downtown Improvement',
+          description: 'Sidewalk and streetscape improvements in downtown area',
+          latitude: 39.2617,
+          longitude: -121.0176,
+          status: 'in progress',
+          category: 'Infrastructure',
+        },
+        {
+          id: 'test-2',
+          name: 'Deer Creek Trail Extension',
+          description: 'Extending the Deer Creek Trail by 1.5 miles',
+          latitude: 39.2585,
+          longitude: -121.0122,
+          status: 'planning',
+          category: 'Recreation',
+        },
+        {
+          id: 'test-3',
+          name: 'Highway 49 Intersection Upgrade',
+          description: 'Safety improvements at Coyote Street intersection',
+          latitude: 39.2546,
+          longitude: -121.0254,
+          status: 'approved',
+          category: 'Highway',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [-121.0254, 39.2546],
+              [-121.0264, 39.2556],
+              [-121.0274, 39.2566],
+            ]
+          }
+        },
+      ];
+      
+      // Combine existing projects with test projects
+      setLocalProjects([...projects, ...nevadaCityProjects]);
+    } else {
+      setLocalProjects(projects);
+    }
+  }, [projects, testingMode]);
   
   // Listen for map initialization
   useEffect(() => {
@@ -204,7 +257,7 @@ export function ProjectMapping({
   useEffect(() => {
     if (selectedProject && (window as any).leafletMapInstance) {
       const map = (window as any).leafletMapInstance;
-      const projectData = projects.find(p => p.id === selectedProject.id);
+      const projectData = localProjects.find(p => p.id === selectedProject.id);
       
       if (projectData) {
         // If the project has geometry, use it to calculate bounds
@@ -245,7 +298,7 @@ export function ProjectMapping({
         }
       }
     }
-  }, [selectedProject, projects]);
+  }, [selectedProject, localProjects]);
   
   // Get map configuration from map-config-service
   const [mapConfig, setMapConfig] = useState(() => {
@@ -382,53 +435,37 @@ export function ProjectMapping({
         break;
     }
     
-    // Create an enhanced SVG marker with drop shadow and pulse animation
+    // Create a simpler SVG marker that's more compatible with Leaflet
     const svgIcon = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 48" width="32" height="48">
-        <defs>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feOffset result="offOut" in="SourceAlpha" dx="0" dy="2" />
-            <feGaussianBlur result="blurOut" in="offOut" stdDeviation="2" />
-            <feColorMatrix result="matrixOut" in="blurOut" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0" />
-            <feBlend in="SourceGraphic" in2="matrixOut" mode="normal" />
-          </filter>
-          <radialGradient id="grad" cx="50%" cy="40%" r="50%" fx="50%" fy="40%">
-            <stop offset="0%" style="stop-color:${color}; stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${color}; stop-opacity:0.8" />
-          </radialGradient>
-        </defs>
-        <path d="M16 0C7.2 0 0 7.2 0 16c0 9.6 16 32 16 32s16-22.4 16-32c0-8.8-7.2-16-16-16z" 
-          fill="url(#grad)" 
-          filter="url(#shadow)" />
-        <circle cx="16" cy="16" r="7" fill="white" />
-        <circle cx="16" cy="16" r="4" fill="${color}" />
-        <circle class="pulse" cx="16" cy="16" r="16" 
-          stroke="${color}" 
-          stroke-opacity="0.5"
-          stroke-width="1.5" 
-          fill="none" 
-          opacity="0">
-          <animate attributeName="r" from="12" to="20" dur="1.5s" begin="0s" repeatCount="indefinite" />
-          <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" begin="0s" repeatCount="indefinite" />
-        </circle>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" 
+          fill="${color}" />
+        <circle cx="12" cy="12" r="5" fill="white" />
       </svg>
     `;
     
     // Fix btoa encoding issues by properly handling UTF-8
     const encodeSvg = (svg: string) => {
       if (typeof window === 'undefined') return '';
-      return window.btoa(unescape(encodeURIComponent(svg)));
+      
+      try {
+        return window.btoa(unescape(encodeURIComponent(svg)));
+      } catch (error) {
+        console.error('SVG encoding error:', error);
+        // Fallback to a simple marker if encoding fails
+        return window.btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36"><circle cx="12" cy="12" r="10" fill="red"/></svg>');
+      }
     };
     
     // Create a Data URL from the SVG
     const svgDataUrl = `data:image/svg+xml;base64,${encodeSvg(svgIcon)}`;
     
-    // Create the icon using the data URL
+    // Create the icon with simpler sizing
     return L.icon({
       iconUrl: svgDataUrl,
-      iconSize: [32, 48],
-      iconAnchor: [16, 48],
-      popupAnchor: [0, -42]
+      iconSize: [24, 36],
+      iconAnchor: [12, 36],
+      popupAnchor: [0, -36]
     });
   };
 
@@ -444,7 +481,7 @@ export function ProjectMapping({
     const projectsLayer = overlayLayers.find(layer => layer.id === 'projects');
     if (!projectsLayer || !projectsLayer.visible) return null;
     
-    return projects.map(project => {
+    return localProjects.map(project => {
       // If project has geometry, use it to render the appropriate feature
       if (project.geometry) {
         // Create GeoJSON structure for the project
