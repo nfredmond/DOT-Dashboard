@@ -24,10 +24,11 @@ import {
   Search, 
   Zap
 } from 'lucide-react';
-import { useLLM } from '@/contexts/LLMContext';
+import { useLLM, LLMProvider } from '@/contexts/LLMContext';
 import { AgentType } from '@/lib/agents-service';
 
-export default function AgentToolsPage() {
+// Create a component for the page content to use the hook within the provider
+function AgentToolsContent() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [agentType, setAgentType] = useState<AgentType>(AgentType.ANALYSIS);
@@ -254,62 +255,63 @@ export default function AgentToolsPage() {
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value={AgentType.ANALYSIS} className="mt-4">
-                  <p className="text-sm">
-                    The Analysis Agent provides expert transportation planning analysis
-                    with a focus on environmental impacts, equity, economic factors, and safety.
+                <TabsContent value={AgentType.ANALYSIS}>
+                  <p className="text-sm text-muted-foreground">
+                    This agent uses its knowledge about transportation planning to answer questions
+                    about projects, methodologies, and best practices.
                   </p>
                 </TabsContent>
                 
-                <TabsContent value={AgentType.COMPUTER} className="mt-4">
-                  <p className="text-sm">
-                    The Computer Agent can search and access files on the system to analyze
-                    planning documents, data sets, and related information.
+                <TabsContent value={AgentType.COMPUTER}>
+                  <p className="text-sm text-muted-foreground">
+                    This agent can access local files and data to help analyze
+                    transportation projects and generate reports.
                   </p>
                 </TabsContent>
                 
-                <TabsContent value={AgentType.BROWSER} className="mt-4">
-                  <p className="text-sm">
-                    The Browser Agent can search the web for transportation planning best practices,
-                    regulations, case studies, and other relevant information.
+                <TabsContent value={AgentType.BROWSER}>
+                  <p className="text-sm text-muted-foreground">
+                    This agent can browse the web to find up-to-date information
+                    about transportation projects, regulations, and case studies.
                   </p>
                 </TabsContent>
               </Tabs>
               
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Execution Trace</h3>
-                {eventHistory.length > 0 ? (
-                  <div className="border rounded-md p-3 max-h-[280px] overflow-y-auto">
-                    <ul className="space-y-2">
-                      {eventHistory.map((event, index) => (
-                        <li key={index} className="flex items-start text-xs">
-                          <span className="mr-2 pt-0.5">
-                            {getEventIcon(event.type)}
-                          </span>
-                          <div>
-                            <p className="font-medium">
-                              {event.type.split('_').map(word => 
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                              ).join(' ')}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {formatEventDetails(event)}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    No events recorded yet. Run a query to see agent events.
-                  </p>
-                )}
+              <div>
+                <h3 className="text-sm font-medium mb-2">Execution Log</h3>
+                <div className="border rounded-md p-2 max-h-[300px] overflow-y-auto bg-muted/30 space-y-2">
+                  {eventHistory.length > 0 ? (
+                    eventHistory.map((event, index) => (
+                      <div key={index} className="text-xs flex items-start p-2 bg-card rounded border">
+                        <div className="mr-2 mt-0.5">
+                          {getEventIcon(event.type)}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{event.type}</p>
+                          <p>{formatEventDetails(event)}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                      <p className="text-xs">Agent activity will appear here</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component that wraps the content with the provider
+export default function AgentToolsPage() {
+  return (
+    <LLMProvider>
+      <AgentToolsContent />
+    </LLMProvider>
   );
 } 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useLLM } from '@/contexts/LLMContext';
+import { useLLM, LLMProvider } from '@/contexts/LLMContext';
 import { AgentType } from '@/lib/agents-service';
 import { 
   processVoiceCommand as processVoiceAgentCommand, 
@@ -62,7 +62,7 @@ const defaultVoiceSettings: VoiceSettings = {
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
-export function VoiceProvider({ children }: { children: ReactNode }) {
+function VoiceProviderContent({ children }: { children: ReactNode }) {
   const llm = useLLM();
   const router = useRouter();
   const [isListening, setIsListening] = useState(false);
@@ -381,31 +381,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <VoiceContext.Provider
-      value={{
-        isListening,
-        startListening,
-        stopListening,
-        transcript,
-        clearTranscript,
-        speak,
-        stopSpeaking,
-        isSpeaking,
-        voiceEnabled,
-        toggleVoiceEnabled,
-        voiceSettings,
-        updateVoiceSettings,
-        processVoiceCommand,
-        isProcessingVoiceCommand,
-        lastVoiceResponse,
-        lastCommandType,
-        suggestedActions,
-        executeSuggestedAction,
-        currentPage
-      }}
-    >
+    <VoiceContext.Provider value={{
+      isListening,
+      startListening,
+      stopListening,
+      transcript,
+      clearTranscript,
+      speak,
+      stopSpeaking,
+      isSpeaking,
+      voiceEnabled,
+      toggleVoiceEnabled,
+      voiceSettings,
+      updateVoiceSettings,
+      processVoiceCommand,
+      isProcessingVoiceCommand,
+      lastVoiceResponse,
+      lastCommandType,
+      suggestedActions,
+      executeSuggestedAction,
+      currentPage
+    }}>
       {children}
     </VoiceContext.Provider>
+  );
+}
+
+export function VoiceProvider({ children }: { children: ReactNode }) {
+  return (
+    <LLMProvider>
+      <VoiceProviderContent>{children}</VoiceProviderContent>
+    </LLMProvider>
   );
 }
 

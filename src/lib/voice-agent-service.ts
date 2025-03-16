@@ -37,6 +37,20 @@ export interface VoiceCommandResult {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Types of voice commands that can be processed
+ */
+export enum VoiceCommandType {
+  NAVIGATION = 'navigation',
+  ACTION = 'action',
+  QUESTION = 'question',
+  PROJECT_SEARCH = 'project_search',
+  PROJECT_CREATE = 'project_create',
+  PROJECT_UPDATE = 'project_update',
+  TOOL_INVOKE = 'tool_invoke',
+  UNKNOWN = 'unknown'
+}
+
 export interface VoiceCommandOptions {
   settings?: VoiceSettings;
   context?: AgentContext;

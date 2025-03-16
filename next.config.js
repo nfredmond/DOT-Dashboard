@@ -70,7 +70,12 @@ const nextConfig = {
   // Disable image optimizer for marker icons
   images: {
     disableStaticImages: true,
-    domains: ['i.imgur.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.imgur.com',
+      },
+    ],
   },
 };
 
