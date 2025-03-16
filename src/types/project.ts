@@ -324,6 +324,13 @@ export interface ReportingData {
   data: Record<string, any>;
   submittedBy: string;
   status: "Draft" | "Submitted" | "Approved" | "Rejected";
+  fieldId?: string;
+  fieldName?: string;
+  value?: any;
+  reportPeriod?: string;
+  reportedAt?: string;
+  reportedBy?: string;
+  notes?: string;
 }
 
 // Funding Source Types

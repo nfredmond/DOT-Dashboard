@@ -20,6 +20,7 @@ import {
   RefreshCwIcon,
   FileTextIcon,
   ArrowLeftIcon,
+  FolderPlus,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -302,6 +303,41 @@ const ProjectsPage = () => {
       description: `Successfully updated ${Object.keys(batchResults).length} project(s).`
     });
   };
+
+  if (projects.length === 0) {
+    return (
+      <div className="container py-8 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Projects</h1>
+            <p className="text-muted-foreground">
+              Create and manage transportation projects
+            </p>
+          </div>
+          <Button onClick={() => router.push('/projects/new')}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Project
+          </Button>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <FolderPlus className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              Your organization doesn't have any projects yet. Create your first project to get started with planning, mapping, and analysis.
+            </p>
+            <Button size="lg" onClick={() => router.push('/projects/new')}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create Your First Project
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute>

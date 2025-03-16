@@ -2,6 +2,109 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
+// Demo projects data (more detailed for single project view)
+const demoProjects = {
+  'demo1': {
+    id: 'demo1',
+    name: 'City Transportation Plan',
+    description: 'Mapping transportation infrastructure and planning future improvements',
+    created_at: '2023-10-15',
+    updated_at: '2023-11-20',
+    map_type: 'cartoPositron',
+    location: 'Downtown',
+    status: 'In Progress',
+    category: 'Transit',
+    priority: 'High',
+    estimated_cost: 2500000,
+    is_public: true,
+    organization_id: 'demo-org',
+    coordinates: { latitude: 37.7749, longitude: -122.4194 },
+    geojson: null,
+    phases: ['Planning', 'Design', 'Implementation'],
+    organization: {
+      id: 'demo-org',
+      name: 'Demo City Department of Transportation',
+      logo_url: null
+    },
+    created_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    },
+    updated_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    }
+  },
+  'demo2': {
+    id: 'demo2',
+    name: 'Urban Development Zones',
+    description: 'Identifying and mapping urban development and zoning areas',
+    created_at: '2023-09-05',
+    updated_at: '2023-11-18',
+    map_type: 'cartoDarkMatter',
+    location: 'Citywide',
+    status: 'Planned',
+    category: 'Urban Planning',
+    priority: 'Medium',
+    estimated_cost: 1800000,
+    is_public: true,
+    organization_id: 'demo-org',
+    coordinates: { latitude: 37.7749, longitude: -122.4194 },
+    geojson: null,
+    phases: ['Research', 'Planning', 'Public Consultation'],
+    organization: {
+      id: 'demo-org',
+      name: 'Demo City Department of Transportation',
+      logo_url: null
+    },
+    created_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    },
+    updated_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    }
+  },
+  'demo3': {
+    id: 'demo3',
+    name: 'Bicycle Network Expansion',
+    description: 'Expanding the city bicycle network with new paths and safety improvements',
+    created_at: '2023-11-01',
+    updated_at: '2023-11-25',
+    map_type: 'openStreetMap',
+    location: 'Multiple Areas',
+    status: 'Planned',
+    category: 'Active Transportation',
+    priority: 'Medium',
+    estimated_cost: 950000,
+    is_public: true,
+    organization_id: 'demo-org',
+    coordinates: { latitude: 37.7749, longitude: -122.4194 },
+    geojson: null,
+    phases: ['Planning', 'Design', 'Construction'],
+    organization: {
+      id: 'demo-org',
+      name: 'Demo City Department of Transportation',
+      logo_url: null
+    },
+    created_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    },
+    updated_by_user: {
+      id: 'demo-user',
+      email: 'demo@example.com',
+      profile_image: null
+    }
+  }
+};
+
 // GET /api/projects/[id] - Get a specific project
 export async function GET(
   request: NextRequest,
@@ -13,8 +116,21 @@ export async function GET(
   // Get user session
   const { data: { session } } = await supabase.auth.getSession();
   
-  if (!session) {
+  // Check for demo mode
+  const demoCookie = cookies().get('rtpa_demo_mode');
+  const isDemo = !session && demoCookie?.value === 'true';
+  
+  if (!session && !isDemo) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // If in demo mode, return mock data
+  if (isDemo) {
+    // Check if we have a demo project with this ID
+    if (projectId.startsWith('demo') && demoProjects[projectId as keyof typeof demoProjects]) {
+      return NextResponse.json(demoProjects[projectId as keyof typeof demoProjects]);
+    }
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
   
   try {

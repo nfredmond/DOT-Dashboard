@@ -11,6 +11,7 @@ import { Sidebar } from '@/app/(components)/sidebar';
 import Loading from './loading';
 import { geistSans, geistMono } from '@/lib/fonts';
 import { LLMProvider } from '@/contexts/LLMContext';
+import { OnboardingDialog } from '@/components/OnboardingDialog';
 
 export default function AppLayout({
   children,
@@ -103,6 +104,7 @@ export default function AppLayout({
                   </div>
                 </div>
                 <Toaster />
+                <OnboardingDialog />
               </LLMProvider>
             </SupabaseProvider>
           </AuthProvider>

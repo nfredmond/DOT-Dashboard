@@ -37,7 +37,7 @@ export function Header() {
   // Get user initials for avatar fallback
   const getInitials = () => {
     if (!user) return "?";
-    return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+    return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`;
   };
 
   return (
@@ -73,7 +73,7 @@ export function Header() {
         <div className="flex items-center space-x-3">
           <ThemeToggle />
           
-          {user?.role === "admin" && (
+          {user?.role && user.role === "global_admin" && (
             <Button
               variant="ghost"
               size="icon"

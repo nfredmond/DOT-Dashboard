@@ -226,4 +226,46 @@ export function shouldPreferMCPOverOpenAI(): boolean {
   // Could be extended to check user preferences, performance metrics, etc.
   const preferMCP = getEnvVariable('PREFER_MCP_OVER_OPENAI', 'false');
   return preferMCP.toLowerCase() === 'true';
+}
+
+/**
+ * Checks if Agents SDK is enabled based on OpenAI API key availability
+ * @returns True if Agents SDK is enabled
+ */
+export function isAgentsSdkEnabled(): boolean {
+  return hasOpenAIAPIKey();
+}
+
+/**
+ * Gets the current preference setting for MCP over Agents SDK
+ * @returns True if MCP is preferred over Agents SDK
+ */
+export const preferMCPOverAgentsSdk = shouldPreferMCPOverOpenAI();
+
+/**
+ * Sets the preference for using MCP over Agents SDK
+ * @param value True to prefer MCP, false to prefer Agents SDK
+ */
+export function setPreferMCPOverAgentsSdk(value: boolean): void {
+  // This would typically update a persistent setting
+  // For now, we'll just log it
+  console.log(`Preference set: ${value ? 'MCP' : 'Agents SDK'} preferred`);
+  // In a real implementation, this would save to local storage or similar
+}
+
+/**
+ * Get the best MCP server for a specific capability
+ * @param capability The capability to look for
+ * @returns The best MCP server for the capability, or null if none available
+ */
+export function getMCPServerForCapability(capability: MCPCapability): MCPServerConfig | null {
+  const servers = getMCPServersWithCapability(capability);
+  
+  if (servers.length === 0) {
+    return null;
+  }
+  
+  // Simple selection - just return the first server
+  // This could be extended with more sophisticated selection logic
+  return servers[0];
 } 

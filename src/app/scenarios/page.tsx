@@ -114,6 +114,68 @@ export default function ScenariosPage() {
     );
   }
   
+  if (projects.length === 0) {
+    return (
+      <div className="container py-8 max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Project Scenarios</h1>
+            <p className="text-muted-foreground">
+              View and manage alternative scenarios for all projects
+            </p>
+          </div>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <GitBranch className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Projects Available</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              You need to create projects before you can generate and compare scenarios. Go to the Projects section to create your first project.
+            </p>
+            <Button size="lg" onClick={() => router.push('/projects')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Project
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  if (scenarios.length === 0 && projects.length > 0) {
+    return (
+      <div className="container py-8 max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Project Scenarios</h1>
+            <p className="text-muted-foreground">
+              View and manage alternative scenarios for all projects
+            </p>
+          </div>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <GitBranch className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Scenarios Yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              You have projects but no scenarios have been created yet. Visit a specific project to generate scenarios and compare different alternatives.
+            </p>
+            <Button size="lg" onClick={() => router.push('/projects')}>
+              <ChevronRight className="h-4 w-4 mr-2" />
+              Go to Projects
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
     <ProtectedRoute>
       <div className="container py-8">

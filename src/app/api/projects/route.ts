@@ -3,6 +3,55 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Project } from '@/types/project';
 
+// Demo projects data
+const demoProjects = [
+  {
+    id: 'demo1',
+    name: 'City Transportation Plan',
+    description: 'Mapping transportation infrastructure and planning future improvements',
+    created_at: '2023-10-15',
+    updated_at: '2023-11-20',
+    map_type: 'cartoPositron',
+    location: 'Downtown',
+    status: 'In Progress',
+    category: 'Transit',
+    priority: 'High',
+    estimated_cost: 2500000,
+    is_public: true,
+    organization_id: 'demo-org'
+  },
+  {
+    id: 'demo2',
+    name: 'Urban Development Zones',
+    description: 'Identifying and mapping urban development and zoning areas',
+    created_at: '2023-09-05',
+    updated_at: '2023-11-18',
+    map_type: 'cartoDarkMatter',
+    location: 'Citywide',
+    status: 'Planned',
+    category: 'Urban Planning',
+    priority: 'Medium',
+    estimated_cost: 1800000,
+    is_public: true,
+    organization_id: 'demo-org'
+  },
+  {
+    id: 'demo3',
+    name: 'Bicycle Network Expansion',
+    description: 'Expanding the city bicycle network with new paths and safety improvements',
+    created_at: '2023-11-01',
+    updated_at: '2023-11-25',
+    map_type: 'openStreetMap',
+    location: 'Multiple Areas',
+    status: 'Planned',
+    category: 'Active Transportation',
+    priority: 'Medium',
+    estimated_cost: 950000,
+    is_public: true,
+    organization_id: 'demo-org'
+  }
+];
+
 // GET /api/projects - Get projects with organization-based filtering
 export async function GET(request: NextRequest) {
   const supabase = createClient(cookies());
@@ -10,10 +59,21 @@ export async function GET(request: NextRequest) {
   // Get user session
   const { data: { session } } = await supabase.auth.getSession();
   
-  if (!session) {
+  // Check for demo mode - if no session is found, look for demo user in cookies/localStorage
+  // NOTE: We can't directly access localStorage server-side, but we can check for a demo cookie
+  const demoCookie = cookies().get('rtpa_demo_mode');
+  const isDemo = !session && demoCookie?.value === 'true';
+  
+  if (!session && !isDemo) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
+  // If in demo mode, return mock data
+  if (isDemo) {
+    return NextResponse.json(demoProjects);
+  }
+  
+  // Regular flow for authenticated users
   const userId = session.user.id;
   const url = new URL(request.url);
   const organizationId = url.searchParams.get('organizationId');

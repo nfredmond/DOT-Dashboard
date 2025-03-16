@@ -24,6 +24,7 @@ This directory contains comprehensive documentation for the Transportation Plann
 - **[Agents Integration](AGENTS_INTEGRATION.md)**: Documentation of the OpenAI Agents SDK integration.
 - **[MCP Agents Integration](MCP_AGENTS_INTEGRATION.md)**: Information about the Model Context Protocol integration.
 - **[Scenario Development](SCENARIO_DEVELOPMENT.md)**: Documentation of the scenario development features.
+- **[User Experience](USER_EXPERIENCE.md)**: Details of empty state handling and onboarding features.
 
 ### Development & Operations
 

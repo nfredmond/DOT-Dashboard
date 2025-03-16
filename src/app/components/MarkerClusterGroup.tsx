@@ -110,7 +110,6 @@ export default function MarkerClusterGroup({
       animate,
       maxClusterRadius,
       disableClusteringAtZoom: map.getMaxZoom() || 18, // Use map's maxZoom or default to 18
-      maxZoom: map.getMaxZoom() || 18, // Use map's maxZoom or default to 18
       iconCreateFunction: createClusterCustomIcon
     });
 

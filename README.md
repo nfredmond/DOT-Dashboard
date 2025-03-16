@@ -54,6 +54,14 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Agency-specific settings and configurations
 - Secure authentication via Supabase Auth
 
+### 🚀 User Experience
+
+- Intuitive onboarding dialog for first-time users with step-by-step guidance
+- Comprehensive empty state handling across all major features
+- Contextual help and suggestions based on user progress
+- Clear pathways to guide users from project creation to scoring
+- Seamless transition between demo mode and production usage
+
 ### 📈 Reporting
 
 - Custom report generation with templates

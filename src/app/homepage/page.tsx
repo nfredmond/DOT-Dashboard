@@ -115,7 +115,7 @@ export default function Homepage() {
             </p>
           </div>
           
-          {user?.role === "admin" && (
+          {user?.role === "global_admin" && (
             <button 
               onClick={() => router.push('/admin-panel')} 
               className="bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 px-4 rounded-md flex items-center border-l-4 border-amber-500 shadow-md transition-all duration-200"

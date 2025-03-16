@@ -230,17 +230,17 @@ const EditControlClient = ({
         const drawOptions = {
           position,
           draw: {
-            polyline: draw.polyline ?? false,
-            polygon: draw.polygon ?? false,
-            rectangle: draw.rectangle ?? false,
-            circle: draw.circle ?? false,
-            marker: draw.marker ?? false,
-            circlemarker: draw.circlemarker ?? false,
+            polyline: draw.polyline ? {} : false,
+            polygon: draw.polygon ? {} : false,
+            rectangle: draw.rectangle ? {} : false,
+            circle: draw.circle ? {} : false,
+            marker: draw.marker ? {} : false,
+            circlemarker: draw.circlemarker ? {} : false,
           },
           edit: {
             featureGroup,
-            edit: edit.edit ?? true,
-            remove: edit.remove ?? true,
+            edit: edit.edit ? {} : false,
+            remove: edit.remove ? true : false,
           }
         };
         
@@ -251,9 +251,9 @@ const EditControlClient = ({
         console.log('EditControl: Successfully added draw control to map');
         
         // Set up event handlers
-        if (onCreated) mapInstance.on(L.Draw.Event.CREATED, onCreated);
-        if (onEdited) mapInstance.on(L.Draw.Event.EDITED, onEdited);
-        if (onDeleted) mapInstance.on(L.Draw.Event.DELETED, onDeleted);
+        if (onCreated) mapInstance.on(L.Draw.Event.CREATED, (e: any) => onCreated(e as DrawEvent));
+        if (onEdited) mapInstance.on(L.Draw.Event.EDITED, (e: any) => onEdited(e));
+        if (onDeleted) mapInstance.on(L.Draw.Event.DELETED, (e: any) => onDeleted(e));
         
         isSetupRef.current = true;
       } catch (error) {

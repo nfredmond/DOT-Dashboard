@@ -6,16 +6,17 @@
 
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
-3. [Project Management](#project-management)
-4. [GIS Mapping](#gis-mapping)
-5. [Project Scoring & Prioritization](#project-scoring--prioritization)
-6. [Scenario Development](#scenario-development)
-7. [AI Assistant](#ai-assistant)
-8. [Reporting](#reporting)
-9. [User Management](#user-management)
-10. [Community Feedback](#community-feedback)
-11. [Troubleshooting](#troubleshooting)
-12. [Glossary](#glossary)
+3. [User Experience Features](#user-experience-features)
+4. [Project Management](#project-management)
+5. [GIS Mapping](#gis-mapping)
+6. [Project Scoring & Prioritization](#project-scoring--prioritization)
+7. [Scenario Development](#scenario-development)
+8. [AI Assistant](#ai-assistant)
+9. [Reporting](#reporting)
+10. [User Management](#user-management)
+11. [Community Feedback](#community-feedback)
+12. [Troubleshooting](#troubleshooting)
+13. [Glossary](#glossary)
 
 ## Introduction
 
@@ -32,6 +33,39 @@ The Transportation Planning Manager is a comprehensive web application designed 
 1. Navigate to the application URL provided by your organization
 2. Enter your username and password
 3. Click "Log in" to access the system
+
+## User Experience Features
+
+### Onboarding for New Users
+
+When logging into the application for the first time, you will be presented with an onboarding dialog that walks you through the core workflow:
+
+1. **Welcome**: An introduction to the Transportation Planning Manager platform
+2. **Projects**: Learn about creating transportation projects
+3. **Scenarios**: Understand how to generate alternative scenarios for projects
+4. **Scoring**: Discover how to score and prioritize projects
+5. **Getting Started**: Options to create your first project or explore on your own
+
+The onboarding dialog will only appear on your first visit. You can dismiss it at any time by clicking "Don't show this again" or by closing the dialog.
+
+### Empty State Guidance
+
+When you don't have data in certain areas of the application, you'll see helpful empty state displays:
+
+- **Projects**: When no projects exist, you'll see guidance on creating your first project
+- **Scenarios**: If you have projects but no scenarios, you'll be prompted to create scenarios
+- **Project Scoring**: Without scoring criteria or projects, you'll receive information on how to set these up
+
+Each empty state includes:
+- An explanation of what the feature does
+- Why no data is currently visible
+- Clear buttons to take the next appropriate action
+- Contextual guidance based on your role and current progress
+
+### Demo Mode vs. Regular Usage
+
+- **Demo Mode**: When using the application with demo credentials (`admin@example.com` / `password`), you'll see pre-populated sample data
+- **Regular Mode**: When using your actual account, you'll start with empty states and build up your data through normal use
 
 ## Getting Started
 

@@ -1,14 +1,22 @@
--- Reset Database: Drop and recreate the public schema
-DROP SCHEMA public CASCADE;
+-- This file contains the complete database schema for the Planning Manager application
+-- Running this script will RESET the database and recreate all tables
+
+-- Reset the database by dropping the public schema and recreating it
+DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
 
--- Enable required extensions
+-- Turn on necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS vector;
+
+-- USERS AND AUTHENTICATION
+-- =========================
+-- NOTE: When using demo mode, the application will show empty states with guidance
+-- when no data exists for the user, and an onboarding dialog for first-time users.
 
 -- Create agencies table
 CREATE TABLE agencies (
@@ -536,6 +544,10 @@ ALTER TABLE project_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scenario_comparisons ENABLE ROW LEVEL SECURITY;
 
 -- Create sample data for demo mode
+-- This data is used when the application is in demo mode
+-- In regular mode, when no data exists, the application will display empty states
+-- with guidance and an onboarding dialog for first-time users
+
 INSERT INTO agencies (id, name, subdomain, settings)
 VALUES 
   ('11111111-1111-1111-1111-111111111111', 'Demo Transportation Agency', 'demo', '{"theme":"blue"}');

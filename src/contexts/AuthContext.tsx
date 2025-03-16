@@ -56,6 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (demoUser) {
           console.log('Found demo user in localStorage');
           setUser(JSON.parse(demoUser));
+          
+          // Set a cookie to indicate demo mode for server-side API routes
+          document.cookie = "rtpa_demo_mode=true; path=/; max-age=86400";
+          
           setIsLoading(false);
           return;
         }
@@ -299,15 +303,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async (): Promise<void> => {
-    setIsLoading(true)
-    
     try {
-      // Clear demo user from localStorage if it exists
+      setIsLoading(true)
+      
+      // If using demo user, just remove from localStorage
       if (localStorage.getItem('rtpa_demo_user')) {
-        localStorage.removeItem('rtpa_demo_user');
-        setUser(null);
-        setIsLoading(false);
-        return;
+        localStorage.removeItem('rtpa_demo_user')
+        
+        // Clear the demo cookie
+        document.cookie = "rtpa_demo_mode=; path=/; max-age=0";
+        
+        setUser(null)
+        setIsLoading(false)
+        return
       }
       
       // Regular Supabase logout

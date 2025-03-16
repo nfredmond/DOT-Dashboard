@@ -973,6 +973,72 @@ export default function ProjectScoring() {
     );
   };
 
+  // Add this after the loading check, before the main content
+  if (projects.length === 0) {
+    return (
+      <div className="container py-8 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Project Scoring & Prioritization</h1>
+            <p className="text-muted-foreground">
+              Score projects, run prioritization scenarios, and optimize your investment strategy
+            </p>
+          </div>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <BarChart3Icon className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Projects Available for Scoring</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              You need to create projects before you can score and prioritize them. Go to the Projects section to create your first project.
+            </p>
+            <Button size="lg" onClick={() => router.push('/projects')}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create Your First Project
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Add this after the projects check, to handle when there are no criteria
+  if (criteria.length === 0 && projects.length > 0) {
+    return (
+      <div className="container py-8 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Project Scoring & Prioritization</h1>
+            <p className="text-muted-foreground">
+              Score projects, run prioritization scenarios, and optimize your investment strategy
+            </p>
+          </div>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <SlidersHorizontal className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Scoring Criteria Defined</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              You need to define scoring criteria before you can evaluate and prioritize projects. Contact your administrator to set up scoring criteria.
+            </p>
+            {user?.isGlobalAdmin && (
+              <Button size="lg" onClick={() => router.push('/admin-panel?tab=scoring')}>
+                <Settings2Icon className="h-4 w-4 mr-2" />
+                Setup Scoring Criteria
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6 max-w-7xl">
       <div className="flex items-center justify-between mb-6">

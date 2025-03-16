@@ -22,7 +22,8 @@ import {
   Save,
   Trash2,
   Download,
-  BarChartHorizontal
+  BarChartHorizontal,
+  GitBranch
 } from 'lucide-react';
 import { Project } from '@/types/project';
 import { GeneratedScenario } from '@/lib/analysis/scenario-service';
@@ -44,24 +45,43 @@ export default function ScenariosPage() {
     const fetchProjectAndScenarios = async () => {
       setLoading(true);
       try {
+        // Check if we're in demo mode by looking for demo project ID
+        const isDemoProject = projectId.startsWith('demo');
+        
         // Fetch project data
         const projectResponse = await fetch(`/api/projects/${projectId}`);
         if (!projectResponse.ok) throw new Error('Failed to fetch project');
         const projectData = await projectResponse.json();
-        
         setProject(projectData);
         
-        // Fetch saved scenarios
+        // Fetch scenarios for this project
         const scenariosResponse = await fetch(`/api/projects/${projectId}/scenarios`);
-        if (scenariosResponse.ok) {
-          const scenariosData = await scenariosResponse.json();
-          setSavedScenarios(scenariosData);
-        }
+        if (!scenariosResponse.ok) throw new Error('Failed to fetch scenarios');
+        const scenariosData = await scenariosResponse.json();
+        
+        // Transform the data to match the expected GeneratedScenario format
+        const formattedScenarios = scenariosData.map((scenario: any) => ({
+          id: scenario.id,
+          name: scenario.name,
+          description: scenario.description,
+          projectId: projectId,
+          feasibility: scenario.feasibility || 0,
+          status: scenario.status || 'Draft',
+          cost: scenario.cost || 0,
+          timeline: scenario.timeline || '0 months',
+          benefits: scenario.benefits || [],
+          drawbacks: scenario.drawbacks || [],
+          createdAt: scenario.created_at || new Date().toISOString(),
+          updatedAt: scenario.updated_at || new Date().toISOString(),
+          metrics: scenario.metrics || {}
+        }));
+        
+        setSavedScenarios(formattedScenarios);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load project data',
+          description: 'Failed to load project or scenarios',
           variant: 'destructive'
         });
       } finally {
@@ -258,7 +278,7 @@ export default function ScenariosPage() {
   
   if (loading) {
     return (
-      <div className="container py-8">
+      <div className="container py-8 max-w-5xl mx-auto">
         <div className="flex justify-center my-12">
           <Loading size="lg" />
         </div>
@@ -268,7 +288,7 @@ export default function ScenariosPage() {
   
   if (!project) {
     return (
-      <div className="container py-8">
+      <div className="container py-8 max-w-5xl mx-auto">
         <Card>
           <CardContent className="pt-6">
             <p>Project not found or you don't have access to it.</p>
@@ -286,8 +306,53 @@ export default function ScenariosPage() {
     );
   }
   
+  if (savedScenarios.length === 0 && project) {
+    return (
+      <div className="container py-8 max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push(`/projects/${projectId}`)}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Project
+            </Button>
+            <h1 className="text-2xl font-bold mt-2">
+              Scenarios for {project.name}
+            </h1>
+            <p className="text-muted-foreground">
+              Generate and compare alternative project scenarios
+            </p>
+          </div>
+        </div>
+        
+        <Card className="mt-8 border border-dashed">
+          <CardContent className="pt-6 px-6 pb-8 flex flex-col items-center text-center">
+            <div className="bg-primary/10 p-3 rounded-full mb-4">
+              <GitBranch className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Scenarios Yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              This project doesn't have any scenarios yet. Use the scenario generator to create alternative scenarios based on different priorities or constraints.
+            </p>
+            <div className="flex flex-col md:flex-row gap-4">
+              <Button 
+                size="lg" 
+                onClick={() => setCurrentTab('generator')}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Generate Scenarios
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   return (
-    <div className="container py-8">
+    <div className="container py-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <Button 

@@ -65,6 +65,20 @@ The application supports two modes of operation:
 - Changes may not persist between sessions
 - Ideal for testing and demonstration purposes
 
+### User Experience Features
+
+#### Empty State Handling
+- The application includes comprehensive empty state handling for users without existing data
+- Informative UI components display on Projects, Scenarios, and Scoring pages when no data exists
+- Clear guidance is provided on how to get started with creating new content
+- Context-specific empty states show different messages based on the user's progress (e.g., scenarios require projects first)
+
+#### First-Time User Onboarding
+- New users are presented with an onboarding dialog automatically on their first visit
+- The dialog walks through the core workflow: creating projects, generating scenarios, and scoring/prioritization
+- The onboarding status is stored in localStorage (`rtpa_onboarding_shown`) to ensure it only appears once
+- Users can choose to create their first project directly from the onboarding dialog or explore on their own
+
 ### Real Authentication Mode
 - Activated when logging in with real credentials (e.g., `nathaniel@greendottransportation.com`)
 - Connects to the actual Supabase database
