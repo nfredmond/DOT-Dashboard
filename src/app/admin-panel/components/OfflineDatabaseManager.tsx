@@ -224,7 +224,7 @@ export function OfflineDatabaseManager() {
           Offline Database
         </CardTitle>
         <CardDescription>
-          Configure offline database settings and synchronization options
+          Configure offline database settings and synchronization options. This feature allows the application to operate without Supabase, storing data locally for agencies with data sovereignty requirements or those who prefer not to use external database services.
         </CardDescription>
       </CardHeader>
       <CardContent>

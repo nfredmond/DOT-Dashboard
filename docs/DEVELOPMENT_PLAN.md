@@ -48,6 +48,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - ✅ Data visualization and charting
 - ✅ OpenAI Agents SDK integration with computer and web browsing capabilities
 - ✅ Complete application rebranding from "RTPA Portal" to "Planning Manager"
+- ✅ Offline database option using IndexedDB for agencies that don't want to use Supabase
 - ✅ Organization logo upload functionality for white-labeling
 - 🔄 Extended reporting capabilities
 - 🔄 Comprehensive API for external integration

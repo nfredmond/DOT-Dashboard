@@ -1,5 +1,7 @@
 # Supabase Database Setup Guide for Planning Manager v5
 
+> **Important Note**: While this document covers setting up the Planning Manager with Supabase, agencies also have the option to use the built-in offline database functionality instead. The offline database operates entirely within the browser using IndexedDB and requires no external database service. This option is ideal for agencies with data sovereignty requirements, limited connectivity, or those who prefer to maintain data locally. See [OFFLINE_DATABASE.md](OFFLINE_DATABASE.md) for complete details on the offline database option.
+
 This document outlines detailed instructions for setting up the database schema for the Planning Manager v5 application using Supabase. The database is designed for transportation planning agencies to manage projects, score them using customizable criteria, and track feedback.
 
 ## Required Extensions

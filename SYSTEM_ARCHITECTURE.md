@@ -41,6 +41,13 @@ The Planning Manager is a full-stack web application built on Next.js that enabl
 │  │  │PostgreSQL │  │    Auth   │  │     Storage       │  │  │
 │  │  └───────────┘  └───────────┘  └───────────────────┘  │  │
 │  └───────────────────────────────────────────────────────┘  │
+│                          OR                                  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │                 Offline Database                       │  │
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────────────┐  │  │
+│  │  │ IndexedDB │  │Local Auth │  │  Local Storage    │  │  │
+│  │  └───────────┘  └───────────┘  └───────────────────┘  │  │
+│  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -254,4 +261,39 @@ The data layer is built on Supabase, providing a robust foundation for data stor
 
 - **Caching Strategy**: Multi-level caching implementation
 - **Database Indexing**: Optimized indices for common queries
-- **Asset Optimization**: CDN and compression strategies 
+- **Asset Optimization**: CDN and compression strategies
+
+## Database Options
+
+The Planning Manager supports two database options to accommodate different agency needs:
+
+### Supabase Database (Default)
+
+The default configuration uses Supabase as the data layer, providing:
+
+- PostgreSQL database with PostGIS extension for spatial data
+- Built-in authentication and user management
+- File storage for documents and attachments
+- Real-time data synchronization
+- Row-level security policies for multi-tenant isolation
+- Advanced querying capabilities
+
+This option requires a Supabase account and is ideal for agencies that need full-featured database capabilities with real-time collaboration.
+
+### Offline Database
+
+The alternative configuration uses a fully client-side database approach:
+
+- IndexedDB for structured data storage
+- Local authentication with credential caching
+- Browser storage for documents and attachments
+- Offline-first operation with optional synchronization
+- Data encryption for sensitive information
+
+This option requires no external database service and is ideal for:
+- Agencies with data sovereignty requirements
+- Field operations with intermittent connectivity
+- Organizations preferring to maintain full control of their data
+- Simpler deployments without external dependencies
+
+Both database options support the core functionality of the application, though some advanced features may have limited functionality in offline mode. The system is designed to allow seamless switching between the two options or using them in combination (offline mode for field work with periodic synchronization to Supabase). 

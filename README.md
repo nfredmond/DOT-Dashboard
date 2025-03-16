@@ -102,6 +102,22 @@ Planning Manager is a sophisticated web application designed for transportation 
 - OpenAI API key (for AI features and Agents SDK)
 - Anthropic API key (optional, for Claude models)
 
+### Database Options
+
+Planning Manager v5 supports two database options:
+
+1. **Supabase Database (Default)**: A fully-featured PostgreSQL database hosted on Supabase with PostGIS support for geospatial data. This option requires a Supabase account and provides real-time synchronization, multi-user collaboration, and advanced querying capabilities.
+
+2. **Offline Database**: A local IndexedDB-based database that operates entirely within the browser. This option is ideal for:
+   - Agencies with strict data sovereignty requirements
+   - Deployment scenarios with limited internet connectivity
+   - Field workers who need to operate in offline environments
+   - Organizations that prefer to maintain data locally
+
+The offline database provides core functionality without requiring an external database service. It includes synchronization mechanisms for transferring data between online and offline modes when needed.
+
+See [OFFLINE_DATABASE.md](OFFLINE_DATABASE.md) for complete documentation on the offline database option.
+
 ### Installation
 
 1. Clone the repository:
@@ -128,16 +144,28 @@ cp .env.local.example .env.local
 Edit `.env.local` with your configuration:
 
 ```bash
+# Supabase configuration (if using Supabase)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# To use offline database, set this to true
+OFFLINE_DATABASE_ENABLED=false
+
+# AI services
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
 ```
 
 4. Initialize the database:
 
+For Supabase (Default):
 - Follow the instructions in `SUPABASE_SETUP_SQL.md`
 - Run the SQL setup scripts in your Supabase SQL editor
+
+For Offline Database:
+- Set `OFFLINE_DATABASE_ENABLED=true` in your .env.local file
+- The application will automatically set up the offline database when launched
+- Configure offline database settings in the admin panel under "Database Settings"
 
 5. Start the development server:
 
