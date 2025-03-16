@@ -22,7 +22,12 @@ export type WizardCategory =
   | 'scoring'
   | 'benefits'
   | 'attachments'
-  | 'custom';
+  | 'custom'
+  | 'contracts'
+  | 'invoices'
+  | 'grants'
+  | 'construction_progress'
+  | 'construction_documents';
 
 export interface WizardStep {
   id: WizardCategory;
@@ -68,6 +73,11 @@ const defaultWizardConfig: ProjectWizardConfig = {
     { id: 'benefits', title: 'Benefits & Metrics', description: 'Expected benefits and performance metrics', enabled: true, order: 7, required: false },
     { id: 'attachments', title: 'Attachments', description: 'Upload supporting documents', enabled: true, order: 8, required: false },
     { id: 'custom', title: 'Additional Fields', description: 'Custom fields specific to your organization', enabled: true, order: 9, required: false },
+    { id: 'contracts', title: 'Contracts & Agreements', description: 'Manage project contracts and agreements', enabled: true, order: 10, required: false },
+    { id: 'invoices', title: 'Invoices & Payments', description: 'Track invoices, payments, and financial transactions', enabled: true, order: 11, required: false },
+    { id: 'grants', title: 'Grant Funding', description: 'Track grant applications, awards, and compliance', enabled: true, order: 12, required: false },
+    { id: 'construction_progress', title: 'Construction Progress', description: 'Track construction progress, issues, and milestones', enabled: true, order: 13, required: false },
+    { id: 'construction_documents', title: 'Construction Documents', description: 'Manage blueprints, permits, inspection reports, and other construction documentation', enabled: true, order: 14, required: false },
   ],
   customFields: [],
   scoringCriteria: [
@@ -78,7 +88,29 @@ const defaultWizardConfig: ProjectWizardConfig = {
     { id: 'costEffectiveness', name: 'Cost Effectiveness', description: 'Provides good value for the investment', weight: 15, enabled: true },
     { id: 'multimodal', name: 'Multimodal', description: 'Supports multiple transportation modes', weight: 15, enabled: true },
   ],
-  projectCategories: ['Transit', 'Highway', 'Pedestrian', 'Bicycle', 'Multimodal', 'Bridge', 'Safety', 'Operational', 'Technology', 'Planning', 'Other'],
+  projectCategories: [
+    'Transit', 
+    'Highway', 
+    'Pedestrian', 
+    'Bicycle', 
+    'Multimodal', 
+    'Bridge', 
+    'Safety', 
+    'Operational', 
+    'Technology', 
+    'Planning', 
+    'Other',
+    'Bridge Construction',
+    'Bridge Rehabilitation',
+    'Roadway Construction',
+    'Roadway Rehabilitation',
+    'Sidewalk Construction',
+    'Sidewalk Repair',
+    'Traffic Signal Installation',
+    'Infrastructure Improvement',
+    'Drainage System',
+    'Intersection Improvement',
+  ],
   projectStatuses: ['Planned', 'Approved', 'In Progress', 'On Hold', 'Delayed', 'Completed', 'Cancelled'],
   projectPriorities: ['Low', 'Medium', 'High', 'Critical'],
   environmentalStatuses: ['Not Started', 'In Progress', 'Exempt', 'Completed', 'Not Required'],
@@ -106,7 +138,15 @@ const defaultWizardConfig: ProjectWizardConfig = {
   ],
   allowAiAssistance: true,
   requireApproval: false,
-  enabledClientTypes: ['transportation', 'construction'],
+  enabledClientTypes: [
+    'transportation', 
+    'construction', 
+    'bridge', 
+    'sidewalk', 
+    'highway', 
+    'infrastructure', 
+    'planning'
+  ],
 };
 
 // Create the context with default values

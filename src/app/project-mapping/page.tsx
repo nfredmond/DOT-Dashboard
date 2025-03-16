@@ -2,29 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProjectMapping } from '../components/ProjectMapping';
+import type { Project as ProjectMappingType } from '../components/ProjectMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Menu, PlusIcon } from 'lucide-react';
+import { Menu, PlusIcon, ExternalLink } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 
-// Types
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  status: string;
-  address?: string;
-  category?: string;
-  budget?: string;
-  startDate?: string;
-  endDate?: string;
-}
+// Use the imported type instead
+type Project = ProjectMappingType & {
+  geometry?: {
+    type: 'Point' | 'LineString' | 'Polygon';
+    coordinates: number[] | number[][] | number[][][];
+  };
+};
 
 export default function ProjectMappingPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -46,7 +40,16 @@ export default function ProjectMappingPage() {
       category: "Highway",
       budget: "$24M",
       startDate: "2023-05-15",
-      endDate: "2024-12-31"
+      endDate: "2024-12-31",
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-119.698189, 34.42083],
+          [-119.702, 34.43],
+          [-119.705, 34.44],
+          [-119.707, 34.45]
+        ]
+      }
     },
     {
       id: '2',
@@ -59,7 +62,11 @@ export default function ProjectMappingPage() {
       category: "Transit",
       budget: "$12M",
       startDate: "2024-01-10",
-      endDate: "2025-06-30"
+      endDate: "2025-06-30",
+      geometry: {
+        type: 'Point',
+        coordinates: [-121.4944, 38.581572]
+      }
     },
     {
       id: '3',
@@ -72,7 +79,16 @@ export default function ProjectMappingPage() {
       category: "Active",
       budget: "$5M",
       startDate: "2022-03-01",
-      endDate: "2023-09-15"
+      endDate: "2023-09-15",
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-122.419418, 37.774929],
+          [-122.415, 37.776],
+          [-122.41, 37.778],
+          [-122.405, 37.78]
+        ]
+      }
     },
     {
       id: '4',
@@ -85,7 +101,39 @@ export default function ProjectMappingPage() {
       category: "Highway",
       budget: "$35M",
       startDate: "2023-07-20",
-      endDate: "2025-08-01"
+      endDate: "2025-08-01",
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-122.4225, 37.82604],
+          [-122.42, 37.825],
+          [-122.418, 37.824],
+          [-122.416, 37.823]
+        ]
+      }
+    },
+    {
+      id: '5',
+      name: "Powell Street Corridor Study",
+      description: "Community study for improving the Powell Street corridor",
+      latitude: 37.786,
+      longitude: -122.408,
+      status: "Planning",
+      address: "San Francisco, CA",
+      category: "Planning",
+      budget: "$1.2M",
+      startDate: "2024-04-01",
+      endDate: "2025-03-31",
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [-122.408, 37.786],
+          [-122.405, 37.786],
+          [-122.405, 37.788],
+          [-122.408, 37.788],
+          [-122.408, 37.786]
+        ]]
+      }
     },
   ]);
 
@@ -95,7 +143,8 @@ export default function ProjectMappingPage() {
                            project.category?.toLowerCase() === activeTab.toLowerCase();
     const searchMatch = !searchQuery || 
                         project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        project.description.toLowerCase().includes(searchQuery.toLowerCase());
+                        project.description?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        project.address?.toLowerCase().includes(searchQuery.toLowerCase());
     return categoryMatch && searchMatch;
   });
 
@@ -119,9 +168,25 @@ export default function ProjectMappingPage() {
     setSearchQuery(e.target.value);
   };
 
-  // Handle project selection
+  // Handle project selection from sidebar
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
+  };
+
+  // Handle project selection from map
+  const handleMarkerClick = (mapProject: ProjectMappingType) => {
+    // Find the corresponding project in our projects array
+    const project = projects.find(p => p.id === mapProject.id);
+    if (project) {
+      setSelectedProject(project);
+    }
+  };
+
+  // Handle view details click
+  const handleViewDetails = () => {
+    if (selectedProject) {
+      router.push(`/projects/${selectedProject.id}`);
+    }
   };
 
   return (
@@ -176,10 +241,12 @@ export default function ProjectMappingPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-medium text-sm">{project.name}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {project.description.substring(0, 60)}
-                          {project.description.length > 60 ? "..." : ""}
-                        </p>
+                        {project.description && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {project.description.substring(0, 60)}
+                            {project.description.length > 60 ? "..." : ""}
+                          </p>
+                        )}
                       </div>
                       <Badge className={getStatusBadgeColor(project.status)}>
                         {project.status}
@@ -223,6 +290,8 @@ export default function ProjectMappingPage() {
               initialZoom={6}
               height="100%"
               width="100%"
+              selectedProject={selectedProject}
+              onMarkerClick={handleMarkerClick}
             />
           </div>
           
@@ -231,57 +300,47 @@ export default function ProjectMappingPage() {
             <div className="absolute bottom-4 right-4 z-[2000] w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{selectedProject.name}</CardTitle>
+                  <CardTitle className="text-lg flex justify-between items-center">
+                    {selectedProject.name}
+                    <Badge className={getStatusBadgeColor(selectedProject.status)}>
+                      {selectedProject.status}
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{selectedProject.description}</p>
+                  {selectedProject.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{selectedProject.description}</p>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
-                      <Badge className={getStatusBadgeColor(selectedProject.status)}>
-                        {selectedProject.status}
-                      </Badge>
-                    </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Category</p>
                       <p className="text-sm font-medium">{selectedProject.category}</p>
                     </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Budget</p>
+                      <p className="text-sm font-medium">{selectedProject.budget}</p>
+                    </div>
                     
-                    {selectedProject.budget && (
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Budget</p>
-                        <p className="text-sm font-medium">{selectedProject.budget}</p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Start Date</p>
+                      <p className="text-sm">{selectedProject.startDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">End Date</p>
+                      <p className="text-sm">{selectedProject.endDate}</p>
+                    </div>
                     
-                    {selectedProject.startDate && (
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Timeline</p>
-                        <p className="text-sm font-medium">
-                          {new Date(selectedProject.startDate).toLocaleDateString()} - 
-                          {selectedProject.endDate ? new Date(selectedProject.endDate).toLocaleDateString() : 'Ongoing'}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {selectedProject.address && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
-                        <p className="text-sm font-medium">{selectedProject.address}</p>
-                      </div>
-                    )}
+                    <div className="col-span-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                      <p className="text-sm">{selectedProject.address}</p>
+                    </div>
                   </div>
                   
-                  <div className="pt-2 flex justify-end">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => router.push(`/projects/${selectedProject.id}`)}
-                    >
-                      View Details
-                    </Button>
-                  </div>
+                  <Button size="sm" className="w-full mt-2" onClick={handleViewDetails}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
                 </CardContent>
               </Card>
             </div>

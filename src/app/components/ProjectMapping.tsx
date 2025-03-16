@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   MapContainer, 
@@ -13,6 +13,7 @@ import {
   GeoJSON
 } from 'react-leaflet';
 import { divIcon } from 'leaflet';
+import L from 'leaflet';
 import { SearchControl } from './SearchControl';
 import { LayerSelector, BaseMapOption, OverlayLayer } from './LayerSelector';
 import { GeolocateControl } from './GeolocateControl';
@@ -46,7 +47,8 @@ const DEFAULT_BASE_MAPS: BaseMapOption[] = [
   }
 ];
 
-interface Project {
+// Export the interface so it can be imported elsewhere
+export interface Project {
   id: string;
   name: string;
   latitude: number;
@@ -58,6 +60,10 @@ interface Project {
   budget?: string;
   startDate?: string;
   endDate?: string;
+  geometry?: {
+    type: 'Point' | 'LineString' | 'Polygon';
+    coordinates: number[] | number[][] | number[][][];
+  };
 }
 
 interface ProjectMappingProps {
@@ -67,6 +73,8 @@ interface ProjectMappingProps {
   height?: string;
   width?: string;
   className?: string;
+  selectedProject?: Project | null;
+  onMarkerClick?: (project: Project) => void;
 }
 
 // Component to handle map events and set up global map instance
@@ -161,6 +169,8 @@ export function ProjectMapping({
   height = '100%',
   width = '100%',
   className = '',
+  selectedProject = null,
+  onMarkerClick,
 }: ProjectMappingProps) {
   const { user } = useAuth();
   const { leafletLoaded, leafletInstance } = useLeaflet();
@@ -189,6 +199,53 @@ export function ProjectMapping({
       window.removeEventListener('leaflet-map-ready', handleMapReady);
     };
   }, []);
+
+  // Zoom to selected project when it changes
+  useEffect(() => {
+    if (selectedProject && (window as any).leafletMapInstance) {
+      const map = (window as any).leafletMapInstance;
+      const projectData = projects.find(p => p.id === selectedProject.id);
+      
+      if (projectData) {
+        // If the project has geometry, use it to calculate bounds
+        if (projectData.geometry) {
+          try {
+            // Create a GeoJSON object for Leaflet to use
+            const geoJsonFeature = {
+              type: 'Feature',
+              properties: {},
+              geometry: projectData.geometry
+            };
+            
+            // Create a temporary GeoJSON layer to calculate bounds
+            const geoJsonLayer = L.geoJSON(geoJsonFeature as any);
+            const bounds = geoJsonLayer.getBounds();
+            
+            // Add padding and animate to the bounds
+            map.fitBounds(bounds, {
+              padding: [50, 50],
+              maxZoom: 16,
+              animate: true,
+              duration: 1
+            });
+          } catch (error) {
+            console.error('Error calculating bounds:', error);
+            // Fallback to simple setView if error occurs
+            map.setView([projectData.latitude, projectData.longitude], 14, {
+              animate: true,
+              duration: 1
+            });
+          }
+        } else {
+          // For projects without geometry, use a closer zoom level
+          map.setView([projectData.latitude, projectData.longitude], 14, {
+            animate: true,
+            duration: 1
+          });
+        }
+      }
+    }
+  }, [selectedProject, projects]);
   
   // Get map configuration from map-config-service
   const [mapConfig, setMapConfig] = useState(() => {
@@ -303,7 +360,7 @@ export function ProjectMapping({
     );
   };
 
-  // Create custom marker icon
+  // Create custom marker icon with improved styling
   const getMarkerIcon = (status: string) => {
     let color = '#3388ff'; // Default blue
     
@@ -325,35 +382,205 @@ export function ProjectMapping({
         break;
     }
     
-    return divIcon({
-      html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
-      className: 'custom-marker-icon',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+    // Create an enhanced SVG marker with drop shadow and pulse animation
+    const svgIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 48" width="32" height="48">
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feOffset result="offOut" in="SourceAlpha" dx="0" dy="2" />
+            <feGaussianBlur result="blurOut" in="offOut" stdDeviation="2" />
+            <feColorMatrix result="matrixOut" in="blurOut" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0" />
+            <feBlend in="SourceGraphic" in2="matrixOut" mode="normal" />
+          </filter>
+          <radialGradient id="grad" cx="50%" cy="40%" r="50%" fx="50%" fy="40%">
+            <stop offset="0%" style="stop-color:${color}; stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${color}; stop-opacity:0.8" />
+          </radialGradient>
+        </defs>
+        <path d="M16 0C7.2 0 0 7.2 0 16c0 9.6 16 32 16 32s16-22.4 16-32c0-8.8-7.2-16-16-16z" 
+          fill="url(#grad)" 
+          filter="url(#shadow)" />
+        <circle cx="16" cy="16" r="7" fill="white" />
+        <circle cx="16" cy="16" r="4" fill="${color}" />
+        <circle class="pulse" cx="16" cy="16" r="16" 
+          stroke="${color}" 
+          stroke-opacity="0.5"
+          stroke-width="1.5" 
+          fill="none" 
+          opacity="0">
+          <animate attributeName="r" from="12" to="20" dur="1.5s" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" begin="0s" repeatCount="indefinite" />
+        </circle>
+      </svg>
+    `;
+    
+    // Fix btoa encoding issues by properly handling UTF-8
+    const encodeSvg = (svg: string) => {
+      if (typeof window === 'undefined') return '';
+      return window.btoa(unescape(encodeURIComponent(svg)));
+    };
+    
+    // Create a Data URL from the SVG
+    const svgDataUrl = `data:image/svg+xml;base64,${encodeSvg(svgIcon)}`;
+    
+    // Create the icon using the data URL
+    return L.icon({
+      iconUrl: svgDataUrl,
+      iconSize: [32, 48],
+      iconAnchor: [16, 48],
+      popupAnchor: [0, -42]
     });
   };
+
+  // Handle marker click
+  const handleMarkerClick = useCallback((project: Project) => {
+    if (onMarkerClick) {
+      onMarkerClick(project);
+    }
+  }, [onMarkerClick]);
 
   // Only render markers for the 'projects' layer when it's visible
   const renderProjectMarkers = () => {
     const projectsLayer = overlayLayers.find(layer => layer.id === 'projects');
     if (!projectsLayer || !projectsLayer.visible) return null;
     
-    return projects.map(project => (
-      <Marker
-        key={project.id}
-        position={[project.latitude, project.longitude]}
-        icon={getMarkerIcon(project.status)}
-      >
-        <Popup>
-          <div>
-            <h3 className="font-bold">{project.name}</h3>
-            {project.address && <p className="text-sm">{project.address}</p>}
-            <p className="text-sm mt-1">Status: <span className="font-medium">{project.status}</span></p>
-            {project.description && <p className="text-sm mt-1">{project.description}</p>}
-          </div>
-        </Popup>
-      </Marker>
-    ));
+    return projects.map(project => {
+      // If project has geometry, use it to render the appropriate feature
+      if (project.geometry) {
+        // Create GeoJSON structure for the project
+        const geoJson = {
+          type: 'Feature',
+          properties: {
+            id: project.id,
+            name: project.name,
+            status: project.status,
+            description: project.description,
+            address: project.address,
+            category: project.category,
+            budget: project.budget
+          },
+          geometry: project.geometry
+        };
+        
+        // Style based on project status
+        const getGeoJSONStyle = (status: string) => {
+          let color;
+          switch (status.toLowerCase()) {
+            case 'approved':
+              color = '#4caf50'; // Green
+              break;
+            case 'in progress':
+              color = '#2196f3'; // Blue
+              break;
+            case 'planning':
+              color = '#ff9800'; // Orange
+              break;
+            case 'completed':
+              color = '#9c27b0'; // Purple
+              break;
+            case 'rejected':
+              color = '#f44336'; // Red
+              break;
+            default:
+              color = '#3388ff'; // Default blue
+          }
+          
+          return {
+            color: color,
+            weight: 3,
+            opacity: 0.8,
+            fillOpacity: 0.3,
+            fillColor: color
+          };
+        };
+        
+        // Create a popup for the geometry feature
+        const createPopup = (feature: any) => {
+          if (!feature || !feature.properties) return;
+          
+          const properties = feature.properties;
+          return (
+            <Popup>
+              <div className="popup-content dark:bg-gray-800 dark:text-white">
+                <h3 className="font-bold text-base border-b pb-2 mb-2 dark:border-gray-700">{properties.name}</h3>
+                {properties.address && <p className="text-sm mb-1 dark:text-gray-300">{properties.address}</p>}
+                <p className="text-sm mb-2">
+                  <span className="font-medium">Status:</span> 
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                    properties.status.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                    properties.status.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                  }`}>
+                    {properties.status}
+                  </span>
+                </p>
+                {properties.description && (
+                  <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">{properties.description}</p>
+                )}
+                {properties.budget && (
+                  <p className="text-sm mt-2 font-semibold">{properties.budget}</p>
+                )}
+              </div>
+            </Popup>
+          );
+        };
+        
+        // Event handlers for GeoJSON features
+        const eventHandlers = {
+          click: () => {
+            if (onMarkerClick) {
+              onMarkerClick(project);
+            }
+          }
+        };
+        
+        return (
+          <GeoJSON 
+            key={`geojson-${project.id}`}
+            data={geoJson as any}
+            pathOptions={getGeoJSONStyle(project.status)}
+            eventHandlers={eventHandlers}
+          >
+            {createPopup(geoJson)}
+          </GeoJSON>
+        );
+      }
+      
+      // Default to markers for projects without geometry
+      return (
+        <Marker
+          key={`marker-${project.id}`}
+          position={[project.latitude, project.longitude]}
+          icon={getMarkerIcon(project.status)}
+          eventHandlers={{
+            click: () => handleMarkerClick(project)
+          }}
+        >
+          <Popup>
+            <div className="popup-content dark:bg-gray-800 dark:text-white">
+              <h3 className="font-bold text-base border-b pb-2 mb-2 dark:border-gray-700">{project.name}</h3>
+              {project.address && <p className="text-sm mb-1 dark:text-gray-300">{project.address}</p>}
+              <p className="text-sm mb-2">
+                <span className="font-medium">Status:</span> 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                  project.status.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                  project.status.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                }`}>
+                  {project.status}
+                </span>
+              </p>
+              {project.description && (
+                <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">{project.description}</p>
+              )}
+              {project.budget && (
+                <p className="text-sm mt-2 font-semibold">{project.budget}</p>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
   };
 
   return (
@@ -372,9 +599,6 @@ export function ProjectMapping({
           console.log('MapContainer is ready');
         }}
       >
-        {/* Add attribution control explicitly */}
-        <AttributionControl position="bottomright" />
-        
         {/* Base maps */}
         <TileLayer
           url={selectedBaseMap.url}
@@ -418,6 +642,7 @@ export function ProjectMapping({
       {/* UI Controls - positioned above the map - ONLY show when map is initialized */}
       {isMapInitialized && (
         <>
+          {/* Layer selector - top right */}
           <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
             <LayerSelector
               baseMaps={baseMaps}
@@ -428,8 +653,9 @@ export function ProjectMapping({
             />
           </div>
           
-          <div className="absolute top-3 left-3 z-[1000] flex gap-2">
-            <SearchControl className="w-[250px]" />
+          {/* Search and geolocation controls positioned in bottom left */}
+          <div className="absolute bottom-3 left-3 z-[1010] map-ui-container">
+            <SearchControl placeholder="Search location..." />
             <GeolocateControl />
           </div>
         </>

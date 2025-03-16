@@ -21,6 +21,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Enable PostGIS for geospatial data
 CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Enable pgcrypto for encryption functions
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Enable vector extension for LLM embeddings and semantic search
+CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
 ## Schema Creation

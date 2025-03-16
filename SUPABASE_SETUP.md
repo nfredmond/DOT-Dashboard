@@ -2,6 +2,32 @@
 
 This document outlines detailed instructions for setting up the database schema for the Planning Manager v5 application using Supabase. The database is designed for transportation planning agencies to manage projects, score them using customizable criteria, and track feedback.
 
+## Required Extensions
+
+The following extensions must be enabled in your Supabase project:
+
+1. **UUID Extension** - For unique identifier generation
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+   ```
+
+2. **PostGIS** - For geospatial data handling
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   ```
+
+3. **pgcrypto** - For encryption functions
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS pgcrypto;
+   ```
+
+4. **Vector** - For LLM embeddings and semantic search
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+
+You can enable these extensions in the Supabase dashboard under Database > Extensions, or run the commands above in the SQL Editor.
+
 ## Table of Contents
 
 1. [Getting Started](#getting-started)

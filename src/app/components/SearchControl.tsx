@@ -32,13 +32,13 @@ function SearchControlLoading({ className = '' }: { className?: string }) {
           type="text"
           placeholder="Loading search..."
           disabled
-          className="bg-white shadow-md"
+          className="bg-white rounded-md shadow-md h-9 border-gray-200"
         />
         <Button 
           variant="outline" 
           size="icon" 
           disabled
-          className="bg-white shadow-md"
+          className="bg-white shadow-md h-9 w-9 rounded-md border-gray-200"
         >
           <Spinner size="sm" />
         </Button>
@@ -51,127 +51,111 @@ function SearchControlLoading({ className = '' }: { className?: string }) {
 export function SearchControl(props: SearchControlProps) {
   const [mounted, setMounted] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
-  
-  // Check if Leaflet is truly ready (with multiple safety checks)
-  const checkLeafletReady = () => {
-    if (typeof window === 'undefined') return false;
-    
-    try {
-      // Check for Leaflet global objects
-      if (!(window as any).L) return false;
-      
-      // Check for leaf container
-      const container = document.querySelector('.leaflet-container');
-      if (!container) return false;
-      
-      // Check for key Leaflet elements
-      const hasLeafletPanes = !!document.querySelector('.leaflet-pane');
-      const hasLeafletControls = !!document.querySelector('.leaflet-control-container');
-      
-      // Check for Leaflet map instance
-      const hasMapInstance = !!(window as any).leafletMapInstance;
-      
-      return hasLeafletPanes && hasLeafletControls && hasMapInstance;
-    } catch (error) {
-      console.error('Error checking Leaflet readiness:', error);
-      return false;
-    }
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searching, setSearching] = useState(false);
   
   useEffect(() => {
     setMounted(true);
     
-    // Add a global event listener for map initialization
-    const handleMapReady = () => {
-      console.log('SearchControl: Detected map ready event');
-      // Wait a bit longer to make absolutely sure everything is ready
-      setTimeout(() => {
-        if (checkLeafletReady()) {
-          console.log('SearchControl: Leaflet confirmed ready, rendering search component');
-          setLeafletReady(true);
+    // Force it to be ready after a short timeout
+    setTimeout(() => {
+      setLeafletReady(true);
+      console.log('SearchControl: Force ready after timeout');
+    }, 2000);
+    
+    return () => {};
+  }, []);
+  
+  // Handle search when clicking the button or pressing Enter
+  const handleSearch = () => {
+    if (!searchTerm.trim()) return;
+    
+    setSearching(true);
+    console.log('Searching for:', searchTerm);
+    
+    // Use Nominatim (OpenStreetMap) geocoding service
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      }, 1000); // Extra safety delay
-    };
-    
-    // Listen for our custom event
-    window.addEventListener('leaflet-map-ready', handleMapReady);
-    
-    // Also check periodically in case we missed the event
-    const checkIntervals = [100, 500, 1000, 2000, 3000, 5000];
-    
-    checkIntervals.forEach(delay => {
-      setTimeout(() => {
-        if (!leafletReady && checkLeafletReady()) {
-          console.log(`SearchControl: Leaflet detected as ready after ${delay}ms`);
-          setLeafletReady(true);
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          // Use the first result
+          const result = data[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          
+          console.log('Found location:', result.display_name, lat, lng);
+          
+          // Create a search result object
+          const searchResult = {
+            id: result.place_id,
+            name: result.display_name,
+            lat: lat,
+            lng: lng,
+            address: result.display_name
+          };
+          
+          // Fly to the result location
+          if ((window as any).leafletMapInstance) {
+            (window as any).leafletMapInstance.flyTo([lat, lng], 12);
+          }
+          
+          // Call the onResult callback if provided
+          if (props.onResult) {
+            props.onResult([searchResult]);
+          }
+        } else {
+          throw new Error('No results found');
         }
-      }, delay);
-    });
-    
-    return () => {
-      window.removeEventListener('leaflet-map-ready', handleMapReady);
-    };
-  }, [leafletReady]);
+      })
+      .catch(error => {
+        console.error('Error searching location:', error);
+        alert('Could not find the location. Please try a different search term.');
+      })
+      .finally(() => {
+        setSearching(false);
+      });
+  };
+  
+  // Handle key press to trigger search on Enter
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
   
   // Don't render on server
   if (!mounted) return null;
   
-  // Show loading state while waiting
-  if (!leafletReady) {
-    return <SearchControlLoading className={props.className} />;
-  }
-  
-  // IMPORTANT: Instead of rendering components that use Leaflet hooks directly,
-  // we create a <script> tag that will inject our component into the map container
-  // This ensures we're truly inside the Leaflet context
+  // For the fixed search component, we'll render it directly
   return (
-    <Portal>
-      <div 
-        id="map-search-container" 
-        className={`absolute z-[9999] top-4 right-4 ${props.className || ''}`}
-        data-placeholder={props.placeholder || 'Search location...'}
+    <div className="flex gap-1 w-[250px]">
+      <Input
+        type="text"
+        placeholder={props.placeholder || "Search location..."}
+        className="bg-white rounded-md shadow-md h-9 px-3 border border-gray-200 w-full"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onKeyPress={handleKeyPress}
+        disabled={searching}
+      />
+      <Button 
+        variant="outline" 
+        size="icon" 
+        className="bg-white shadow-md h-9 w-9 rounded-md border border-gray-200 flex items-center justify-center"
+        onClick={handleSearch}
+        disabled={searching}
       >
-        <SearchControlLoading className="" />
-        
-        {/* Inject a script that creates our search component inside the map context */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            // Make sure we're on the client
-            if (typeof window === 'undefined') return;
-            
-            // Wait for next tick to ensure DOM is ready
-            setTimeout(() => {
-              try {
-                // Get the search container
-                const searchContainer = document.getElementById('map-search-container');
-                if (!searchContainer) return;
-                
-                // Find the map's control container where we'll inject our control
-                const controlContainer = document.querySelector('.leaflet-control-container .leaflet-top.leaflet-right');
-                if (!controlContainer) {
-                  console.error("Couldn't find Leaflet control container");
-                  return;
-                }
-                
-                // Create a new control container
-                const newControl = document.createElement('div');
-                newControl.className = 'leaflet-control leaflet-bar search-control';
-                newControl.appendChild(searchContainer);
-                controlContainer.appendChild(newControl);
-                
-                // Signal that search is ready
-                console.log("Map search injected into Leaflet control container");
-                
-                // Dispatch an event to signal that the search component is ready
-                const event = new CustomEvent('search-control-ready');
-                window.dispatchEvent(event);
-              } catch (error) {
-                console.error("Error setting up map search:", error);
-              }
-            }, 100);
-          })();
-        `}} />
-      </div>
-    </Portal>
+        {searching ? (
+          <div className="w-4 h-4 border-2 border-b-transparent rounded-full animate-spin" />
+        ) : (
+          <Search className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
   );
 } 

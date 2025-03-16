@@ -184,11 +184,25 @@ body::after {
   border-radius: 0.5rem;
   padding: 0;
   overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background-color: rgb(31, 41, 55); /* dark:bg-gray-800 */
+  color: white;
+}
+
+.dark .leaflet-popup-tip {
+  background-color: rgb(31, 41, 55); /* dark:bg-gray-800 */
 }
 
 .leaflet-popup-content {
   margin: 0;
   width: auto !important;
+}
+
+.popup-content {
+  padding: 0.75rem; /* p-3 */
 }
 
 /* Drawing popup styles */
@@ -255,6 +269,46 @@ body::after {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Fix layer selector in dark mode */
+.dark .map-ui-container button,
+.dark .map-ui-container input {
+  background-color: #1e1e1e !important;
+  border-color: #2a2a2a !important;
+  color: #e0e0e0 !important;
+}
+
+.dark .map-ui-container button:hover {
+  background-color: #2a2a2a !important;
+}
+
+.dark .leaflet-control a {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border-color: #2a2a2a !important;
+}
+
+.dark .leaflet-control a:hover {
+  background-color: #2a2a2a !important;
+}
+
+/* Properly style layer selector in dark mode */
+.dark [class*="LayerSelector"] {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border-color: #2a2a2a !important;
+}
+
+.dark [class*="LayerSelector"] label,
+.dark [class*="LayerSelector"] span,
+.dark [class*="LayerSelector"] div {
+  color: #e0e0e0 !important;
+}
+
+.dark [class*="LayerSelector"] h4 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
 /* Draw control customization */
 .leaflet-draw {
   border-radius: 0.5rem !important;
@@ -276,6 +330,119 @@ body::after {
   font-size: 12px !important;
   padding: 4px 8px !important;
   pointer-events: none !important;
+}
+
+/* Enhanced Zoom Controls - fixing the centering issues */
+.leaflet-bar a {
+  width: 30px;
+  height: 30px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+  background-color: white;
+  border-bottom: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none;
+}
+
+.leaflet-bar a:hover {
+  background-color: #f4f4f4;
+}
+
+.leaflet-bar a.leaflet-control-zoom-in,
+.leaflet-bar a.leaflet-control-zoom-out {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: bold;
+}
+
+/* Improve search control appearance */
+.search-control {
+  display: inline-block !important;
+  width: 250px !important;
+}
+
+.search-control input {
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  outline: none !important;
+  height: 36px !important;
+}
+
+.search-control button {
+  border-radius: 4px !important; 
+  transition: background-color 0.2s !important;
+  height: 36px !important;
+  width: 36px !important;
+}
+
+.search-control button:hover {
+  background-color: #f4f4f4 !important;
+}
+
+/* Map controls container spacing */
+.leaflet-top.leaflet-right .leaflet-control {
+  margin-top: 10px;
+  margin-right: 10px;
+  clear: both;
+}
+
+.leaflet-top.leaflet-left .leaflet-control {
+  margin-top: 10px;
+  margin-left: 10px;
+  clear: both;
+}
+
+/* Specific positioning for map UI containers */
+.map-ui-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Ensure all buttons within map controls have the same dimensions */
+.map-control-button {
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Improve geolocate button */
+.geolocate-control {
+  display: inline-block !important;
+}
+
+.geolocate-control button {
+  width: 30px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: white !important;
+  border: none !important;
+  cursor: pointer !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.geolocate-control button:hover {
+  background-color: #f4f4f4 !important;
+}
+
+/* Ensure proper icon centering for lucide icons */
+.leaflet-control a svg {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Fix markers and popups in dark mode (but leave map tiles unchanged) */

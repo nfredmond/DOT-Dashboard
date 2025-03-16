@@ -30,21 +30,19 @@ export function MapControlsComponent({
       (window as any).leafletUtils = {
         zoomIn: () => {
           if (!map) return false;
-          const currentZoom = map.getZoom();
-          map.setZoom(currentZoom + 1);
+          map.zoomIn(1, { animate: true });
           return true;
         },
         
         zoomOut: () => {
           if (!map) return false;
-          const currentZoom = map.getZoom();
-          map.setZoom(currentZoom - 1);
+          map.zoomOut(1, { animate: true });
           return true;
         },
         
         resetView: () => {
           if (!map) return false;
-          map.setView(mapCenter, defaultZoom);
+          map.setView(mapCenter, defaultZoom, { animate: true });
           return true;
         }
       };
@@ -77,21 +75,21 @@ export function ZoomControl({
   
   const handleZoomIn = () => {
     if (map) {
-      const currentZoom = map.getZoom();
-      map.setZoom(currentZoom + 1);
+      // Use map.zoomIn() instead of setZoom to preserve center point
+      map.zoomIn(1, { animate: true });
     }
   };
   
   const handleZoomOut = () => {
     if (map) {
-      const currentZoom = map.getZoom();
-      map.setZoom(currentZoom - 1);
+      // Use map.zoomOut() instead of setZoom to preserve center point
+      map.zoomOut(1, { animate: true });
     }
   };
   
   const handleReset = () => {
     if (map) {
-      map.setView(mapCenter, defaultZoom);
+      map.setView(mapCenter, defaultZoom, { animate: true });
     }
   };
   
@@ -107,8 +105,11 @@ export function ZoomControl({
               handleZoomIn();
             }}
             className="leaflet-control-zoom-in"
+            aria-label="Zoom in"
           >
-            <ZoomInIcon className="h-4 w-4" />
+            <div className="flex items-center justify-center h-full w-full">
+              <ZoomInIcon className="h-4 w-4" />
+            </div>
           </a>
           <a
             href="#"
@@ -118,8 +119,11 @@ export function ZoomControl({
               handleZoomOut();
             }}
             className="leaflet-control-zoom-out"
+            aria-label="Zoom out"
           >
-            <ZoomOutIcon className="h-4 w-4" />
+            <div className="flex items-center justify-center h-full w-full">
+              <ZoomOutIcon className="h-4 w-4" />
+            </div>
           </a>
           <a
             href="#"
@@ -128,8 +132,11 @@ export function ZoomControl({
               e.preventDefault();
               handleReset();
             }}
+            aria-label="Reset view"
           >
-            <HomeIcon className="h-4 w-4" />
+            <div className="flex items-center justify-center h-full w-full">
+              <HomeIcon className="h-4 w-4" />
+            </div>
           </a>
         </div>
       </div>

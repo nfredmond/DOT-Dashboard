@@ -18,7 +18,7 @@ function GeolocateControlLoading({ className = '' }: { className?: string }) {
       variant="outline"
       size="icon"
       disabled
-      className={`bg-white shadow-md ${className}`}
+      className={`bg-white shadow-md h-9 w-9 rounded-md border-gray-200 ${className}`}
     >
       <Spinner size="sm" />
     </Button>
@@ -55,177 +55,118 @@ const checkLeafletReady = () => {
 export function GeolocateControl(props: GeolocateControlProps) {
   const [mounted, setMounted] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     setMounted(true);
     
-    // Add a global event listener for map initialization
-    const handleMapReady = () => {
-      console.log('GeolocateControl: Detected map ready event');
-      // Wait a bit longer to make absolutely sure everything is ready
-      setTimeout(() => {
-        if (checkLeafletReady()) {
-          console.log('GeolocateControl: Leaflet confirmed ready, rendering geolocate control');
-          setLeafletReady(true);
-        }
-      }, 1000); // Extra safety delay
+    // Force it to be ready after a short timeout
+    setTimeout(() => {
+      setLeafletReady(true);
+      console.log('GeolocateControl: Force ready after timeout');
+    }, 2000);
+    
+    return () => {};
+  }, []);
+  
+  const handleGeolocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not available in your browser");
+      return;
+    }
+    
+    // Show loading spinner
+    setLoading(true);
+    
+    const geoOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,          // Increased timeout to 10 seconds
+      maximumAge: 0            // Don't use cached position
     };
     
-    // Listen for our custom event
-    window.addEventListener('leaflet-map-ready', handleMapReady);
-    
-    // Also check periodically in case we missed the event
-    const checkIntervals = [100, 500, 1000, 2000, 3000, 5000];
-    
-    checkIntervals.forEach(delay => {
-      setTimeout(() => {
-        if (!leafletReady && checkLeafletReady()) {
-          console.log(`GeolocateControl: Leaflet detected as ready after ${delay}ms`);
-          setLeafletReady(true);
+    navigator.geolocation.getCurrentPosition(
+      // Success
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          console.log("Geolocation success:", latitude, longitude);
+          
+          // Use the map instance directly
+          if ((window as any).leafletMapInstance) {
+            (window as any).leafletMapInstance.flyTo([latitude, longitude], props.zoomLevel || 14);
+            
+            // Add a marker at the user's location
+            const L = (window as any).L;
+            if (L) {
+              // Remove existing user location marker if it exists
+              if ((window as any).userLocationMarker) {
+                (window as any).leafletMapInstance.removeLayer((window as any).userLocationMarker);
+              }
+              
+              // Create a new marker
+              (window as any).userLocationMarker = L.circle([latitude, longitude], {
+                color: '#2563eb',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.3,
+                radius: 100,
+                weight: 2
+              }).addTo((window as any).leafletMapInstance);
+            }
+          }
+        } catch (error) {
+          console.error('Error flying to location:', error);
+          alert("Could not pan to your location");
         }
-      }, delay);
-    });
-    
-    return () => {
-      window.removeEventListener('leaflet-map-ready', handleMapReady);
-    };
-  }, [leafletReady]);
+        
+        // Reset loading state
+        setLoading(false);
+      },
+      // Error
+      (error) => {
+        console.error('Geolocation error code:', error.code, 'message:', error.message);
+        let errorMessage = "Unable to get your location";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "You denied the request for geolocation. Please enable location services in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable. Please try again later or check your device's location settings.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "The request to get your location timed out. Please try again.";
+            break;
+        }
+        
+        alert(errorMessage);
+        
+        // Reset loading state
+        setLoading(false);
+      },
+      // Options
+      geoOptions
+    );
+  };
   
   // Don't render on server
   if (!mounted) return null;
   
-  // Show loading state while waiting
-  if (!leafletReady) {
-    return <GeolocateControlLoading className={props.className} />;
-  }
-  
-  // IMPORTANT: Instead of rendering components that use Leaflet hooks directly,
-  // we create a script that will inject our button into the Leaflet control container
+  // For the fixed geolocate component, we'll render it directly
   return (
-    <Portal>
-      <div 
-        id="map-geolocate-container" 
-        className={`${props.className || ''}`}
-        data-zoomlevel={props.zoomLevel || 14}
-      >
-        <GeolocateControlLoading />
-        
-        {/* Inject a script that creates our geolocate button inside the map context */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            // Make sure we're on the client
-            if (typeof window === 'undefined') return;
-            
-            // Wait for next tick to ensure DOM is ready
-            setTimeout(() => {
-              try {
-                // Get the geolocate container
-                const geolocateContainer = document.getElementById('map-geolocate-container');
-                if (!geolocateContainer) return;
-                
-                // Find the map's control container where we'll inject our control
-                const controlContainer = document.querySelector('.leaflet-control-container .leaflet-bottom.leaflet-left');
-                if (!controlContainer) {
-                  console.error("Couldn't find Leaflet control container");
-                  return;
-                }
-                
-                // Create a new control container
-                const newControl = document.createElement('div');
-                newControl.className = 'leaflet-control leaflet-bar geolocate-control';
-                newControl.appendChild(geolocateContainer);
-                controlContainer.appendChild(newControl);
-                
-                // Add the actual functionality
-                const zoomLevel = parseInt(geolocateContainer.dataset.zoomlevel || '14');
-                const button = geolocateContainer.querySelector('button');
-                
-                if (button) {
-                  // Remove the disabled state
-                  button.disabled = false;
-                  
-                  // Replace the spinner with the locate icon
-                  button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><polygon points="12 22 18 16 15 16 15 10 9 10 9 16 6 16"></polygon><circle cx="12" cy="5" r="3"></circle></svg>';
-                  
-                  // Set title
-                  button.title = "Find my location";
-                  
-                  // Add click handler
-                  button.addEventListener('click', () => {
-                    if (!navigator.geolocation) {
-                      alert("Geolocation is not available in your browser");
-                      return;
-                    }
-                    
-                    // Show loading spinner
-                    const originalContent = button.innerHTML;
-                    button.innerHTML = '<div class="w-4 h-4 border-2 border-b-transparent rounded-full animate-spin"></div>';
-                    button.disabled = true;
-                    
-                    navigator.geolocation.getCurrentPosition(
-                      // Success
-                      (position) => {
-                        const { latitude, longitude } = position.coords;
-                        
-                        try {
-                          // Use the map instance directly
-                          if (window.leafletMapInstance) {
-                            window.leafletMapInstance.flyTo([latitude, longitude], zoomLevel);
-                          }
-                        } catch (error) {
-                          console.error('Error flying to location:', error);
-                          alert("Could not pan to your location");
-                        }
-                        
-                        // Restore button state
-                        button.innerHTML = originalContent;
-                        button.disabled = false;
-                      },
-                      // Error
-                      (error) => {
-                        console.error('Geolocation error:', error);
-                        let errorMessage = "Unable to get your location";
-                        
-                        switch (error.code) {
-                          case error.PERMISSION_DENIED:
-                            errorMessage = "You denied the request for geolocation";
-                            break;
-                          case error.POSITION_UNAVAILABLE:
-                            errorMessage = "Location information is unavailable";
-                            break;
-                          case error.TIMEOUT:
-                            errorMessage = "The request to get your location timed out";
-                            break;
-                        }
-                        
-                        alert(errorMessage);
-                        
-                        // Restore button state
-                        button.innerHTML = originalContent;
-                        button.disabled = false;
-                      },
-                      // Options
-                      {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                      }
-                    );
-                  });
-                }
-                
-                console.log("Geolocate control injected into Leaflet control container");
-                
-                // Dispatch an event to signal that the geolocate component is ready
-                const event = new CustomEvent('geolocate-control-ready');
-                window.dispatchEvent(event);
-              } catch (error) {
-                console.error("Error setting up geolocate control:", error);
-              }
-            }, 100);
-          })();
-        `}} />
-      </div>
-    </Portal>
+    <Button
+      variant="outline"
+      size="icon"
+      className="bg-white shadow-md h-9 w-9 rounded-md border border-gray-200 flex items-center justify-center"
+      title="Find my location"
+      onClick={handleGeolocation}
+      disabled={loading}
+    >
+      {loading ? (
+        <div className="w-4 h-4 border-2 border-b-transparent rounded-full animate-spin" />
+      ) : (
+        <Locate className="h-4 w-4" />
+      )}
+    </Button>
   );
 } 

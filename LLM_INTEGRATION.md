@@ -37,3 +37,69 @@ LLM providers are configured in the environment variables:
 - Options for local/private LLM deployments
 
 For implementation details, refer to the code in `src/lib/llm/`.
+
+## Database Schema
+
+The database includes several tables specific to LLM functionality:
+
+### Vector Extension
+
+The database requires the `vector` extension for embedding storage:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+### LLM Logs
+
+Tracks all LLM interactions for auditing and cost analysis:
+
+```sql
+CREATE TABLE llm_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    request TEXT,
+    response TEXT,
+    tokens INTEGER,
+    created_by UUID NOT NULL REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Document Content Tables
+
+These tables store document content with vector embeddings for semantic search:
+
+```sql
+-- Regular documents content
+CREATE TABLE document_content (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    content TEXT,
+    embedding vector(1536),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Construction document content
+CREATE TABLE construction_document_content (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    construction_document_id UUID NOT NULL REFERENCES construction_documents(id) ON DELETE CASCADE,
+    content TEXT,
+    embedding vector(1536),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### LLM Indexing Flags
+
+Documents tables have an `is_llm_indexed` flag to track which documents have been processed:
+
+```sql
+-- In the documents table
+is_llm_indexed BOOLEAN DEFAULT FALSE
+
+-- In the construction_documents table
+is_llm_indexed BOOLEAN DEFAULT FALSE
+```

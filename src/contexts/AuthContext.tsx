@@ -2,15 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { createClient } from '@/utils/supabase/client'
+import { UserRole } from '@/types/organization';
 
 interface User {
   id: string
   email: string
   firstName?: string
   lastName?: string
-  role?: "admin" | "user" | "manager"
-  organization?: string
-  agencyId?: string
+  role: UserRole
+  isGlobalAdmin?: boolean
+  organizationId: string
+  organizationName?: string
+  organizationRole?: UserRole
   profileImage?: string
   phoneNumber?: string
   department?: string
@@ -20,6 +23,7 @@ interface User {
   twitter?: string
   website?: string
   location?: string
+  permissions?: string[]
 }
 
 interface AuthContextType {
@@ -64,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (session) {
+          // Check if the email belongs to greendottransportation.com
+          const isGreendotEmployee = session.user.email?.endsWith('@greendottransportation.com');
+          
           // Get user profile data from the profiles table
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
@@ -74,14 +81,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (profileError && profileError.code !== 'PGRST116') {
             console.error("Error fetching profile:", profileError)
           }
+          
+          // If user is from greendottransportation.com but doesn't have global_admin role, update it
+          if (isGreendotEmployee && profileData && 
+              (profileData.role !== 'global_admin' || !profileData.isGlobalAdmin)) {
             
+            // Update profile to have global admin privileges
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                role: 'global_admin',
+                isGlobalAdmin: true,
+                metadata: { ...profileData.metadata, isGlobalAdmin: true }
+              })
+              .eq('user_id', session.user.id);
+              
+            if (updateError) {
+              console.error("Error updating profile to global admin:", updateError);
+            } else {
+              // Refresh profile data after update
+              const { data: refreshedProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .single();
+                
+              if (refreshedProfile) {
+                profileData.role = refreshedProfile.role;
+                profileData.isGlobalAdmin = refreshedProfile.isGlobalAdmin;
+                profileData.metadata = refreshedProfile.metadata;
+              }
+            }
+            
+            // Also update auth metadata
+            await supabase.auth.updateUser({
+              data: {
+                isGlobalAdmin: true,
+                role: 'global_admin'
+              }
+            });
+          }
+          
           const userData: User = {
             id: session.user.id,
             email: session.user.email || '',
             firstName: profileData?.first_name,
             lastName: profileData?.last_name,
-            role: profileData?.role || 'user',
-            organization: profileData?.organization,
+            role: isGreendotEmployee ? 'global_admin' : (profileData?.role || 'user'),
+            isGlobalAdmin: isGreendotEmployee ? true : (profileData?.isGlobalAdmin || false),
+            organizationId: profileData?.organization_id || '',
+            organizationName: profileData?.organization_name,
+            organizationRole: isGreendotEmployee ? 'org_admin' : profileData?.organization_role,
             profileImage: profileData?.profile_image,
             // Add other profile fields as needed
           }
@@ -115,7 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           firstName: profileData?.first_name,
           lastName: profileData?.last_name,
           role: profileData?.role || 'user',
-          organization: profileData?.organization,
+          organizationId: profileData?.organization_id || '',
+          organizationName: profileData?.organization_name,
+          organizationRole: profileData?.organization_role,
           profileImage: profileData?.profile_image,
           // Add other profile fields as needed
         }
@@ -142,23 +194,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Using demo login credentials');
         
         // Create a mock user for demo purposes
-        const mockUser: User = {
+        setUser({
           id: 'demo-user-id',
-          email: 'admin@example.com',
-          firstName: 'Admin',
+          email: 'demo@example.com',
+          firstName: 'Demo',
           lastName: 'User',
-          role: 'admin',
-          organization: 'RTPA'
-        };
-        
-        // Set the user in state
-        setUser(mockUser);
+          role: 'global_admin',
+          organizationId: 'demo-org-id',
+          organizationName: 'Demo Organization'
+        });
         
         // Save to localStorage to persist the session
-        localStorage.setItem('rtpa_demo_user', JSON.stringify(mockUser));
+        localStorage.setItem('rtpa_demo_user', JSON.stringify({
+          id: 'demo-user-id',
+          email: 'demo@example.com',
+          firstName: 'Demo',
+          lastName: 'User',
+          role: 'global_admin',
+          organizationId: 'demo-org-id',
+          organizationName: 'Demo Organization'
+        }));
         
         return true;
       }
+      
+      // Check if the email belongs to greendottransportation.com
+      const isGreendotEmployee = email.endsWith('@greendottransportation.com');
       
       // Regular Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -168,6 +229,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         throw error
+      }
+      
+      // If the user is from greendottransportation.com, ensure they have global admin privileges
+      if (isGreendotEmployee && data?.user) {
+        // Check if user already has global admin role
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role, isGlobalAdmin')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        // Update profile if needed
+        if (!profileData?.isGlobalAdmin) {
+          const { error: updateProfileError } = await supabase
+            .from('profiles')
+            .update({
+              role: 'global_admin',
+              isGlobalAdmin: true,
+              metadata: { isGlobalAdmin: true }
+            })
+            .eq('user_id', data.user.id);
+          
+          if (updateProfileError) {
+            console.error("Error updating profile:", updateProfileError);
+          }
+          
+          // Also update auth metadata
+          const { error: updateAuthError } = await supabase.auth.updateUser({
+            data: {
+              isGlobalAdmin: true,
+              role: 'global_admin'
+            }
+          });
+          
+          if (updateAuthError) {
+            console.error("Error updating user metadata:", updateAuthError);
+          }
+        }
       }
       
       return true
@@ -230,6 +329,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (data.user) {
+        // Check if the email belongs to greendottransportation.com
+        const isGreendotEmployee = data.user.email?.endsWith('@greendottransportation.com');
+        
         // Create profile in the profiles table
         const { error: profileError } = await supabase
           .from('profiles')
@@ -237,13 +339,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user_id: data.user.id,
             first_name: userData.firstName,
             last_name: userData.lastName,
-            role: 'user',
-            organization: userData.organization || null,
+            role: isGreendotEmployee ? 'global_admin' : 'user',
+            isGlobalAdmin: isGreendotEmployee,
+            organizationId: userData.organizationId || null,
+            organizationName: userData.organizationName,
+            organizationRole: isGreendotEmployee ? 'org_admin' : userData.organizationRole,
+            metadata: isGreendotEmployee ? { isGlobalAdmin: true } : {},
           })
           
         if (profileError) {
           console.error("Error creating profile:", profileError)
           // Still return true, as the user was created
+        }
+        
+        // If the user is from greendottransportation.com, update their auth metadata as well
+        if (isGreendotEmployee) {
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: {
+              isGlobalAdmin: true,
+              role: 'global_admin'
+            }
+          });
+          
+          if (updateError) {
+            console.error("Error updating user metadata:", updateError);
+          }
         }
       }
       
@@ -268,7 +388,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const dbProfileData = {
         first_name: profileData.firstName,
         last_name: profileData.lastName,
-        organization: profileData.organization,
+        organizationId: profileData.organizationId,
+        organizationName: profileData.organizationName,
+        organizationRole: profileData.organizationRole,
         profile_image: profileData.profileImage,
         // Add more fields as needed
       }
