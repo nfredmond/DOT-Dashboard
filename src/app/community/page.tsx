@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -30,9 +30,16 @@ import {
   ClockIcon,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import dynamic from "next/dynamic";
+
+// Dynamic import of the CommunityInputMap component
+const CommunityInputMap = dynamic(
+  () => import('@/app/(components)/community-input-map').then(mod => mod.CommunityInputMap),
+  { ssr: false }
+);
 
 export default function Community() {
-  const [activeTab, setActiveTab] = useState("projects");
+  const [activeTab, setActiveTab] = useState("mapping");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Define types for projects and surveys
@@ -265,12 +272,15 @@ export default function Community() {
           className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between"
         >
           <Tabs
-            defaultValue="projects"
+            defaultValue="mapping"
             onValueChange={setActiveTab}
             className="w-full"
           >
             <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between w-full">
               <TabsList className="grid w-full md:w-auto grid-cols-4">
+                <TabsTrigger value="mapping">
+                  Mapping
+                </TabsTrigger>
                 <TabsTrigger value="projects">
                   Projects
                 </TabsTrigger>
@@ -279,9 +289,6 @@ export default function Community() {
                 </TabsTrigger>
                 <TabsTrigger value="events">
                   Events
-                </TabsTrigger>
-                <TabsTrigger value="mapping">
-                  Mapping
                 </TabsTrigger>
               </TabsList>
 
@@ -759,23 +766,14 @@ export default function Community() {
             <TabsContent value="mapping" className="mt-4 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Community Mapping</CardTitle>
+                  <CardTitle>Community Input Map</CardTitle>
                   <CardDescription>
-                    Provide location-based feedback on transportation projects
+                    Provide location-based feedback on transportation projects and issues in your community
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-[500px] bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <MapPinIcon className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-medium mb-2">
-                        Interactive Community Map
-                      </h3>
-                      <p className="text-muted-foreground mb-4 max-w-md">
-                        Our interactive mapping feature is currently in development. Soon you'll be able to add comments to specific locations on the map.
-                      </p>
-                      <Button>Try Beta Version</Button>
-                    </div>
+                <CardContent className="p-0 overflow-hidden">
+                  <div className="h-[700px] w-full">
+                    {typeof window !== 'undefined' && <CommunityInputMap />}
                   </div>
                 </CardContent>
               </Card>

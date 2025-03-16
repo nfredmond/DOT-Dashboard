@@ -199,6 +199,134 @@ export default function UserManual() {
       ),
     },
     {
+      id: "travel-demand-modeling",
+      title: "Travel Demand Forecasting & Trend Analysis",
+      content: (
+        <>
+          <h3 className="text-lg font-semibold mb-2">CAMP Travel Demand Modeling</h3>
+          <p className="mb-4">
+            The Chained Activity Modeling Process (CAMP) provides sophisticated travel demand forecasting capabilities for transportation planning.
+          </p>
+          
+          <h4 className="text-md font-semibold mb-2">Running a CAMP Model</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Modeling" {'>'}  "Travel Demand"</li>
+            <li>Click "New Model Run"</li>
+            <li>Select base data for your region:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Study area boundaries</li>
+                <li>Transportation Analysis Zones (TAZs)</li>
+                <li>Road network</li>
+                <li>Transit network (if applicable)</li>
+              </ul>
+            </li>
+            <li>Configure model parameters:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Trip generation rates</li>
+                <li>Distribution factors</li>
+                <li>Mode choice coefficients</li>
+                <li>Assignment settings</li>
+              </ul>
+            </li>
+            <li>Click "Run Model" to start the calculation process</li>
+            <li>Monitor progress on the status dashboard</li>
+            <li>View results when processing is complete</li>
+          </ol>
+          
+          <h4 className="text-md font-semibold mb-2">Analyzing CAMP Results</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Modeling" {'>'}  "Travel Demand" {'>'}  "Results"</li>
+            <li>Select a completed model run</li>
+            <li>View results dashboard showing:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Trip generation totals by purpose</li>
+                <li>Origin-destination patterns</li>
+                <li>Mode split</li>
+                <li>Link volumes and V/C ratios</li>
+                <li>Transit ridership</li>
+              </ul>
+            </li>
+            <li>Use the interactive map to visualize:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Traffic volumes</li>
+                <li>Congestion points</li>
+                <li>Transit ridership</li>
+                <li>Accessibility metrics</li>
+              </ul>
+            </li>
+            <li>Export results in various formats (CSV, GeoJSON, PDF report)</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">TrendNavigator Scenario Planning</h3>
+          <p className="mb-4">
+            TrendNavigator allows you to explore how future trends and policies might impact travel patterns and demand.
+          </p>
+          
+          <h4 className="text-md font-semibold mb-2">Creating TrendNavigator Scenarios</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Modeling" {'>'}  "TrendNavigator"</li>
+            <li>Click "New Trend Scenario"</li>
+            <li>Select a baseline model (required CAMP model result)</li>
+            <li>Configure trend variables:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Telecommuting rates</li>
+                <li>E-commerce adoption</li>
+                <li>Shared mobility usage</li>
+                <li>Vehicle automation levels</li>
+                <li>Transit service changes</li>
+                <li>Land use patterns</li>
+              </ul>
+            </li>
+            <li>Set time horizon (5, 10, or 30 years)</li>
+            <li>Click "Generate Scenario" to compute impacts</li>
+          </ol>
+          
+          <h4 className="text-md font-semibold mb-2">Comparing TrendNavigator Scenarios</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Modeling" {'>'}  "TrendNavigator" {'>'}  "Comparison"</li>
+            <li>Select two or more scenarios to compare</li>
+            <li>View side-by-side metrics including:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Vehicle Miles Traveled (VMT)</li>
+                <li>Greenhouse gas emissions</li>
+                <li>Mode share changes</li>
+                <li>Congestion levels</li>
+                <li>Transit ridership</li>
+                <li>Accessibility metrics</li>
+              </ul>
+            </li>
+            <li>Use the visualization tools to create charts for presentations</li>
+            <li>Export comparison as a PDF report or presentation slides</li>
+          </ol>
+          
+          <h4 className="text-md font-semibold mb-2">AI-Assisted Trend Analysis</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Modeling" {'>'}  "TrendNavigator"</li>
+            <li>Select a scenario</li>
+            <li>Click "AI Analysis"</li>
+            <li>The AI will provide:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Key insights from the scenario</li>
+                <li>Potential impacts and implications</li>
+                <li>Recommended policy considerations</li>
+                <li>Comparison to best practices</li>
+                <li>Suggested refinements to the scenario</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h4 className="text-md font-semibold mb-2">Integrating Models with Projects</h4>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to a project details page</li>
+            <li>Click "Link to Model" button</li>
+            <li>Select a CAMP or TrendNavigator model result</li>
+            <li>The project will now display relevant metrics from the model</li>
+            <li>Project scoring can incorporate model results to improve prioritization</li>
+          </ol>
+        </>
+      ),
+    },
+    {
       id: "ai-assistant",
       title: "AI Assistant",
       content: (
@@ -263,6 +391,58 @@ export default function UserManual() {
             <li>Excel</li>
             <li>JSON</li>
           </ul>
+        </>
+      ),
+    },
+    {
+      id: "community-feedback",
+      title: "Community Feedback",
+      content: (
+        <>
+          <h3 className="text-lg font-semibold mb-2">Reviewing Feedback</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Community Feedback"</li>
+            <li>View the list of feedback items</li>
+            <li>Click on an item to see details</li>
+            <li>Use filters to sort by project, date, or feedback type</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Responding to Feedback</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Community Feedback"</li>
+            <li>Select a feedback item</li>
+            <li>Click "Respond"</li>
+            <li>Type your response</li>
+            <li>Click "Send Response"</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Community Input Mapping Tool</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Community Feedback"</li>
+            <li>Click on "Map View" or "Community Input Map"</li>
+            <li>View the interactive map with feedback points</li>
+            <li>Filter feedback by:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Project</li>
+                <li>Feedback type (concern, suggestion, support)</li>
+                <li>Date range</li>
+                <li>Status (new, in review, addressed)</li>
+              </ul>
+            </li>
+            <li>Click on a map point to view detailed feedback</li>
+            <li>Add new location-based feedback using the "Add Feedback" button</li>
+            <li>Generate heat maps of feedback density using the "Analysis" tab</li>
+            <li>Export feedback data in CSV or GeoJSON format for further analysis</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">AI Analysis of Feedback</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to "Community Feedback"</li>
+            <li>Click "AI Analysis"</li>
+            <li>The system will categorize feedback and identify trends</li>
+            <li>Review the analysis dashboard</li>
+            <li>Use insights to inform project decisions</li>
+          </ol>
         </>
       ),
     },
@@ -466,6 +646,46 @@ export default function UserManual() {
           <div className="p-3 border rounded">
             <h3 className="font-semibold mb-1">AI Assistant</h3>
             <p className="text-sm">Artificial intelligence tool that provides analysis and recommendations</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Community Input Map</h3>
+            <p className="text-sm">Interactive map interface displaying location-based community feedback</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Heat Map</h3>
+            <p className="text-sm">Visualization showing the density of feedback across geographic areas</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Feedback Point</h3>
+            <p className="text-sm">A georeferenced marker indicating the location of community input</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Sentiment Analysis</h3>
+            <p className="text-sm">AI-powered evaluation of feedback tone (positive, negative, or neutral)</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">CAMP</h3>
+            <p className="text-sm">Chained Activity Modeling Process, a methodology for travel demand forecasting</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Travel Demand Model</h3>
+            <p className="text-sm">Computer model that estimates travel patterns based on land use and transportation networks</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">TrendNavigator</h3>
+            <p className="text-sm">Scenario planning tool that explores how future trends might impact transportation patterns</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">TAZ</h3>
+            <p className="text-sm">Traffic Analysis Zone, a geographic unit used in travel demand modeling</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">VMT</h3>
+            <p className="text-sm">Vehicle Miles Traveled, a measure of total vehicle travel in a region</p>
+          </div>
+          <div className="p-3 border rounded">
+            <h3 className="font-semibold mb-1">Activity-Based Model</h3>
+            <p className="text-sm">Advanced travel model that simulates individual activity patterns rather than aggregate trips</p>
           </div>
         </div>
       </div>

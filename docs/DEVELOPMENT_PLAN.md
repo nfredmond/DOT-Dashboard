@@ -12,7 +12,6 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 ### Phase 1: Core Infrastructure (Completed)
 
-**Duration**: 4 weeks  
 **Status**: Completed
 
 #### Phase 1 Key Deliverables
@@ -35,8 +34,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 ### Phase 2: Advanced Features (Current Phase)
 
-**Duration**: 5 weeks  
-**Status**: In Progress (85% complete)
+**Status**: In Progress (95% complete)
 
 #### Phase 2 Key Deliverables
 
@@ -50,6 +48,9 @@ The development of Planning Manager follows a phased approach, with each phase b
 - ✅ Complete application rebranding from "RTPA Portal" to "Planning Manager"
 - ✅ Offline database option using IndexedDB for agencies that don't want to use Supabase
 - ✅ Organization logo upload functionality for white-labeling
+- ✅ Advanced community input mapping tool with polygon, line, and point drawing capabilities
+- ✅ LLM-powered comment categorization and content moderation
+- ✅ Organization-specific community input customization
 - 🔄 Extended reporting capabilities
 - 🔄 Comprehensive API for external integration
 
@@ -63,33 +64,58 @@ The development of Planning Manager follows a phased approach, with each phase b
 - React Context for state management
 - Supabase Storage for organization logo uploads
 - Form handling for file uploads with client-side validation
+- MongoDB integration for community input database
+- LLM content categorization with auto-moderation capabilities
+- Interactive mapping with EditControl for geometry drawing
 
-### Phase 3: Integration & Expansion
+### Phase 3: Advanced Modeling & Scenario Planning
 
-**Duration**: 3 weeks  
 **Status**: Planned (Starting after Phase 2)
 
 #### Phase 3 Key Deliverables
 
-- 🔄 External API integrations with transportation data sources
+- 🔄 Chained Activity Modeling Process (CAMP) travel demand forecasting tool integration
+- 🔄 TrendNavigator scenario planning module implementation
+- 🔄 Multi-tenant architecture enhancements for agency-specific modeling configurations
+- 🔄 External API integrations with transportation data sources (Census, GTFS, DOT)
 - 🔄 Advanced reporting capabilities with templates
 - 🔄 Mobile optimization for field use
 - 🔄 Offline functionality for remote usage
 - 🔄 Enhanced agent capabilities with custom domain-specific agents
 - 🔄 Agent integration with external transportation planning systems
 - 🔄 Improved agent tools for analyzing transportation impact data
+- 🔄 Enhanced community engagement with social sharing features
+- 🔄 Visualization of community feedback trends and patterns
+- 🔄 Community feedback integration with project prioritization
 
 #### Phase 3 Technical Details
 
+- Advanced travel demand modeling using CAMP methodology:
+  - Trip generation module based on land use and demographic data
+  - Trip distribution using gravity models or destination choice algorithms
+  - Mode choice modeling with configurable parameters
+  - Network assignment for traffic and transit analysis
+  - Activity-based modeling for individual travel itinerary simulation
+- TrendNavigator scenario planning tools:
+  - Future trend modeling (telecommuting, e-commerce, autonomous vehicles)
+  - Scenario comparison and visualization
+  - Multiple time horizon support (5, 10, 30-year projections)
+  - Policy intervention modeling capabilities
+- Enhanced multi-tenant architecture:
+  - Agency-specific model configurations and parameters
+  - Isolated data environments with row-level security
+  - Tenant-specific calibration constants
 - RESTful API endpoints for external services
+- Background job processing for long-running model calculations
+- Real-time WebSocket updates for model progress
 - Responsive design optimizations for mobile
 - PDF generation services
-- Background jobs for batch processing
 - Format converters for GIS data import/export
+- Enhanced geospatial analysis for community feedback
+- Machine learning for feedback trend identification
 
 ### Phase 4: Performance and Polish
 
-**Duration**: 2 weeks  
 **Status**: Planned
 
 #### Phase 4 Key Deliverables
@@ -100,6 +126,8 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Enhanced error handling and recovery
 - 📅 Comprehensive testing and bug fixes
 - 📅 Security audit and improvements
+- 📅 Community feedback dashboard with analytics
+- 📅 CAMP and TrendNavigator performance optimization
 
 #### Phase 4 Technical Details
 
@@ -108,10 +136,12 @@ The development of Planning Manager follows a phased approach, with each phase b
 - Resource caching strategies
 - End-to-end testing with Playwright
 - Security vulnerability scanning
+- Real-time data visualization
+- Geospatial data caching and optimization
+- Pre-computation of common modeling scenarios
 
 ### Phase 5: Extended Features
 
-**Duration**: Ongoing  
 **Status**: Planned
 
 #### Phase 5 Key Deliverables
@@ -122,6 +152,9 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Multi-language support
 - 📅 Enhanced collaboration features
 - 📅 Custom plugin system
+- 📅 AI-driven community sentiment analysis
+- 📅 Advanced equity analysis integration with CAMP modeling
+- 📅 Climate impact assessment in TrendNavigator scenarios
 
 #### Phase 5 Technical Details
 
@@ -130,29 +163,98 @@ The development of Planning Manager follows a phased approach, with each phase b
 - Workflow engine implementation
 - Internationalization (i18n) framework
 - Real-time collaboration features
+- Natural language processing for sentiment analysis
+- CO2 emissions and climate impact modeling
+- Equity analysis algorithms for transportation access
 
-## Current Sprint Focus (Sprint 8)
+## Current Sprint Focus (Sprint 9)
 
-**Duration**: 2 weeks  
 **Status**: In Progress
 
 ### Objectives
 
-1. Complete community engagement module
-2. Enhance project scoring with AI suggestions
-3. Implement advanced filtering for projects
-4. Improve GIS performance for large datasets
-5. Add report export functionality (PDF, CSV)
+1. Enhance community input mapping features
+2. Integrate AI-powered content moderation
+3. Improve GIS visualization of community feedback
+4. Create admin dashboard for feedback management
+5. Implement customizable feedback categories by organization
 
 ### Tasks
 
-- [x] Design and implement community feedback component
-- [x] Integrate AI scoring suggestions into project workflow
-- [x] Add filter persistence and saved filter presets
-- [x] Optimize GIS rendering for projects with many features
-- [ ] Create report templates with export options
-- [ ] Add batch operations for projects
-- [ ] Enhance mobile map controls
+- [x] Create community input mapping component with point, line, and polygon support
+- [x] Implement popup forms for community feedback with image upload
+- [x] Add LLM-based categorization for community feedback
+- [x] Create admin moderation interface with auto-approval options
+- [x] Develop backend API for community input management
+- [x] Add filtering capabilities for community input by category
+- [x] Implement proper data schema for community input
+- [ ] Create analytics dashboard for community input trends
+- [ ] Add mobile responsive design for community input tools
+- [ ] Enhance performance for large feedback datasets
+
+## Upcoming CAMP & TrendNavigator Implementation Plan
+
+### Sprint 10: Architecture & Database Design
+
+**Status**: Planned
+
+#### Objectives
+
+1. Design multi-tenant architecture for travel demand modeling
+2. Develop database schema for CAMP and TrendNavigator modules
+3. Create API specifications for model integration
+4. Prototype basic scenario management UI
+
+#### Tasks
+
+- [ ] Create initial database schema for travel model zones and networks
+- [ ] Design multi-tenant data isolation strategies using Supabase RLS
+- [ ] Develop infrastructure for long-running model calculations
+- [ ] Create UI wireframes for scenario management interface
+- [ ] Define API contracts for model interaction
+- [ ] Establish data formats for external data sources (Census, GTFS)
+
+### Sprint 11: Core Modeling Implementation
+
+**Status**: Planned
+
+#### Objectives
+
+1. Implement core CAMP modeling components
+2. Develop basic TrendNavigator scenario configuration
+3. Create data import pipelines for modeling inputs
+4. Build initial visualization components
+
+#### Tasks
+
+- [ ] Implement trip generation module
+- [ ] Develop trip distribution algorithms
+- [ ] Create mode choice modeling framework
+- [ ] Build network assignment processor
+- [ ] Implement basic scenario configuration UI
+- [ ] Develop data import tools for modeling inputs
+- [ ] Create initial visualization components for model outputs
+
+### Sprint 12: Advanced Features & Integration
+
+**Status**: Planned
+
+#### Objectives
+
+1. Implement advanced TrendNavigator trend modeling
+2. Integrate CAMP with existing project management
+3. Develop scenario comparison tools
+4. Create AI-powered analysis capabilities
+
+#### Tasks
+
+- [ ] Implement trend variable configurations (telecommuting, mobility, etc.)
+- [ ] Develop multi-time-horizon scenario support
+- [ ] Create scenario comparison visualization tools
+- [ ] Integrate AI for scenario insight generation
+- [ ] Connect model outputs to project prioritization module
+- [ ] Implement GIS visualization of model outputs
+- [ ] Develop documentation for model usage
 
 ## Deployment Plan
 
@@ -194,6 +296,10 @@ To maintain code quality and prevent accumulation of technical debt, the followi
 | Mobile usability challenges | Medium | Medium | Dedicated mobile testing and mobile-first design approach |
 | Database scaling | Low | High | Performance monitoring, indexing, and query optimization |
 | Browser compatibility | Medium | Medium | Cross-browser testing and progressive enhancement |
+| Community feedback moderation volume | Medium | High | Implement AI-powered auto-moderation with confidence thresholds |
+| Long-running travel model calculations | High | High | Implement asynchronous processing with job queues and status updates |
+| Multi-tenant data isolation failures | Low | Critical | Thorough security testing, audit logs, and data access reviews |
+| External data source unavailability | Medium | Medium | Implement caching, fallback data, and graceful degradation |
 
 ## Resources
 
@@ -203,6 +309,8 @@ To maintain code quality and prevent accumulation of technical debt, the followi
 - 1 UX/UI designer
 - 1 DevOps engineer
 - 1 Product manager
+- 1 Transportation modeling specialist (for CAMP implementation)
+- 1 Data scientist (for TrendNavigator scenario planning)
 
 ### Tools and Services
 
@@ -212,6 +320,8 @@ To maintain code quality and prevent accumulation of technical debt, the followi
 - **Monitoring**: Sentry, Vercel Analytics
 - **Project Management**: Linear
 - **Communication**: Slack, Notion
+- **Background Processing**: Supabase Edge Functions, Temporal
+- **Data Processing**: Python scientific libraries (via Edge Functions)
 
 ## Success Metrics
 
@@ -222,7 +332,12 @@ The success of the Planning Manager application will be measured by the followin
 3. **Performance**: Page load times, API response times, and error rates
 4. **User Satisfaction**: Feedback scores and feature request fulfillment
 5. **Business Metrics**: Reduction in project management time for agencies
+6. **Community Engagement**: Number and quality of community inputs
+7. **Moderation Efficiency**: Percentage of automatically moderated inputs and accuracy
+8. **Model Accuracy**: Deviation of travel demand model predictions from observed data
+9. **Scenario Exploration**: Number of scenarios created and compared
+10. **Decision Support**: Percentage of projects influenced by model outputs
 
 ## Conclusion
 
-This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management and prioritization.
+This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management and prioritization. The addition of CAMP travel demand forecasting and TrendNavigator scenario planning capabilities will transform Planning Manager into a comprehensive transportation planning platform capable of sophisticated modeling and future scenario analysis.

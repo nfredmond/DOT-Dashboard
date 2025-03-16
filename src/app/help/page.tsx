@@ -54,6 +54,16 @@ export default function Help() {
         "The LLM Assistant is an AI-powered tool that helps with various tasks such as evaluating project descriptions against grant criteria, suggesting improvements to projects, generating reports, and drafting responses to community feedback.",
     },
     {
+      question: "How do I use the Community Input Mapping Tool?",
+      answer:
+        "To use the Community Input Mapping Tool, go to the Community Feedback page and click on 'Map View'. The interactive map will display all feedback points. You can filter by project, feedback type, or date range. Click on any point to view details or use the 'Add Feedback' button to place a new marker. The 'Analysis' tab provides heat maps of feedback density and engagement metrics. You can export all data in CSV or GeoJSON format for further analysis.",
+    },
+    {
+      question: "How do I use the CAMP and TrendNavigator modeling tools?",
+      answer:
+        "For travel demand modeling with CAMP, go to the Modeling section and select 'Travel Demand'. Set up your model by defining study areas, transportation zones, and networks, then configure parameters and run the model. For TrendNavigator scenario planning, navigate to the TrendNavigator section under Modeling, select a baseline CAMP model, and adjust trend variables like telecommuting rates, e-commerce adoption, and transit service changes. You can set different time horizons (5, 10, or 30 years) and compare scenarios to evaluate their impacts on metrics like VMT, emissions, and congestion.",
+    },
+    {
       question: "How do I generate a report?",
       answer:
         "To generate a report, go to the Reports page and click on 'Generate Report'. Select the report type, choose which projects to include, select the report elements you want, and choose your preferred output format. Then click 'Generate Report'.",
@@ -410,6 +420,56 @@ export default function Help() {
           </p>
         </CardContent>
       </Card>
+
+      <Accordion type="single" collapsible>
+        <AccordionItem value="camp-trendnavigator">
+          <AccordionTrigger>How do I use the CAMP and TrendNavigator modeling tools?</AccordionTrigger>
+          <AccordionContent>
+          <div className="space-y-4">
+            <div>
+              <p className="font-semibold">Travel Demand Modeling with CAMP:</p>
+              <ol className="list-decimal pl-6 mb-2">
+                <li>Navigate to the Modeling tab and select "CAMP Travel Demand"</li>
+                <li>Define your study area by selecting TAZs or drawing a boundary</li>
+                <li>Configure model parameters including:
+                  <ul className="list-disc pl-6">
+                    <li>Forecast year</li>
+                    <li>Demographic assumptions</li>
+                    <li>Network changes</li>
+                    <li>Land use scenarios</li>
+                  </ul>
+                </li>
+                <li>Run the model and view results through:
+                  <ul className="list-disc pl-6">
+                    <li>Heat maps showing demand patterns</li>
+                    <li>Flow diagrams for corridor analysis</li>
+                    <li>Detailed metrics tables</li>
+                    <li>Comparative scenario analysis</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-semibold">TrendNavigator Scenario Planning:</p>
+              <ol className="list-decimal pl-6">
+                <li>Select "TrendNavigator" from the Modeling tab</li>
+                <li>Choose a baseline CAMP model to build upon</li>
+                <li>Adjust trend variables like:
+                  <ul className="list-disc pl-6">
+                    <li>Remote work adoption</li>
+                    <li>Vehicle automation levels</li>
+                    <li>Micromobility growth</li>
+                    <li>Transit service changes</li>
+                  </ul>
+                </li>
+                <li>Compare scenarios over different time horizons (5, 10, or 30 years)</li>
+                <li>Generate reports showing impacts on transportation patterns, emissions, and accessibility</li>
+              </ol>
+            </div>
+          </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

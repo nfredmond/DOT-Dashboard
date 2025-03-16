@@ -11,12 +11,13 @@
 5. [GIS Mapping](#gis-mapping)
 6. [Project Scoring & Prioritization](#project-scoring--prioritization)
 7. [Scenario Development](#scenario-development)
-8. [AI Assistant](#ai-assistant)
-9. [Reporting](#reporting)
-10. [User Management](#user-management)
-11. [Community Feedback](#community-feedback)
-12. [Troubleshooting](#troubleshooting)
-13. [Glossary](#glossary)
+8. [Travel Demand Forecasting & Trend Analysis](#travel-demand-forecasting--trend-analysis)
+9. [AI Assistant](#ai-assistant)
+10. [Reporting](#reporting)
+11. [User Management](#user-management)
+12. [Community Feedback](#community-feedback)
+13. [Troubleshooting](#troubleshooting)
+14. [Glossary](#glossary)
 
 ## Introduction
 
@@ -265,6 +266,82 @@ The system can provide scoring suggestions based on project data:
 4. View the comparison table and charts
 5. Use the "Export Comparison" button to save the analysis
 
+## Travel Demand Forecasting & Trend Analysis
+
+This section covers our advanced modeling tools for transportation planning and forecasting.
+
+### CAMP Travel Demand Modeling
+
+The Chained Activity Modeling Process (CAMP) provides robust travel demand forecasting capabilities:
+
+#### Running a CAMP Model
+
+1. Navigate to "Modeling" > "Travel Demand"
+2. Define your study area by selecting TAZs or drawing a boundary
+3. Upload or select demographic data
+4. Configure transportation networks
+5. Set model parameters and run
+
+#### Analyzing CAMP Results
+
+1. View heat maps of travel demand
+2. Analyze corridor flows
+3. Review metrics including VMT, mode share, and emissions
+4. Export results for reporting
+
+### TrendNavigator Scenario Planning
+
+TrendNavigator allows you to explore how future trends and policies might impact travel patterns and demand.
+
+#### Creating TrendNavigator Scenarios
+
+1. Navigate to "Modeling" > "TrendNavigator"
+2. Click "New Trend Scenario"
+3. Select a baseline model (required CAMP model result)
+4. Configure trend variables:
+   - Telecommuting rates
+   - E-commerce adoption
+   - Shared mobility usage
+   - Vehicle automation levels
+   - Transit service changes
+   - Land use patterns
+5. Set time horizon (5, 10, or 30 years)
+6. Click "Generate Scenario" to compute impacts
+
+#### Comparing TrendNavigator Scenarios
+
+1. Navigate to "Modeling" > "TrendNavigator" > "Comparison"
+2. Select two or more scenarios to compare
+3. View side-by-side metrics including:
+   - Vehicle Miles Traveled (VMT)
+   - Greenhouse gas emissions
+   - Mode share changes
+   - Congestion levels
+   - Transit ridership
+   - Accessibility metrics
+4. Use the visualization tools to create charts for presentations
+5. Export comparison as a PDF report or presentation slides
+
+#### AI-Assisted Trend Analysis
+
+1. Navigate to "Modeling" > "TrendNavigator"
+2. Select a scenario
+3. Click "AI Analysis"
+4. The AI will provide:
+   - Key insights from the scenario
+   - Potential impacts and implications
+   - Recommended policy considerations
+   - Comparison to best practices
+   - Suggested refinements to the scenario
+
+### Integrating Models with Projects
+
+1. Navigate to a project details page
+2. Click "Link to Model" button
+3. Select a CAMP or TrendNavigator model result
+4. The project will now display relevant metrics from the model
+5. Project scoring can incorporate model results to improve prioritization
+
 ## AI Assistant
 
 ### Using the AI Assistant
@@ -372,6 +449,21 @@ The system supports different user roles:
 4. Type your response
 5. Click "Send Response"
 
+### Community Input Mapping Tool
+
+1. Navigate to "Community Feedback"
+2. Click on "Map View" or "Community Input Map" 
+3. View the interactive map with feedback points
+4. Filter feedback by:
+   - Project
+   - Feedback type (concern, suggestion, support)
+   - Date range
+   - Status (new, in review, addressed)
+5. Click on a map point to view detailed feedback
+6. Add new location-based feedback using the "Add Feedback" button
+7. Generate heat maps of feedback density using the "Analysis" tab
+8. Export feedback data in CSV or GeoJSON format for further analysis
+
 ### AI Analysis of Feedback
 
 1. Navigate to "Community Feedback"
@@ -414,24 +506,44 @@ For additional assistance:
 3. Use the search function to find specific topics
 4. Contact technical support using the provided form
 
-## Glossary
+## Glossary of Terms
 
-**Project**: A transportation initiative with defined scope, budget, and timeline
+### A
 
-**Scenario**: An alternative version of a project with different parameters
+**Activity-Based Model**: A transportation planning approach that predicts travel patterns based on activities people need to perform rather than simply trips between locations.
 
-**GIS**: Geographic Information System, used for spatial data visualization and analysis
+**ADA Compliance**: Standards ensuring accessibility for individuals with disabilities, following the Americans with Disabilities Act requirements.
 
-**Layer**: A set of geographic data displayed on the map
+### C
 
-**Scoring**: The process of evaluating projects based on defined criteria
+**CAMP**: Chained Activity Modeling Process, a methodology for travel demand forecasting that models trip chains rather than isolated trips.
 
-**Prioritization**: Ranking projects based on their scores and importance
+**Community Feedback**: Input gathered from the public regarding transportation projects and plans.
 
-**AI Assistant**: Artificial intelligence tool that provides analysis and recommendations
+### G
 
-**Base Map**: The background map over which project data is displayed
+**GIS**: Geographic Information System, used for storing, analyzing, and displaying spatial or geographic data.
 
-**Feature**: A geographic element (point, line, polygon) representing a project on the map
+**Grant Criteria**: Specific requirements that must be met to qualify for funding from federal, state, or local sources.
 
-**Feedback**: Comments and suggestions from community members or stakeholders 
+### M
+
+**Mode Share**: The percentage of travelers using a particular type of transportation (e.g., car, public transit, bicycle).
+
+### P
+
+**Project Prioritization**: The process of ranking transportation projects based on specific criteria to determine implementation order.
+
+### T
+
+**TAZ**: Traffic Analysis Zone, a geographic unit used in transportation planning for data aggregation and analysis.
+
+**Transportation Demand Management (TDM)**: Strategies to reduce travel demand or redistribute it across different times, routes, or modes.
+
+**Travel Demand Model**: A computational tool that forecasts future travel patterns based on land use, demographics, and transportation network characteristics.
+
+**TrendNavigator**: Scenario planning tool that explores how future trends might impact transportation patterns.
+
+### V
+
+**VMT**: Vehicle Miles Traveled, a measure of the total distance traveled by vehicles in a specific area over a given time period. 

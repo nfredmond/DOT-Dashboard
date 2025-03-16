@@ -322,12 +322,100 @@ CREATE TABLE IF NOT EXISTS sync_queue (
     record_id UUID NOT NULL,
     table_name TEXT NOT NULL,
     operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
-    data JSONB,
+    data JSONB NOT NULL,
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    client_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     processed_at TIMESTAMPTZ,
-    client_id TEXT NOT NULL,
-    conflict_resolution TEXT,
-    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processed', 'failed'))
+);
+
+-- Create community_feedback table with enhanced features for the community input mapping tool
+CREATE TABLE IF NOT EXISTS community_feedback (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    feedback_type TEXT NOT NULL,
+    category TEXT,
+    llm_category TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    moderation_notes TEXT,
+    moderated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    moderated_at TIMESTAMPTZ,
+    auto_moderated BOOLEAN DEFAULT FALSE,
+    location_type TEXT NOT NULL CHECK (location_type IN ('point', 'line', 'polygon')),
+    geometry GEOMETRY NOT NULL,
+    coordinates JSONB,
+    address TEXT,
+    images TEXT[],
+    metadata JSONB DEFAULT '{}',
+    upvotes INTEGER DEFAULT 0,
+    downvotes INTEGER DEFAULT 0,
+    responses INTEGER DEFAULT 0,
+    visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private', 'organization')),
+    organization_id UUID REFERENCES agencies(id) ON DELETE CASCADE,
+    sub_organization_id TEXT,
+    is_anonymous BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version INTEGER DEFAULT 1,
+    client_id TEXT,
+    is_synced BOOLEAN DEFAULT TRUE
+);
+
+-- Table for tracking votes on community feedback
+CREATE TABLE IF NOT EXISTS community_feedback_votes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    feedback_id UUID NOT NULL REFERENCES community_feedback(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    vote_type TEXT NOT NULL CHECK (vote_type IN ('upvote', 'downvote')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(feedback_id, user_id)
+);
+
+-- Table for community feedback responses
+CREATE TABLE IF NOT EXISTS community_feedback_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    feedback_id UUID NOT NULL REFERENCES community_feedback(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_official BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Table for community feedback categories per organization
+CREATE TABLE IF NOT EXISTS community_feedback_categories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    color TEXT NOT NULL,
+    icon TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(agency_id, name)
+);
+
+-- Table for community feedback settings per organization
+CREATE TABLE IF NOT EXISTS community_feedback_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    auto_approve BOOLEAN DEFAULT FALSE,
+    use_llm_categorization BOOLEAN DEFAULT TRUE,
+    use_llm_moderation BOOLEAN DEFAULT FALSE,
+    required_approval_count INTEGER DEFAULT 1,
+    allow_anonymous BOOLEAN DEFAULT TRUE,
+    enable_voting BOOLEAN DEFAULT TRUE,
+    enable_responses BOOLEAN DEFAULT TRUE,
+    notify_admins BOOLEAN DEFAULT TRUE,
+    default_visibility TEXT DEFAULT 'public',
+    custom_instructions TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(agency_id)
 );
 
 -- Create indexes for performance
@@ -359,8 +447,16 @@ CREATE INDEX IF NOT EXISTS idx_sync_status_record_id ON sync_status(record_id);
 CREATE INDEX IF NOT EXISTS idx_sync_status_table_name ON sync_status(table_name);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_record_id ON sync_queue(record_id);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_agency_id ON sync_queue(agency_id);
-CREATE INDEX IF NOT EXISTS idx_sync_queue_client_id ON sync_queue(client_id);
 CREATE INDEX IF NOT EXISTS idx_sync_queue_processed_at ON sync_queue(processed_at);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_client_id ON sync_queue(client_id);
+
+-- Community feedback indexes
+CREATE INDEX IF NOT EXISTS idx_community_feedback_agency_id ON community_feedback(agency_id);
+CREATE INDEX IF NOT EXISTS idx_community_feedback_user_id ON community_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_feedback_status ON community_feedback(status);
+CREATE INDEX IF NOT EXISTS idx_community_feedback_feedback_type ON community_feedback(feedback_type);
+CREATE INDEX IF NOT EXISTS idx_community_feedback_category ON community_feedback(category);
+CREATE INDEX IF NOT EXISTS idx_community_feedback_geometry ON community_feedback USING GIST (geometry);
 
 -- Insert sample AI models if they don't exist
 DO $$
@@ -701,3 +797,339 @@ ALTER TABLE mcp_servers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_queue ENABLE ROW LEVEL SECURITY;
+
+-- Function to categorize community feedback using LLM with enhanced categories
+CREATE OR REPLACE FUNCTION categorize_community_feedback(
+    p_feedback_id UUID,
+    p_description TEXT,
+    p_agency_id UUID
+)
+RETURNS TEXT AS $$
+DECLARE
+    v_category TEXT;
+    v_analysis JSONB;
+    v_model_id UUID;
+    v_custom_categories TEXT[];
+    v_use_llm BOOLEAN;
+BEGIN
+    -- Check if this organization uses LLM categorization
+    SELECT use_llm_categorization INTO v_use_llm 
+    FROM community_feedback_settings 
+    WHERE agency_id = p_agency_id;
+    
+    -- Get custom categories for this organization if they exist
+    SELECT array_agg(name) INTO v_custom_categories 
+    FROM community_feedback_categories 
+    WHERE agency_id = p_agency_id AND is_active = TRUE;
+    
+    -- Default categories if no custom ones are defined
+    IF v_custom_categories IS NULL THEN
+        v_custom_categories := ARRAY['general', 'safety', 'active_transportation', 
+                                    'maintenance', 'traffic', 'transit', 'parking', 
+                                    'accessibility', 'environmental'];
+    END IF;
+    
+    -- If not using LLM or no model is available, use basic categorization
+    IF v_use_llm IS NULL OR NOT v_use_llm THEN
+        -- Basic keyword-based categorization
+        IF p_description ILIKE '%bike%' OR p_description ILIKE '%pedestrian%' OR p_description ILIKE '%walk%' THEN
+            v_category := 'active_transportation';
+        ELSIF p_description ILIKE '%safety%' OR p_description ILIKE '%dangerous%' OR p_description ILIKE '%accident%' THEN
+            v_category := 'safety';
+        ELSIF p_description ILIKE '%traffic%' OR p_description ILIKE '%congestion%' THEN
+            v_category := 'traffic';
+        ELSIF p_description ILIKE '%maintenance%' OR p_description ILIKE '%repair%' OR p_description ILIKE '%fix%' THEN
+            v_category := 'maintenance';
+        ELSIF p_description ILIKE '%bus%' OR p_description ILIKE '%train%' OR p_description ILIKE '%transit%' THEN
+            v_category := 'transit';
+        ELSIF p_description ILIKE '%parking%' THEN
+            v_category := 'parking';
+        ELSIF p_description ILIKE '%wheelchair%' OR p_description ILIKE '%accessibility%' OR p_description ILIKE '%disability%' THEN
+            v_category := 'accessibility';
+        ELSIF p_description ILIKE '%environment%' OR p_description ILIKE '%pollution%' OR p_description ILIKE '%green%' THEN
+            v_category := 'environmental';
+        ELSE
+            v_category := 'general';
+        END IF;
+    ELSE
+        -- Get the best available model for text classification
+        SELECT id INTO v_model_id FROM ai_models 
+        WHERE capabilities ? 'text-classification' 
+        AND status = 'active'
+        ORDER BY performance_score DESC 
+        LIMIT 1;
+        
+        -- If no model is available, use basic categorization
+        IF v_model_id IS NULL THEN
+            -- Same basic keyword matching as above
+            IF p_description ILIKE '%bike%' OR p_description ILIKE '%pedestrian%' OR p_description ILIKE '%walk%' THEN
+                v_category := 'active_transportation';
+            ELSIF p_description ILIKE '%safety%' OR p_description ILIKE '%dangerous%' OR p_description ILIKE '%accident%' THEN
+                v_category := 'safety';
+            ELSIF p_description ILIKE '%traffic%' OR p_description ILIKE '%congestion%' THEN
+                v_category := 'traffic';
+            ELSIF p_description ILIKE '%maintenance%' OR p_description ILIKE '%repair%' OR p_description ILIKE '%fix%' THEN
+                v_category := 'maintenance';
+            ELSE
+                v_category := 'general';
+            END IF;
+        ELSE
+            -- Mock LLM classification logic (would use real API call in production)
+            -- In a real implementation, this would call an external API or use pgvector
+            v_analysis := jsonb_build_object(
+                'model_id', v_model_id,
+                'input', p_description,
+                'categories', to_jsonb(v_custom_categories)
+            );
+            
+            -- Simulate classification based on keywords for demonstration
+            IF p_description ILIKE '%bike%' OR p_description ILIKE '%pedestrian%' OR p_description ILIKE '%walk%' THEN
+                v_category := 'active_transportation';
+            ELSIF p_description ILIKE '%safety%' OR p_description ILIKE '%dangerous%' OR p_description ILIKE '%accident%' THEN
+                v_category := 'safety';
+            ELSIF p_description ILIKE '%traffic%' OR p_description ILIKE '%congestion%' THEN
+                v_category := 'traffic';
+            ELSIF p_description ILIKE '%maintenance%' OR p_description ILIKE '%repair%' OR p_description ILIKE '%fix%' THEN
+                v_category := 'maintenance';
+            ELSIF p_description ILIKE '%bus%' OR p_description ILIKE '%train%' OR p_description ILIKE '%transit%' THEN
+                v_category := 'transit';
+            ELSIF p_description ILIKE '%parking%' THEN
+                v_category := 'parking';
+            ELSIF p_description ILIKE '%wheelchair%' OR p_description ILIKE '%accessibility%' OR p_description ILIKE '%disability%' THEN
+                v_category := 'accessibility';
+            ELSIF p_description ILIKE '%environment%' OR p_description ILIKE '%pollution%' OR p_description ILIKE '%green%' THEN
+                v_category := 'environmental';
+            ELSE
+                v_category := 'general';
+            END IF;
+            
+            -- Update the feedback record with the category and metadata
+            UPDATE community_feedback 
+            SET 
+                llm_category = v_category,
+                metadata = jsonb_set(
+                    COALESCE(metadata, '{}'::jsonb),
+                    '{llm_analysis}',
+                    v_analysis
+                )
+            WHERE id = p_feedback_id;
+        END IF;
+    END IF;
+    
+    RETURN v_category;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Enhanced function to auto-moderate community feedback
+CREATE OR REPLACE FUNCTION auto_moderate_community_feedback(
+    p_feedback_id UUID,
+    p_description TEXT,
+    p_agency_id UUID
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_is_approved BOOLEAN;
+    v_moderation_notes TEXT;
+    v_analysis JSONB;
+    v_model_id UUID;
+    v_inappropriate BOOLEAN := FALSE;
+    v_auto_approve BOOLEAN;
+    v_use_llm_moderation BOOLEAN;
+BEGIN
+    -- Get organization settings
+    SELECT 
+        auto_approve,
+        use_llm_moderation
+    INTO 
+        v_auto_approve,
+        v_use_llm_moderation
+    FROM community_feedback_settings 
+    WHERE agency_id = p_agency_id;
+    
+    -- Use defaults if no settings found
+    IF v_auto_approve IS NULL THEN
+        v_auto_approve := FALSE;
+    END IF;
+    
+    IF v_use_llm_moderation IS NULL THEN
+        v_use_llm_moderation := FALSE;
+    END IF;
+    
+    -- Skip moderation if auto-approve is enabled
+    IF v_auto_approve THEN
+        UPDATE community_feedback 
+        SET 
+            status = 'approved',
+            auto_moderated = TRUE,
+            moderated_at = NOW(),
+            moderation_notes = 'Auto-approved by organization setting'
+        WHERE id = p_feedback_id;
+        RETURN TRUE;
+    END IF;
+    
+    -- Skip LLM moderation if not enabled
+    IF NOT v_use_llm_moderation THEN
+        RETURN FALSE; -- Will require manual moderation
+    END IF;
+    
+    -- Get the best available model for content moderation
+    SELECT id INTO v_model_id FROM ai_models 
+    WHERE capabilities ? 'content-moderation' 
+    AND status = 'active'
+    ORDER BY performance_score DESC 
+    LIMIT 1;
+    
+    -- If no model is available, default to pending for human review
+    IF v_model_id IS NULL THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Mock content moderation logic (would use real API call in production)
+    -- Basic keyword checking for inappropriate content
+    v_inappropriate := p_description ~* '\b(profanity|offensive|vulgar|obscene)\b';
+    
+    -- Build analysis object
+    v_analysis := jsonb_build_object(
+        'model_id', v_model_id,
+        'input', p_description,
+        'flagged', v_inappropriate,
+        'confidence', 0.85,
+        'categories', jsonb_build_object(
+            'hate', FALSE,
+            'harassment', FALSE,
+            'self-harm', FALSE,
+            'sexual', FALSE,
+            'violence', FALSE
+        )
+    );
+    
+    IF v_inappropriate THEN
+        v_is_approved := FALSE;
+        v_moderation_notes := 'Automatically rejected due to potentially inappropriate content';
+    ELSE
+        v_is_approved := TRUE;
+        v_moderation_notes := 'Automatically approved by content moderation system';
+    END IF;
+    
+    -- Update the feedback with moderation results
+    UPDATE community_feedback 
+    SET 
+        status = CASE WHEN v_is_approved THEN 'approved' ELSE 'rejected' END,
+        auto_moderated = TRUE,
+        moderated_at = NOW(),
+        moderation_notes = v_moderation_notes,
+        metadata = jsonb_set(
+            COALESCE(metadata, '{}'::jsonb),
+            '{moderation_analysis}',
+            v_analysis
+        )
+    WHERE id = p_feedback_id;
+    
+    RETURN v_is_approved;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Enhanced trigger function to automatically categorize and moderate feedback when inserted
+CREATE OR REPLACE FUNCTION auto_categorize_and_moderate_feedback_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Call the categorization function with agency_id
+    NEW.category := categorize_community_feedback(NEW.id, NEW.description, NEW.agency_id);
+    
+    -- Attempt auto-moderation and store the result (will be used later)
+    PERFORM auto_moderate_community_feedback(NEW.id, NEW.description, NEW.agency_id);
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the enhanced trigger
+CREATE TRIGGER trigger_auto_categorize_and_moderate_feedback
+BEFORE INSERT ON community_feedback
+FOR EACH ROW
+EXECUTE FUNCTION auto_categorize_and_moderate_feedback_trigger();
+
+-- Function to get community feedback by area
+CREATE OR REPLACE FUNCTION get_community_feedback_in_area(
+    p_lat FLOAT, 
+    p_lng FLOAT, 
+    p_radius_meters FLOAT,
+    p_agency_id UUID,
+    p_status TEXT DEFAULT NULL
+)
+RETURNS SETOF community_feedback AS $$
+DECLARE
+    center GEOMETRY;
+    area GEOMETRY;
+BEGIN
+    -- Create a point geometry from the coordinates
+    center := ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326);
+    
+    -- Create a circle with the given radius
+    area := ST_Buffer(center::geography, p_radius_meters)::geometry;
+    
+    -- Return community feedback within the area
+    RETURN QUERY
+    SELECT *
+    FROM community_feedback
+    WHERE agency_id = p_agency_id
+      AND (p_status IS NULL OR status = p_status)
+      AND ST_Intersects(geometry, area);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create view for community feedback analytics
+CREATE OR REPLACE VIEW community_feedback_analytics AS
+WITH category_stats AS (
+    SELECT 
+        agency_id,
+        category,
+        count(*) as total,
+        count(*) FILTER (WHERE status = 'approved') as approved,
+        count(*) FILTER (WHERE status = 'rejected') as rejected,
+        count(*) FILTER (WHERE status = 'pending') as pending,
+        avg(upvotes) as avg_upvotes
+    FROM 
+        community_feedback
+    GROUP BY 
+        agency_id, category
+),
+location_type_stats AS (
+    SELECT 
+        agency_id,
+        location_type,
+        count(*) as total
+    FROM 
+        community_feedback
+    GROUP BY 
+        agency_id, location_type
+),
+moderation_stats AS (
+    SELECT 
+        agency_id,
+        count(*) as total_moderated,
+        count(*) FILTER (WHERE auto_moderated = TRUE) as auto_moderated,
+        avg(EXTRACT(EPOCH FROM (moderated_at - created_at)))/3600 as avg_hours_to_moderate
+    FROM 
+        community_feedback
+    WHERE 
+        status != 'pending'
+    GROUP BY 
+        agency_id
+)
+SELECT 
+    a.id as agency_id,
+    a.name as agency_name,
+    count(cf.id) as total_feedback,
+    (SELECT json_agg(row_to_json(cs)) FROM category_stats cs WHERE cs.agency_id = a.id) as categories,
+    (SELECT json_agg(row_to_json(lts)) FROM location_type_stats lts WHERE lts.agency_id = a.id) as location_types,
+    (SELECT row_to_json(ms) FROM moderation_stats ms WHERE ms.agency_id = a.id) as moderation
+FROM 
+    agencies a
+LEFT JOIN 
+    community_feedback cf ON a.id = cf.agency_id
+GROUP BY 
+    a.id, a.name;
+
+-- Comment: Database schema successfully created
+-- Note: This schema includes all tables, functions, and triggers needed for the Planning Manager v6
