@@ -7,14 +7,25 @@ interface MapBridgeProps {
   onProjectAdded?: (project: Project) => void;
   onProjectUpdated?: (project: Project) => void;
   onProjectDeleted?: (project: Project) => void;
+  onFallbackMapProjects?: (projects: any[]) => void;
+  mainMapProjects?: any[];
+  mainMapConfig?: any;
 }
 
 /**
  * MapBridge is a component that handles synchronization between the project management system
  * and the maps. It listens for events from the ProjectsContext and propagates them to map components.
  */
-export function MapBridge({ onProjectAdded, onProjectUpdated, onProjectDeleted }: MapBridgeProps) {
-  const { projects } = useProjects();
+export function MapBridge({ 
+  onProjectAdded, 
+  onProjectUpdated, 
+  onProjectDeleted,
+  onFallbackMapProjects,
+  mainMapProjects,
+  mainMapConfig
+}: MapBridgeProps) {
+  const projectsContext = useProjects();
+  const projects = projectsContext?.projects || [];
   
   // Set up event listeners for project changes
   useEffect(() => {

@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SupabaseProvider } from '@/contexts/SupabaseContext';
 import { ProjectsProvider, useProjects, type Project } from '@/contexts/ProjectsContext';
 import L from 'leaflet';
+import { syncWithMainMap } from './fallback-map';
 
 // Ensure leaflet CSS is loaded
 import 'leaflet/dist/leaflet.css';
@@ -187,6 +188,14 @@ export default function ProjectMappingWrapper() {
   const handleMainMapProjectsUpdate = useCallback((projects: any[]) => {
     console.log('Main map projects updated:', projects.length);
     setMainMapProjects(projects);
+    
+    // Sync with fallback map
+    if (typeof window !== 'undefined' && window.leafletMapInstance) {
+      console.log('Syncing projects with fallback map');
+      if (typeof syncWithMainMap === 'function') {
+        syncWithMainMap(projects);
+      }
+    }
   }, []);
   
   // Function to handle updates from the fallback map
@@ -461,27 +470,28 @@ export default function ProjectMappingWrapper() {
     <SupabaseProvider>
       <AuthProvider>
         <ProjectsProvider>
-          <div 
-            id={mapIdRef.current} 
-            key={mapIdRef.current} 
-            className="h-full w-full" 
-            data-map-id={mapIdRef.current}
-            style={{ 
-              minHeight: "800px", 
-              height: "calc(100vh - 80px)", // Account for header and other UI elements
-              display: "flex",
-              flexDirection: "column"
-            }}
-          >
-            {/* MapBridge for data synchronization */}
-            <MapBridge 
-              mainMapProjects={mainMapProjects}
-              mainMapConfig={mainMapConfig}
-              onFallbackMapProjects={handleFallbackMapProjectsUpdate}
-            />
-            
-            {/* Use a direct DOM implementation instead of React-Leaflet */}
-            <DirectLeafletMap />
+          <div className="h-screen w-full flex flex-col overflow-hidden">
+            {/* Map Container */}
+            <div id={mapIdRef.current} className="flex-1 relative w-full h-full border-0 m-0 p-0">
+              {/* Only render UI components when the map is ready */}
+              {isMounted && (
+                <>
+                  {/* Project UI components only rendered here - removed from DirectLeafletMap */}
+                  <ProjectList mapRef={{ current: window.leafletMapInstance }} />
+                  <ProjectMapLegend />
+                </>
+              )}
+              
+              {/* Use the MapBridge component to communicate with the main map */}
+              <MapBridge 
+                mainMapProjects={mainMapProjects}
+                mainMapConfig={mainMapConfig}
+                onFallbackMapProjects={handleFallbackMapProjectsUpdate}
+              />
+              
+              {/* Use a direct DOM implementation instead of React-Leaflet */}
+              <DirectLeafletMap />
+            </div>
           </div>
         </ProjectsProvider>
       </AuthProvider>
@@ -626,8 +636,8 @@ const DirectLeafletMap: React.FC = () => {
         try {
           const newMap = initializeDirectMap('map-container', {
             basemap: {
-              url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              attribution: '&copy; OpenStreetMap contributors'
+              url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             },
             initialView: {
               center: [34.45, -119.7],
@@ -639,6 +649,12 @@ const DirectLeafletMap: React.FC = () => {
               showSearch: true
             }
           });
+          
+          // Set map in window for global access
+          if (typeof window !== 'undefined') {
+            window.leafletMapInstance = newMap;
+          }
+          
           setMap(newMap);
           setIsLoading(false);
         } catch (err) {
@@ -652,17 +668,7 @@ const DirectLeafletMap: React.FC = () => {
 
   return (
     <div className="relative flex h-full">
-      {/* Project management sidebar */}
-      <div className="w-72 bg-popover p-2 shadow-lg overflow-y-auto">
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold">Projects</h2>
-          <p className="text-sm text-muted-foreground">
-            View and manage transportation projects across the region
-          </p>
-        </div>
-      </div>
-      
-      {/* Map container */}
+      {/* Map container - removed sidebar */}
       <div className="flex-1 h-full" id="direct-map-container">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-50">
@@ -684,9 +690,6 @@ const DirectLeafletMap: React.FC = () => {
         
         {/* Map will be initialized in this div */}
         <div id="map-container" className="h-full w-full">
-          {/* Add Project Form */}
-          <AddProjectForm />
-          
           {/* MapBridge for synchronizing with project context */}
           <MapBridge 
             onProjectAdded={handleProjectAdded}
@@ -694,11 +697,8 @@ const DirectLeafletMap: React.FC = () => {
             onProjectDeleted={handleProjectDeleted}
           />
           
-          {/* ProjectMapLegend component */}
-          <ProjectMapLegend />
-          
-          {/* ProjectList component */}
-          <ProjectList mapRef={map} />
+          {/* Remove the duplicated UI components */}
+          {/* ProjectMapLegend and ProjectList components are already rendered in parent */}
         </div>
       </div>
     </div>

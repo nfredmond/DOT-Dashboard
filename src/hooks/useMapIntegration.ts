@@ -13,7 +13,7 @@ import {
  * @returns Object with map integration utilities
  */
 export function useMapIntegration(mapRef: React.MutableRefObject<any>) {
-  const { projects, filteredProjects, addProject, updateProject, deleteProject } = useProjects();
+  const { projects, filteredProjects, addProject, updateProject, deleteProject } = useProjects() || { projects: [], filteredProjects: [], addProject: () => {}, updateProject: () => {}, deleteProject: () => {} };
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const eventListenerRef = useRef<(() => void) | null>(null);
 
@@ -26,8 +26,83 @@ export function useMapIntegration(mapRef: React.MutableRefObject<any>) {
 
   // Focus on a specific project
   const focusProject = useCallback((projectId: string, zoom?: number) => {
+    if (!mapRef?.current) {
+      // If direct mapRef is not available, try using window.leafletMapInstance
+      if (typeof window !== 'undefined' && window.leafletMapInstance) {
+        const project = projects.find(p => p.id === projectId);
+        if (project) {
+          setSelectedProject(project);
+          
+          // Find the appropriate map feature to focus on
+          let found = false;
+          
+          // Loop through all layers to find the project
+          window.leafletMapInstance.eachLayer((layer: any) => {
+            if (layer.projectData && layer.projectData.id === projectId) {
+              found = true;
+              
+              // Highlight the layer
+              if (layer.setStyle) {
+                layer.setStyle({
+                  weight: 5,
+                  color: '#3b82f6',
+                  opacity: 1,
+                  fillOpacity: 0.6
+                });
+              }
+              
+              // Center map
+              if (layer.getLatLng) {
+                window.leafletMapInstance.setView(layer.getLatLng(), zoom || 15);
+                layer.openPopup();
+              } else if (layer.getBounds) {
+                window.leafletMapInstance.fitBounds(layer.getBounds(), { padding: [50, 50] });
+                // Create popup in the center of the bounds
+                const center = layer.getBounds().getCenter();
+                window.L.popup()
+                  .setLatLng(center)
+                  .setContent(`
+                    <div class="p-2">
+                      <h3 class="font-bold">${project.name}</h3>
+                      <p class="text-sm">${project.description}</p>
+                      <div class="flex justify-between text-xs mt-2">
+                        <span>${project.status}</span>
+                        <span>${project.category}</span>
+                      </div>
+                    </div>
+                  `)
+                  .openOn(window.leafletMapInstance);
+              }
+            }
+          });
+          
+          // If we didn't find the project in layers, fall back to coordinates
+          if (!found && project.coordinates) {
+            const { latitude, longitude } = project.coordinates;
+            window.leafletMapInstance.setView([latitude, longitude], zoom || 15);
+            
+            // Create a popup
+            window.L.popup()
+              .setLatLng([latitude, longitude])
+              .setContent(`
+                <div class="p-2">
+                  <h3 class="font-bold">${project.name}</h3>
+                  <p class="text-sm">${project.description}</p>
+                  <div class="flex justify-between text-xs mt-2">
+                    <span>${project.status}</span>
+                    <span>${project.category}</span>
+                  </div>
+                </div>
+              `)
+              .openOn(window.leafletMapInstance);
+          }
+        }
+      }
+      return;
+    }
+    
     const project = projects.find(p => p.id === projectId);
-    if (project && mapRef.current) {
+    if (project) {
       setSelectedProject(project);
       flyToProject(mapRef.current, project, zoom);
     }
@@ -56,7 +131,8 @@ export function useMapIntegration(mapRef: React.MutableRefObject<any>) {
 
   // Setup event listeners for project updates
   useEffect(() => {
-    if (!mapRef.current) return;
+    // Guard against null or undefined mapRef
+    if (!mapRef?.current) return;
 
     // Clean up previous listener if it exists
     if (eventListenerRef.current) {
@@ -66,7 +142,7 @@ export function useMapIntegration(mapRef: React.MutableRefObject<any>) {
 
     // Register a new listener
     const cleanup = registerProjectEventListener((eventType, projectData) => {
-      if (!mapRef.current) return;
+      if (!mapRef?.current) return;
 
       switch (eventType) {
         case 'add':

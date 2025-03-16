@@ -6,6 +6,13 @@
 // Import the ProjectMarker type from types file
 import { ProjectMarker, MapConfig } from './fallback-map-types';
 
+// Extend the ProjectMarker interface to include fillOpacity
+declare module './fallback-map-types' {
+  interface ProjectMarker {
+    fillOpacity?: number;
+  }
+}
+
 // Define custom Leaflet feature types
 type LeafletMarkerWithData = L.Marker & { projectData?: ProjectMarker };
 type LeafletPolylineWithData = L.Polyline & { projectData?: ProjectMarker };
@@ -274,26 +281,111 @@ function createPopupContent(project: ProjectMarker): string {
     linkColor: '#3b82f6'
   };
   
+  // Enhanced popup styling with responsive design
   return `
-    <div style="min-width: 240px; background-color: ${colors.background}; color: ${colors.text}; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}); overflow: hidden;">
-      <div style="padding: 12px 16px;">
-        <h3 style="font-weight: 600; font-size: 16px; margin: 0 0 8px 0; color: ${colors.heading};">${project.name}</h3>
-        <p style="margin: 0 0 12px 0; color: ${colors.subtext}; font-size: 14px; line-height: 1.5;">${project.description}</p>
+    <div style="
+      min-width: 260px; 
+      max-width: 320px; 
+      background-color: ${colors.background}; 
+      color: ${colors.text}; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 16px rgba(0, 0, 0, ${isDarkMode ? '0.4' : '0.1'}); 
+      overflow: hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    ">
+      <div style="padding: 16px;">
+        <h3 style="
+          font-weight: 600; 
+          font-size: 17px; 
+          margin: 0 0 8px 0; 
+          color: ${colors.heading};
+          line-height: 1.3;
+        ">${project.name}</h3>
         
-        <div style="border-top: 1px solid ${colors.border}; margin-top: 8px; padding-top: 12px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="font-size: 13px; color: ${colors.subtext};">Category</span>
-            <span style="font-size: 13px; font-weight: 500; color: ${isDarkMode ? '#ffffff' : '#374151'}; background: ${colors.cardBackground}; border-radius: 9999px; padding: 2px 10px;">${project.category}</span>
+        <p style="
+          margin: 0 0 16px 0; 
+          color: ${colors.text}; 
+          font-size: 14px; 
+          line-height: 1.5;
+          opacity: 0.9;
+        ">${project.description}</p>
+        
+        <div style="
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 12px;
+          margin-top: 16px;
+          border-top: 1px solid ${colors.border}; 
+          padding-top: 12px;
+        ">
+          <div>
+            <div style="
+              font-size: 12px; 
+              color: ${colors.subtext}; 
+              margin-bottom: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            ">Category</div>
+            <div style="
+              font-size: 14px; 
+              font-weight: 500; 
+              color: ${isDarkMode ? '#ffffff' : '#374151'};
+            ">${project.category}</div>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="font-size: 13px; color: ${colors.subtext};">Budget</span>
-            <span style="font-size: 13px; font-weight: 600; color: ${colors.heading};">${budget}</span>
+          
+          <div>
+            <div style="
+              font-size: 12px; 
+              color: ${colors.subtext}; 
+              margin-bottom: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            ">Status</div>
+            <div style="
+              display: inline-block;
+              font-size: 13px; 
+              font-weight: 500; 
+              padding: 2px 8px;
+              border-radius: 9999px;
+              background-color: ${getStatusColor(project.status, isDarkMode)};
+              color: ${getStatusTextColor(project.status, isDarkMode)};
+            ">${project.status}</div>
+          </div>
+          
+          <div>
+            <div style="
+              font-size: 12px; 
+              color: ${colors.subtext}; 
+              margin-bottom: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            ">Budget</div>
+            <div style="
+              font-size: 14px; 
+              font-weight: 600; 
+              color: ${colors.heading};
+            ">${budget}</div>
           </div>
         </div>
       </div>
-      <div style="background-color: ${colors.footerBackground}; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 500; background-color: ${getStatusColor(project.status, isDarkMode)}; color: ${getStatusTextColor(project.status, isDarkMode)};">${project.status}</span>
-        <a href="#" style="color: ${colors.linkColor}; font-size: 12px; text-decoration: none;">View Details</a>
+      
+      <div style="
+        background-color: ${colors.footerBackground}; 
+        padding: 12px 16px; 
+        display: flex; 
+        justify-content: flex-end;
+        border-top: 1px solid ${colors.border};
+      ">
+        <a href="#" style="
+          color: ${colors.linkColor}; 
+          font-size: 13px; 
+          text-decoration: none;
+          font-weight: 500;
+          padding: 4px 10px;
+          border-radius: 4px;
+          background: ${isDarkMode ? 'rgba(96, 165, 250, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
+          transition: background 0.2s;
+        ">View Details</a>
       </div>
     </div>
   `;
@@ -949,61 +1041,26 @@ function refreshMapFeatures(): void {
         case 'point':
           if (project.latitude && project.longitude) {
             // Create marker for point geometry
-            feature = window.L.marker([project.latitude, project.longitude])
-              .addTo(map)
-              .bindPopup(createPopupContent(project));
+            feature = createMarkerForProject(project);
           }
           break;
           
         case 'line':
           if (project.path && project.path.length >= 2) {
             // Create polyline for line geometry
-            feature = window.L.polyline(project.path, {
-              color: project.color || '#3388ff',
-              weight: project.weight || 3,
-              opacity: project.opacity || 0.7
-            }).addTo(map);
-            
-            // Add click handler to open popup
-            if (feature) {
-              feature.on('click', (e) => {
-                window.L.popup()
-                  .setLatLng(e.latlng)
-                  .setContent(createPopupContent(project))
-                  .openOn(map);
-              });
-            }
+            feature = createMarkerForProject(project);
           }
           break;
           
         case 'polygon':
           if (project.polygon && project.polygon.length >= 3) {
             // Create polygon for polygon geometry
-            feature = window.L.polygon(project.polygon, {
-              color: project.color || '#3388ff',
-              fillColor: project.fillColor || project.color || '#3388ff',
-              weight: project.weight || 2,
-              opacity: project.opacity || 0.7,
-              fillOpacity: 0.2
-            }).addTo(map);
-            
-            // Add click handler to open popup
-            if (feature) {
-              feature.on('click', (e) => {
-                window.L.popup()
-                  .setLatLng(e.latlng)
-                  .setContent(createPopupContent(project))
-                  .openOn(map);
-              });
-            }
+            feature = createMarkerForProject(project);
           }
           break;
       }
       
       if (feature) {
-        // Attach project data to feature for reference
-        (feature as any).projectData = project;
-        
         // Store feature reference
         projectFeatures[project.id] = feature;
         
@@ -1041,6 +1098,95 @@ function refreshMapFeatures(): void {
   } catch (error) {
     console.error('Error refreshing map features:', error);
   }
+}
+
+function createMarkerForProject(project: ProjectMarker): LeafletFeature {
+  if (project.geometryType === 'point' && project.latitude !== undefined && project.longitude !== undefined) {
+    // Create a marker for point geometry
+    const marker = L.marker([project.latitude, project.longitude], {
+      title: project.name,
+      icon: getMarkerIcon(project)
+    });
+    
+    // Add the project data to the marker for reference
+    marker.projectData = project;
+    
+    // Add popup
+    marker.bindPopup(createPopupContent(project), {
+      maxWidth: 320,
+      minWidth: 260,
+      className: 'project-popup'
+    });
+    
+    return marker;
+  } else if (project.geometryType === 'line' && project.path) {
+    // Create a polyline for line geometry
+    const polyline = L.polyline(project.path, {
+      color: project.color || getColorForStatus(project.status),
+      weight: project.weight || 4,
+      opacity: project.opacity || 0.7
+    });
+    
+    // Add the project data to the polyline for reference
+    polyline.projectData = project;
+    
+    // Add popup
+    polyline.bindPopup(createPopupContent(project), {
+      maxWidth: 320,
+      minWidth: 260,
+      className: 'project-popup'
+    });
+    
+    return polyline;
+  } else if (project.geometryType === 'polygon' && project.polygon) {
+    // Create a polygon for polygon geometry
+    const polygon = L.polygon(project.polygon, {
+      color: project.color || getColorForStatus(project.status),
+      fillColor: project.fillColor || project.color || getColorForStatus(project.status),
+      weight: project.weight || 2,
+      opacity: project.opacity || 0.8,
+      fillOpacity: project.fillOpacity || 0.2
+    });
+    
+    // Add the project data to the polygon for reference
+    polygon.projectData = project;
+    
+    // Add popup
+    polygon.bindPopup(createPopupContent(project), {
+      maxWidth: 320,
+      minWidth: 260,
+      className: 'project-popup'
+    });
+    
+    return polygon;
+  }
+  
+  // Fallback for incomplete data - create a simple marker at a default position
+  console.warn('Incomplete project data for', project.name);
+  const defaultMarker = L.marker([39.2615, -121.0149], {
+    title: project.name + ' (Location Approximated)',
+    icon: getMarkerIcon(project)
+  });
+  
+  // Add the project data to the marker for reference
+  defaultMarker.projectData = project;
+  
+  defaultMarker.bindPopup(createPopupContent(project));
+  return defaultMarker;
+}
+
+// Helper function to get marker icon based on project category
+function getMarkerIcon(project: ProjectMarker): any {
+  // Create a colored marker based on project status
+  const color = getColorForStatus(project.status);
+  
+  // Default icon - can be extended to have category-specific icons
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
 }
 
 // Complete the initializeDirectMap function update that was started earlier
@@ -1086,7 +1232,7 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
     const mapConfig = {
       basemap: {
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       },
       initialView: {
         center: [39.2615, -121.0149] as [number, number], // Nevada City, CA 
@@ -1145,61 +1291,26 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
         case 'point':
           if (project.latitude && project.longitude) {
             // Create marker for point geometry
-            feature = window.L.marker([project.latitude, project.longitude])
-              .addTo(map)
-              .bindPopup(createPopupContent(project));
+            feature = createMarkerForProject(project);
           }
           break;
           
         case 'line':
           if (project.path && project.path.length >= 2) {
             // Create polyline for line geometry
-            feature = window.L.polyline(project.path, {
-              color: project.color || '#3388ff',
-              weight: project.weight || 3,
-              opacity: project.opacity || 0.7
-            }).addTo(map);
-            
-            // Add click handler to open popup
-            if (feature) {
-              feature.on('click', (e) => {
-                window.L.popup()
-                  .setLatLng(e.latlng)
-                  .setContent(createPopupContent(project))
-                  .openOn(map);
-              });
-            }
+            feature = createMarkerForProject(project);
           }
           break;
           
         case 'polygon':
           if (project.polygon && project.polygon.length >= 3) {
             // Create polygon for polygon geometry
-            feature = window.L.polygon(project.polygon, {
-              color: project.color || '#3388ff',
-              fillColor: project.fillColor || project.color || '#3388ff',
-              weight: project.weight || 2,
-              opacity: project.opacity || 0.7,
-              fillOpacity: 0.2
-            }).addTo(map);
-            
-            // Add click handler to open popup
-            if (feature) {
-              feature.on('click', (e) => {
-                window.L.popup()
-                  .setLatLng(e.latlng)
-                  .setContent(createPopupContent(project))
-                  .openOn(map);
-              });
-            }
+            feature = createMarkerForProject(project);
           }
           break;
       }
       
       if (feature) {
-        // Attach project data to feature for reference
-        (feature as any).projectData = project;
-        
         // Store feature reference
         projectFeatures[project.id] = feature;
         

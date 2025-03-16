@@ -41,7 +41,7 @@ export default function MapIntegrationWrapper({ mapContainer }: MapIntegrationWr
 
   return (
     <ProjectsProvider>
-      {isMapReady && (
+      {isMapReady && mapRef.current && (
         <>
           <AddProjectForm />
           <ProjectList mapRef={mapRef} />

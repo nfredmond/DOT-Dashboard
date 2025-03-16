@@ -20,6 +20,7 @@ export interface ProjectMarker {
   fillColor?: string;
   weight?: number;
   opacity?: number;
+  fillOpacity?: number;
 }
 
 // Define map configuration interface for sharing between components
