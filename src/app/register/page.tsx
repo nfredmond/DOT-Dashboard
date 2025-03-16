@@ -110,7 +110,7 @@ export default function Register() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">
-                RTPA Portal
+                Planning Manager
               </h1>
               <p
                 className="text-sm text-gray-500 dark:text-gray-400"
@@ -142,7 +142,7 @@ export default function Register() {
                 />
               </div>
               <p className="text-center">
-                Thank you for registering with the RTPA Portal. Your account
+                Thank you for registering with the Planning Manager. Your account
                 request has been submitted and is pending approval by an
                 administrator. You will receive an email notification once your
                 account is approved.
@@ -166,7 +166,7 @@ export default function Register() {
                 Create an Account
               </CardTitle>
               <CardDescription className="text-center">
-                Register for access to the RTPA Portal
+                Register for access to the Planning Manager
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -411,8 +411,8 @@ export default function Register() {
         >
           <p>
             For technical support, please contact{" "}
-            <a href="mailto:support@rtpa.gov" className="underline">
-              support@rtpa.gov
+            <a href="mailto:support@planningmanager.org" className="underline">
+              support@planningmanager.org
             </a>
           </p>
         </div>

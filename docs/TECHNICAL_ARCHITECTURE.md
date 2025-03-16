@@ -7,11 +7,12 @@ This document outlines the technical architecture of the Planning Manager applic
 The Planning Manager is built using a modern web application architecture with the following key characteristics:
 
 - **Frontend Framework**: Next.js 14 with App Router
-- **Backend Services**: Supabase (PostgreSQL + Authentication)
+- **Backend Services**: Supabase (PostgreSQL + Authentication + Storage)
 - **State Management**: React Context + SWR
 - **Mapping**: Leaflet.js + React-Leaflet
 - **UI Components**: Tailwind CSS + Shadcn/ui
 - **AI Integration**: OpenAI API
+- **File Storage**: Supabase Storage for organization logos and documents
 
 ## Architecture Diagram
 

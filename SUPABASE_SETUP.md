@@ -39,6 +39,8 @@ You can enable these extensions in the Supabase dashboard under Database > Exten
 7. [Sample Data](#sample-data)
 8. [Development Notes](#development-notes)
 9. [Demo Mode](#demo-mode)
+10. [AI Model Integration](#ai-model-integration)
+11. [Voice Interface Features](#voice-interface-features)
 
 ## Getting Started
 
@@ -48,53 +50,26 @@ To set up the database in Supabase:
 2. Navigate to your project
 3. Go to the SQL Editor
 4. Create a new query
-5. Copy and paste the entire SQL code from the `supabase_schema.sql` file
-6. Run the query to create all tables, indices, and sample data
+5. Copy and paste the entire schema from `supabase_schema.sql` file
+6. Run the query
 
-**Important**: The SQL script will drop and recreate the public schema, removing all existing data. This is designed to give you a clean slate each time you run it.
-
-## Demo Mode vs Real Authentication
-
-The application supports two modes of operation:
-
-### Demo Mode
-- Activated when logging in with test credentials:
-  - **Admin demo**: Email: `admin@example.com`, Password: `password`
-  - **User demo**: Email: `user@example.com`, Password: `password`
-- Uses pre-loaded sample data from the database
-- Changes may not persist between sessions
-- Ideal for testing and demonstration purposes
-
-### User Experience Features
-
-#### Empty State Handling
-- The application includes comprehensive empty state handling for users without existing data
-- Informative UI components display on Projects, Scenarios, and Scoring pages when no data exists
-- Clear guidance is provided on how to get started with creating new content
-- Context-specific empty states show different messages based on the user's progress (e.g., scenarios require projects first)
-
-#### First-Time User Onboarding
-- New users are presented with an onboarding dialog automatically on their first visit
-- The dialog walks through the core workflow: creating projects, generating scenarios, and scoring/prioritization
-- The onboarding status is stored in localStorage (`rtpa_onboarding_shown`) to ensure it only appears once
-- Users can choose to create their first project directly from the onboarding dialog or explore on their own
-
-### Real Authentication Mode
-- Activated when logging in with real credentials (e.g., `nathaniel@greendottransportation.com`)
-- Connects to the actual Supabase database
-- All changes are persisted
-- Requires proper database setup with the complete schema
+This will:
+- Drop the existing public schema (if any exists)
+- Recreate the schema with all required tables
+- Set up Row Level Security
+- Create necessary indexes
+- Add sample AI models
 
 ## Schema Overview
 
-The database schema is organized around the following key concepts:
+The database schema includes the following main components:
 
-1. **Multi-Tenancy**: The system supports multiple transportation agencies, each with their own isolated data.
-2. **Organizations**: Within an agency, multiple organizations (e.g., departments, member agencies) can exist.
-3. **Projects**: The central entity representing transportation projects with various attributes.
-4. **Scoring**: A flexible scoring system for evaluating and prioritizing projects.
-5. **Geospatial Data**: Support for location-based analysis and visualization.
-6. **Scenarios**: Alternative project approaches that can be compared and analyzed.
+- **Core Tables**: agencies, organizations, projects
+- **User Management**: profiles, permissions
+- **Project Scoring**: criteria, scoring, templates
+- **Prioritization**: scenarios, weights
+- **AI Integration**: ai_models for integration with various LLMs
+- **Voice Interface**: voice_settings and voice_command_logs for voice assistant features
 
 ## Core Tables
 
@@ -285,3 +260,68 @@ After setting up the database:
 5. Configure offline sync capabilities if needed
 
 For detailed implementation guidance, refer to the application documentation.
+
+## AI Model Integration
+
+The system now includes support for various AI language models through the following tables:
+
+### ai_models
+
+Stores information about supported AI models that can be used throughout the application.
+
+- `id`: Unique identifier
+- `name`: Model name (e.g., "GPT-4 Turbo", "Claude 3 Opus")
+- `provider`: Provider name (e.g., "OpenAI", "Anthropic")
+- `version`: Model version
+- `description`: Brief description of the model's capabilities
+- `thinking_capable`: Whether the model can perform complex reasoning
+- `vision_capable`: Whether the model can process images
+- `research_capable`: Whether the model can perform research tasks
+- `code_capable`: Whether the model can generate/analyze code
+- `voice_capable`: Whether the model works with voice features
+- `max_token_limit`: Maximum token context length
+- `cost_per_1k_tokens`: Cost per 1,000 tokens for billing
+- `is_active`: Whether the model is currently available for use
+
+The schema includes a function `get_best_model_for_task()` that automatically selects the most suitable and cost-effective model based on the specific task requirements.
+
+## Voice Interface Features
+
+The system now supports voice assistant functionality through the following tables:
+
+### voice_settings
+
+Stores user preferences for voice interactions.
+
+- `id`: Unique identifier
+- `user_id`: Reference to profiles table
+- `voice_type`: Type of voice to use (e.g., "natural")
+- `speed`: Speech rate multiplier
+- `pitch`: Voice pitch adjustment
+- `volume`: Voice volume adjustment
+- `preferred_model_id`: User's preferred AI model for voice processing
+- `wake_word`: Phrase to activate voice assistant
+- `language`: Language code (e.g., "en-US")
+
+### voice_command_logs
+
+Records history of voice commands for analytics and improvement.
+
+- `id`: Unique identifier
+- `user_id`: Reference to profiles table
+- `command_text`: The text of the voice command
+- `model_id`: AI model used for processing
+- `command_type`: Type of command
+- `response_text`: System response
+- `duration_ms`: Processing time in milliseconds
+- `was_successful`: Whether the command was successful
+- `context`: Additional context in JSON format
+
+### Helper Functions and Views
+
+- `get_user_voice_settings()`: Creates/retrieves voice settings for a user
+- `log_voice_command()`: Records voice command activity
+- `voice_activity_summary`: View for user voice activity metrics
+- `model_usage_statistics`: View for AI model usage metrics
+
+These new features enable voice interaction with the planning system, allowing users to query project information, submit updates, and perform various tasks through voice commands.

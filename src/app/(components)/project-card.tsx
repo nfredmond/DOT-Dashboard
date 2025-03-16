@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -32,6 +32,16 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const router = useRouter();
+  const [scoreValue, setScoreValue] = useState(0);
+  
+  useEffect(() => {
+    // Animate the score from 0 to its actual value when component mounts
+    const timer = setTimeout(() => {
+      setScoreValue(project.score);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [project.score]);
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -101,7 +111,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project.score}/100
             </span>
           </div>
-          <Progress value={project.score} className="h-2" />
+          <Progress 
+            value={scoreValue} 
+            className="h-2 transition-all duration-1000 ease-out" 
+          />
 
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div className="flex items-center">

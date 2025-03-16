@@ -27,7 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </svg>
             </div>
             <div>
-              <div className="font-bold text-gray-800 dark:text-white">RTPA Portal</div>
+              <div className="font-bold text-gray-800 dark:text-white">Planning Manager</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Transportation Planning</div>
             </div>
           </div>

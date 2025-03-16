@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   
   // Check for demo mode - if no session is found, look for demo user in cookies/localStorage
   // NOTE: We can't directly access localStorage server-side, but we can check for a demo cookie
-  const demoCookie = cookies().get('rtpa_demo_mode');
+  const demoCookie = cookies().get('planning_manager_demo_mode');
   const isDemo = !session && demoCookie?.value === 'true';
   
   if (!session && !isDemo) {

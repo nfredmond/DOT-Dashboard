@@ -10,6 +10,8 @@ This document outlines the comprehensive database schema for the Planning Manage
 4. **Extensibility**: Schema allows for agency-specific customizations
 5. **Auditability**: Changes are tracked for compliance and accountability
 6. **Offline Support**: Schema supports offline operations with synchronization
+7. **AI Integration**: Support for various AI language models with capability tracking
+8. **Voice Features**: Voice assistant functionality with personalized settings
 
 ## Authentication and Authorization
 
@@ -48,55 +50,1599 @@ The system supports three access roles:
 │ id          │       │ id         │       │ id             │
 │ name        │◄──┐   │ email      │   ┌──►│ user_id        │
 │ subdomain   │   │   │ created_at │   │   │ agency_id      │
-│ settings    │   │   └────────────┘   │   │ role           │
-│ created_at  │   │        ▲           │   │ preferences    │
-└─────────────┘   │        │           │   └────────────────┘
-                  └────────┼───────────┘
-                           │
-┌─────────────┐       ┌────┴───────┐       ┌────────────────┐
-│  projects   │       │  project_  │       │    scoring     │
-├─────────────┤       │   users    │       ├────────────────┤
-│ id          │◄──┐   ├────────────┤   ┌──►│ id             │
-│ agency_id   │   │   │ project_id │   │   │ project_id     │
-│ name        │   └───┤ user_id    │   │   │ criteria_id    │
-│ description │       │ role       │   │   │ score          │
-│ status      │       └────────────┘   │   │ notes          │
-│ type        │                        │   │ created_by     │
-│ location    │                        │   │ created_at     │
-│ geometry    │                        │   │ version        │
-│ metadata    │                        │   │ is_synced      │
-│ created_by  │                        │   │ created_at     │
-│ created_at  │                        │   │ updated_at     │
-│ updated_at  │                        │   │ version        │
-│ version     │                        │   │ is_synced      │
-│ is_synced   │                        │   └────────────────┘
-└─────────────┘                        │
-      ▲                                │
-      │                                │
-┌─────┴───────┐       ┌────────────┐       │
-│  documents  │       │  feedback  │       │
-├─────────────┤       ├────────────┤       │
-│ id          │       │ id         │       │
-│ project_id  │       │ project_id │       │
-│ name        │       │ user_id    │       │
-│ type        │       │ rating     │       │
-│ url         │       │ comment    │       │
-│ metadata    │       │ location   │       │
-│ created_by  │       │ created_at │       │
-│ created_at  │       │ version    │       │
-│ version     │       │ is_synced  │       │
-│ is_synced   │       └────────────┘       │
-└─────────────┘                            │
-                                           │
-┌─────────────┐       ┌────────────┐       │
-│  llm_config │       │  llm_logs  │       │
-├─────────────┤       ├────────────┤       │
-│ id          │       │ id         │       │
-│ agency_id   │       │ agency_id  │       │
-│ provider    │       │ request    │       │
-│ model       │       │ response   │
-│ api_key_enc │       │ tokens     │       │
-│ settings    │       │ created_by │       │
+│ settings    │   │   └────────────┘   │   │ first_name     │
+│ created_at  │   │                    │   │ last_name      │
+└─────────────┘   │                    │   │ role           │
+                  │                    │   │ isGlobalAdmin  │
+                  │                    │   │ preferences    │
+                  │                    │   │ created_at     │
+                  │                    │   └────────────────┘
+                  │                    │          ▲
+                  │                    │          │
+┌─────────────┐   │                    │   ┌──────┴─────────┐
+│  ai_models  │   │                    │   │  voice_settings │
+├─────────────┤   │                    │   ├────────────────┤
+│ id          │   │                    │   │ id             │
+│ name        │   │                    │   │ user_id        │
+│ provider    │   │                    │   │ voice_type     │
+│ version     │   │                    │   │ speed          │
+│ description │   │                    │   │ pitch          │
+│ thinking_cap│   │                    │   │ volume         │
+│ vision_cap  │   │                    │   │ preferred_model│─────┐
+│ research_cap│   │                    │   │ wake_word      │     │
+│ code_cap    │   │                    │   │ language       │     │
+│ voice_cap   │   │                    │   │ created_at     │     │
+│ max_tokens  │   │                    │   │ updated_at     │     │
+│ cost_per_1k │   │                    │   └────────────────┘     │
+│ is_active   │   │                    │          ▲               │
+│ created_at  │   │                    │          │               │
+│ updated_at  │◄──┼────────────────────┼──────────┘               │
+└─────────────┘   │                    │                          │
+      ▲           │                    │                          │
+      │           │                    │                          │
+      │           │   ┌─────────────┐  │  ┌──────────────────┐    │
+      │           │   │  projects   │  │  │ voice_command_logs│    │
+      │           │   ├─────────────┤  │  ├──────────────────┤    │
+      │           └───┤ agency_id   │  │  │ id               │    │
+      │               │ name        │  │  │ user_id          │    │
+      │               │ description │  │  │ command_text     │    │
+      └───────────────┤ model_id    │  │  │ model_id         │────┘
+                      └─────────────┘  │  │ command_type     │
+                                       │  │ response_text    │
+                                       │  │ duration_ms      │
+                                       │  │ was_successful   │
+                                       │  │ context          │
+                                       │  │ created_at       │
+                                       └──┤ user_id          │
+                                          └──────────────────┘
+```
+
+## Table Relationships
+
+### Core Tables
+
+The core tables in the system form the following relationships:
+
+1. **agencies**: The top-level organization table, representing transportation planning agencies
+2. **profiles**: User profiles linked to agencies with specific roles
+3. **projects**: Transportation projects belonging to agencies
+4. **AI and Voice Features**:
+   - **ai_models**: Available AI models with capability tracking
+   - **voice_settings**: User preferences for voice interactions
+   - **voice_command_logs**: History of voice commands and responses
+
+### AI Model Tables
+
+The AI model tables provide support for AI integration:
+
+1. **ai_models**: Stores information about supported AI models
+   - Tracks capabilities: thinking, vision, research, code, voice
+   - Records cost and token limits for each model
+   - Maintains active status for available models
+
+2. **Helper Functions**:
+   - `get_best_model_for_task()`: Automatically selects the most suitable model based on requirements and cost
+   
+### Voice Feature Tables
+
+The voice feature tables enable voice assistant functionality:
+
+1. **voice_settings**: User-specific voice interaction preferences
+   - Links to user profiles
+   - Stores voice characteristics (type, speed, pitch, volume)
+   - Records preferred AI model for processing
+
+2. **voice_command_logs**: History of voice interactions
+   - Tracks commands, responses, and success rates
+   - Links to the AI models used for processing
+   - Stores performance metrics like duration
+
+3. **Helper Functions and Views**:
+   - `get_user_voice_settings()`: Creates or retrieves voice settings for a user
+   - `log_voice_command()`: Records voice command activity
+   - `voice_activity_summary`: Aggregates voice usage metrics by user
+   - `model_usage_statistics`: Tracks AI model performance and usage statistics
+
+// ... rest of the document follows ...
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+# Database Schema Design
+
+This document outlines the comprehensive database schema for the Planning Manager v5 transportation project management system. The database is implemented in PostgreSQL via Supabase, with row-level security policies for multi-tenant isolation.
+
+## Database Design Principles
+
+1. **Normalization**: Tables are designed to minimize redundancy while maintaining referential integrity
+2. **Performance**: Optimized for common query patterns with appropriate indices
+3. **Security**: Row-level security policies enforce multi-tenant isolation
+4. **Extensibility**: Schema allows for agency-specific customizations
+5. **Auditability**: Changes are tracked for compliance and accountability
+6. **Offline Support**: Schema supports offline operations with synchronization
+7. **AI Integration**: Support for various AI language models with capability tracking
+8. **Voice Features**: Voice assistant functionality with personalized settings
+
+## Authentication and Authorization
+
+The system uses Supabase Auth for authentication and implements a role-based access control system through RLS policies.
+
+### Default Admin User
+
+A default administrator account is included in the schema setup:
+
+- **Email**: <nathaniel@greendottransportation.com>
+- **Password**: Yuba530#
+- **Role**: admin
+- **UUID**: ab61773c-3a28-44d5-95c2-846fa5608811
+
+This user has full administrative privileges for the demo agency, including:
+
+- User management
+- Project creation and deletion
+- Agency settings management
+- Full access to all system functions
+
+### Access Roles
+
+The system supports three access roles:
+
+1. **Admin**: Full access to all features, including user management and deletion
+2. **Editor**: Can create and edit data but cannot delete records or manage users
+3. **Viewer**: Read-only access to data relevant to their agency
+
+## Entity-Relationship Diagram
+
+```txt
+┌─────────────┐       ┌────────────┐       ┌────────────────┐
+│   agencies  │       │    users   │       │    profiles    │
+├─────────────┤       ├────────────┤       ├────────────────┤
+│ id          │       │ id         │       │ id             │
+│ name        │◄──┐   │ email      │   ┌──►│ user_id        │
+│ subdomain   │   │   │ created_at │   │   │ agency_id      │
+│ settings    │   │   └────────────┘   │   │ first_name     │
+│ created_at  │   │                    │   │ last_name      │
+└─────────────┘   │                    │   │ role           │
+                  │                    │   │ isGlobalAdmin  │
+                  │                    │   │ preferences    │
+                  │                    │   │ created_at     │
+                  │                    │   └────────────────┘
+                  │                    │          ▲
+                  │                    │          │
+┌─────────────┐   │                    │   ┌──────┴─────────┐
+│  ai_models  │   │                    │   │  voice_settings │
+├─────────────┤   │                    │   ├────────────────┤
+│ id          │   │                    │   │ id             │
+│ name        │   │                    │   │ user_id        │
+│ provider    │   │                    │   │ voice_type     │
+│ version     │   │                    │   │ speed          │
+│ description │   │                    │   │ pitch          │
+│ thinking_cap│   │                    │   │ volume         │
+│ vision_cap  │   │                    │   │ preferred_model│─────┐
+│ research_cap│   │                    │   │ wake_word      │     │
+│ code_cap    │   │                    │   │ language       │     │
+│ voice_cap   │   │                    │   │ created_at     │     │
+│ max_tokens  │   │                    │   │ updated_at     │     │
+│ cost_per_1k │   │                    │   └────────────────┘     │
+│ is_active   │   │                    │          ▲               │
+│ created_at  │   │                    │          │               │
+│ updated_at  │◄──┼────────────────────┼──────────┘               │
+└─────────────┘   │                    │                          │
+      ▲           │                    │                          │
+      │           │                    │                          │
+      │           │   ┌─────────────┐  │  ┌──────────────────┐    │
+      │           │   │  projects   │  │  │ voice_command_logs│    │
+      │           │   ├─────────────┤  │  ├──────────────────┤    │
+      │           └───┤ agency_id   │  │  │ id               │    │
+      │               │ name        │  │  │ user_id          │    │
+      │               │ description │  │  │ command_text     │    │
+      └───────────────┤ model_id    │  │  │ model_id         │────┘
+                      └─────────────┘  │  │ command_type     │
+                                       │  │ response_text    │
+                                       │  │ duration_ms      │
+                                       │  │ was_successful   │
+                                       │  │ context          │
+                                       │  │ created_at       │
+                                       └──┤ user_id          │
+                                          └──────────────────┘
+```
+
+## Table Relationships
+
+### Core Tables
+
+The core tables in the system form the following relationships:
+
+1. **agencies**: The top-level organization table, representing transportation planning agencies
+2. **profiles**: User profiles linked to agencies with specific roles
+3. **projects**: Transportation projects belonging to agencies
+4. **AI and Voice Features**:
+   - **ai_models**: Available AI models with capability tracking
+   - **voice_settings**: User preferences for voice interactions
+   - **voice_command_logs**: History of voice commands and responses
+
+### AI Model Tables
+
+The AI model tables provide support for AI integration:
+
+1. **ai_models**: Stores information about supported AI models
+   - Tracks capabilities: thinking, vision, research, code, voice
+   - Records cost and token limits for each model
+   - Maintains active status for available models
+
+2. **Helper Functions**:
+   - `get_best_model_for_task()`: Automatically selects the most suitable model based on requirements and cost
+   
+### Voice Feature Tables
+
+The voice feature tables enable voice assistant functionality:
+
+1. **voice_settings**: User-specific voice interaction preferences
+   - Links to user profiles
+   - Stores voice characteristics (type, speed, pitch, volume)
+   - Records preferred AI model for processing
+
+2. **voice_command_logs**: History of voice interactions
+   - Tracks commands, responses, and success rates
+   - Links to the AI models used for processing
+   - Stores performance metrics like duration
+
+3. **Helper Functions and Views**:
+   - `get_user_voice_settings()`: Creates or retrieves voice settings for a user
+   - `log_voice_command()`: Records voice command activity
+   - `voice_activity_summary`: Aggregates voice usage metrics by user
+   - `model_usage_statistics`: Tracks AI model performance and usage statistics
+
+// ... rest of the document follows ...
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
 │ created_at  │       │ created_at │       │
 │ updated_at  │       │ updated_at │       │
 │ is_default  │       │ is_default │       │
@@ -498,6 +2044,39 @@ The system supports three access roles:
 │ metadata    │       │ metadata   │       │
 │ created_by  │       │ created_by │       │
 │ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
+│ created_by  │       │ created_by │       │
+│ created_at  │       │ created_at │       │
+│ updated_at  │       │ updated_at │       │
+│ is_default  │       │ is_default │       │
+│ metadata    │       │ metadata   │       │
 │ updated_at  │       │ updated_at │       │
 │ is_default  │       │ is_default │       │
 │ metadata    │       │ metadata   │       │

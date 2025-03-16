@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   
   // Check for demo mode
-  const demoCookie = cookies().get('rtpa_demo_mode');
+  const demoCookie = cookies().get('planning_manager_demo_mode');
   const isDemo = !session && demoCookie?.value === 'true';
   
   if (!session && !isDemo) {
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   
   // Check for demo mode
-  const demoCookie = cookies().get('rtpa_demo_mode');
+  const demoCookie = cookies().get('planning_manager_demo_mode');
   const isDemo = !session && demoCookie?.value === 'true';
   
   if (!session && !isDemo) {

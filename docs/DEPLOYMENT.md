@@ -243,4 +243,50 @@ If a deployment introduces critical issues:
 
 1. Revert to the last known good commit
 2. Deploy the previous version
-3. Run database migrations if necessary 
+3. Run database migrations if necessary
+
+## Supabase Setup
+
+### 1. Database Setup
+
+Follow the instructions in the [DATABASE_SETUP.md](DATABASE_SETUP.md) document to set up your Supabase PostgreSQL database.
+
+### 2. Authentication Setup
+
+1. Enable Email/Password authentication in the Supabase Auth settings.
+2. Configure email templates for user onboarding.
+3. Set up any additional auth providers as needed.
+
+### 3. Storage Setup
+
+1. Create a new storage bucket in Supabase:
+   - Go to Storage in the Supabase dashboard
+   - Click "Create New Bucket"
+   - Name the bucket `organization_logos`
+   - Set the bucket as private (not public)
+
+2. Configure bucket policies:
+   - Go to the `organization_logos` bucket
+   - Click "Policies"
+   - Add a policy to allow authenticated users to upload files:
+     ```sql
+     -- Allow users to upload files
+     CREATE POLICY "Allow authenticated users to upload files"
+     ON storage.objects
+     FOR INSERT
+     TO authenticated
+     WITH CHECK (bucket_id = 'organization_logos');
+     ```
+   - Add a policy to allow users to view files:
+     ```sql
+     -- Allow anyone to view files (since logos need to be visible)
+     CREATE POLICY "Allow public to view organization logos"
+     ON storage.objects
+     FOR SELECT
+     TO public
+     USING (bucket_id = 'organization_logos');
+     ```
+
+3. Configure CORS for the storage bucket:
+   - Go to the Storage settings
+   - Add your application domains to the allowed origins 

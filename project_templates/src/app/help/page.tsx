@@ -95,7 +95,7 @@ export default function Help() {
           <CardContent className="space-y-2">
             <p className="text-sm">
               Our user guide provides detailed instructions on how to use all
-              features of the RTPA Portal.
+              features of the Planning Manager.
             </p>
           </CardContent>
           <CardFooter>
@@ -145,7 +145,7 @@ export default function Help() {
           <CardContent className="space-y-2">
             <p className="text-sm">
               Access our library of training resources to learn how to use the
-              RTPA Portal effectively.
+              Planning Manager effectively.
             </p>
           </CardContent>
           <CardFooter>

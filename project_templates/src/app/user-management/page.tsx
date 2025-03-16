@@ -101,7 +101,7 @@ export default function UserManagement() {
     {
       id: "2",
       name: "Maria Rodriguez",
-      email: "maria.rodriguez@rtpa.org",
+      email: "maria.rodriguez@planningmanager.org",
       avatar: "https://github.com/furkanksl.png",
       role: "Planner",
       organization: "Sacramento Area Council of Governments",
@@ -141,7 +141,7 @@ export default function UserManagement() {
     {
       id: "6",
       name: "Emily Davis",
-      email: "emily.davis@rtpa.org",
+      email: "emily.davis@planningmanager.org",
       avatar: "https://github.com/polymet-ai.png",
       role: "Community Member",
       organization: "Public",
@@ -163,7 +163,7 @@ export default function UserManagement() {
     {
       id: "2",
       name: "Emily Johnson",
-      email: "emily.johnson@rtpa.org",
+      email: "emily.johnson@planningmanager.org",
       organization: "Sacramento Area Council of Governments",
       role: "Manager",
       requestDate: "2023-07-24",

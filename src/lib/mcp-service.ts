@@ -37,7 +37,9 @@ export enum MCPCapability {
   CODE_INTERPRETER = 'code_interpreter',
   FILE_SEARCH = 'file_search',
   FUNCTION_CALLING = 'function_calling',
-  MULTI_MODAL = 'multi_modal'
+  MULTI_MODAL = 'multi_modal',
+  VOICE_RECOGNITION = 'voice_recognition',
+  TEXT_TO_SPEECH = 'text_to_speech'
 }
 
 /**
@@ -274,4 +276,194 @@ export async function sendMCPCompletion(
     
     return '';
   }
+}
+
+/**
+ * MCP Service - Model Context Protocol
+ * 
+ * Integrates with MCP protocol to enhance LLM interactions
+ */
+
+// MCP Request interface
+export interface MCPRequest {
+  input: string;
+  response?: string;
+  context?: Record<string, any>;
+  capabilities?: MCPCapability[];
+}
+
+// MCP Response interface
+export interface MCPResponse {
+  output: string;
+  action?: string;
+  metadata?: Record<string, any>;
+  shouldUseAgent?: boolean;
+}
+
+/**
+ * Process a request through the Model Context Protocol
+ * 
+ * @param request The MCP request to process
+ * @returns The processed MCP response
+ */
+export async function processWithMCP(request: MCPRequest): Promise<MCPResponse> {
+  try {
+    const { input, response, context = {}, capabilities } = request;
+    
+    // Check if we should process with MCP
+    if (!shouldUseMCP()) {
+      // Return the original response if MCP is not enabled
+      return {
+        output: response || '',
+        shouldUseAgent: false
+      };
+    }
+    
+    // Default capabilities if not provided
+    const requestCapabilities = capabilities || [MCPCapability.CHAT];
+    
+    // Add special capabilities for voice
+    if (context.isVoiceInput) {
+      requestCapabilities.push(MCPCapability.VOICE_RECOGNITION);
+    }
+    
+    // Check if this requires an agent
+    const requiresAgent = determineIfAgentRequired(input, requestCapabilities);
+    
+    // Process with MCP API
+    const mcpResponse = await callMCPService(input, response, context, requestCapabilities);
+    
+    return {
+      ...mcpResponse,
+      shouldUseAgent: requiresAgent
+    };
+  } catch (error) {
+    console.error('Error processing with MCP:', error);
+    
+    // Return original response in case of error
+    return {
+      output: request.response || '',
+      shouldUseAgent: false,
+      metadata: {
+        error: `MCP processing failed: ${error instanceof Error ? error.message : String(error)}`
+      }
+    };
+  }
+}
+
+/**
+ * Determine if we should use MCP for processing
+ * @returns True if MCP should be used
+ */
+function shouldUseMCP(): boolean {
+  return process.env.ENABLE_MCP === 'true' || false;
+}
+
+/**
+ * Determine if an agent should be used based on the input and capabilities
+ * 
+ * @param input The user input
+ * @param capabilities The requested capabilities
+ * @returns True if an agent should be used
+ */
+function determineIfAgentRequired(input: string, capabilities: MCPCapability[]): boolean {
+  // Check for complex capabilities that typically require agents
+  const complexCapabilities = [
+    MCPCapability.ANALYSIS,
+    MCPCapability.PLANNING,
+    MCPCapability.WEB_BROWSE,
+    MCPCapability.CODE_INTERPRETER
+  ];
+  
+  const hasComplexCapability = capabilities.some(cap => 
+    complexCapabilities.includes(cap));
+  
+  if (hasComplexCapability) {
+    return true;
+  }
+  
+  // Check input for phrases that suggest agent use
+  const agentTriggerPhrases = [
+    'analyze',
+    'plan',
+    'search',
+    'find',
+    'create',
+    'calculate',
+    'compute'
+  ];
+  
+  const lowerInput = input.toLowerCase();
+  return agentTriggerPhrases.some(phrase => lowerInput.includes(phrase));
+}
+
+/**
+ * Make the actual API call to the MCP service
+ * 
+ * @param input User input
+ * @param response Initial LLM response if available
+ * @param context Contextual information
+ * @param capabilities Required capabilities
+ * @returns MCP response
+ */
+async function callMCPService(
+  input: string,
+  response?: string,
+  context: Record<string, any> = {},
+  capabilities: MCPCapability[] = [MCPCapability.CHAT]
+): Promise<MCPResponse> {
+  // In a real implementation, this would call an external MCP service
+  // For now, we'll simulate the response
+  
+  // For voice inputs, enhance the response for speech
+  if (capabilities.includes(MCPCapability.VOICE_RECOGNITION)) {
+    const enhancedResponse = response ? 
+      makeResponseVoiceFriendly(response) : 
+      'I understood your voice input but couldn\'t process it.';
+    
+    return {
+      output: enhancedResponse,
+      action: 'speak',
+      metadata: {
+        isVoiceResponse: true,
+        processedByMCP: true
+      }
+    };
+  }
+  
+  // For other capabilities, just pass through for now
+  return {
+    output: response || 'Processed by MCP',
+    metadata: {
+      processedByMCP: true,
+      capabilities: capabilities
+    }
+  };
+}
+
+/**
+ * Make a response more appropriate for voice output
+ * 
+ * @param text The text to modify
+ * @returns Voice-friendly text
+ */
+function makeResponseVoiceFriendly(text: string): string {
+  // Remove markdown formatting
+  let cleaned = text
+    .replace(/\*\*/g, '')                   // Remove bold markers
+    .replace(/\*/g, '')                     // Remove italic markers
+    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')   // Replace markdown links with just the text
+    .replace(/^#+ /gm, '')                  // Remove heading markers
+    .replace(/```[\s\S]*?```/g, 'code snippet') // Replace code blocks
+    .replace(/`([^`]+)`/g, '$1')            // Remove inline code formatting
+    .replace(/\n\n+/g, '\n')                // Reduce multiple newlines
+    .replace(/\n- /g, '\n• ');              // Make bullet points more speech-friendly
+  
+  // Remove common chat prefixes
+  cleaned = cleaned
+    .replace(/^(I'll|I'd|I'm|I've|I|Let me) (help you|assist you|answer that|respond to that|address that)\.?\s*/i, '')
+    .replace(/^Sure[,!]?\s*/i, '')
+    .replace(/^Of course[,!]?\s*/i, '');
+  
+  return cleaned.trim();
 } 

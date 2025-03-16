@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Copy, Check, RefreshCw, Download, Share2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, Check, RefreshCw, Download, Share2, Volume2, VolumeX } from 'lucide-react';
 import { submitLLMFeedback } from '@/lib/llm/llmService';
 import { useToast } from '@/components/ui/use-toast';
+import { useVoice } from '@/contexts/VoiceContext';
 
 interface LLMResponseProps {
   content: string;
@@ -19,6 +20,20 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { voiceEnabled, voiceSettings, speak, stopSpeaking, isSpeaking } = useVoice();
+  
+  // Auto-read response if settings enable it
+  useEffect(() => {
+    if (
+      voiceEnabled && 
+      voiceSettings.autoReadResponses && 
+      content && 
+      !isLoading && 
+      !isSpeaking
+    ) {
+      speak(content);
+    }
+  }, [content, isLoading, voiceEnabled, voiceSettings.autoReadResponses, speak, isSpeaking]);
   
   // Check if the share API is available
   const isShareAvailable = typeof navigator !== 'undefined' && 'share' in navigator;
@@ -160,66 +175,108 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
 
   return (
     <Card className={`w-full overflow-hidden ${className}`}>
-      <CardContent className="p-4">
-        {content ? (
-          <div 
-            className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: formatContent(content) }}
-          />
+      <CardContent className="p-4 relative">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <p className="text-muted-foreground">Generating response...</p>
+          </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No content available</p>
+          <div className="prose dark:prose-invert max-w-none">
+            {formatContent(content)}
           </div>
         )}
       </CardContent>
       
-      {content && (
-        <CardFooter className="flex justify-between p-4 border-t bg-muted/50">
-          <div className="flex space-x-2">
-            {feedbackId && !feedbackSubmitted ? (
-              <>
-                <Button variant="outline" size="sm" onClick={() => handleFeedback(true)}>
-                  <ThumbsUp className="h-4 w-4 mr-1" />
-                  Helpful
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleFeedback(false)}>
-                  <ThumbsDown className="h-4 w-4 mr-1" />
-                  Not Helpful
-                </Button>
-              </>
-            ) : feedbackSubmitted ? (
-              <span className="text-sm text-muted-foreground">Thanks for your feedback</span>
-            ) : null}
-          </div>
+      <CardFooter className="flex justify-between p-4 bg-muted/10 border-t">
+        <div className="flex space-x-2">
+          {!isLoading && feedbackId && !feedbackSubmitted && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleFeedback(true)}
+                className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50 dark:border-green-900 dark:hover:bg-green-900/30"
+              >
+                <ThumbsUp className="h-4 w-4 mr-1" />
+                Helpful
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleFeedback(false)}
+                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-900/30"
+              >
+                <ThumbsDown className="h-4 w-4 mr-1" />
+                Not Helpful
+              </Button>
+            </>
+          )}
           
-          <div className="flex space-x-2">
-            {onReset && (
-              <Button variant="outline" size="sm" onClick={onReset}>
-                <RefreshCw className="h-4 w-4 mr-1" />
-                New
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleCopy}>
-              {copied ? (
-                <Check className="h-4 w-4 mr-1" />
+          {feedbackSubmitted && (
+            <span className="text-sm text-muted-foreground flex items-center">
+              <Check className="h-4 w-4 mr-1 text-green-500" />
+              Feedback submitted
+            </span>
+          )}
+        </div>
+        
+        <div className="flex space-x-2">
+          {voiceEnabled && !isLoading && content && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={isSpeaking ? stopSpeaking : () => speak(content)}
+              className={isSpeaking ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" : ""}
+            >
+              {isSpeaking ? (
+                <>
+                  <VolumeX className="h-4 w-4 mr-1" />
+                  Stop Audio
+                </>
               ) : (
-                <Copy className="h-4 w-4 mr-1" />
+                <>
+                  <Volume2 className="h-4 w-4 mr-1" />
+                  Read Aloud
+                </>
               )}
-              Copy
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-1" />
-              Save
-            </Button>
-            {isShareAvailable && (
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-1" />
-                Share
-              </Button>
+          )}
+          
+          <Button variant="outline" size="sm" onClick={handleCopy}>
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 mr-1" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-1" />
+                Copy
+              </>
             )}
-          </div>
-        </CardFooter>
-      )}
+          </Button>
+          
+          <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Download className="h-4 w-4 mr-1" />
+            Download
+          </Button>
+          
+          {isShareAvailable && (
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              <Share2 className="h-4 w-4 mr-1" />
+              Share
+            </Button>
+          )}
+          
+          {onReset && (
+            <Button variant="outline" size="sm" onClick={onReset}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Reset
+            </Button>
+          )}
+        </div>
+      </CardFooter>
     </Card>
   );
 } 

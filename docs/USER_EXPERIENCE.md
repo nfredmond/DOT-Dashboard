@@ -35,7 +35,7 @@ The application includes an onboarding dialog that provides a guided introductio
 1. **Automatic Display**
    - The dialog appears automatically on the first visit to the application
    - Implemented using localStorage to track if the user has already seen the onboarding
-   - The flag `rtpa_onboarding_shown` is set after viewing
+   - The flag `planning_manager_onboarding_shown` is set after viewing
 
 2. **Multi-Step Walkthrough**
    - Tab-based interface walks users through key concepts:
@@ -66,6 +66,29 @@ The application includes an onboarding dialog that provides a guided introductio
    - Empty states appear when the user has no data
    - Onboarding dialog guides new users
    - Provides a clear path from empty application to functional system
+
+## Organization Branding
+
+The Planning Manager allows organizations to customize the application with their branding for a personalized experience.
+
+### Features
+
+1. **Logo Upload**
+   - Organizations can upload their own logo through the settings page
+   - Supports common image formats (JPEG, PNG, GIF, SVG)
+   - File size limitations to ensure performance (max 2MB)
+   - Preview functionality to see how the logo will appear
+
+2. **White-Label Experience**
+   - Uploaded logos replace the default Planning Manager logo
+   - Consistent branding across all pages and components
+   - Improves organization ownership and recognition
+
+3. **Implementation**
+   - Located in `src/components/organizations/LogoUpload.tsx`
+   - Uses Supabase Storage for secure file storage
+   - Client-side validation for file type and size
+   - API endpoint at `src/app/api/organizations/[id]/logo/route.ts`
 
 ## Best Practices Implemented
 

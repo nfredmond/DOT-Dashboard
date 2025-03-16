@@ -20,14 +20,22 @@ import {
   LogOutIcon,
   MenuIcon,
   ShieldIcon,
+  Search,
+  Bell,
+  MessageSquare,
+  Mic,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVoice } from "@/contexts/VoiceContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { VoiceInputOutput } from "@/components/VoiceInputOutput";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isVoiceInputOpen, setIsVoiceInputOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { voiceEnabled } = useVoice();
 
   const handleLogout = () => {
     logout();
@@ -38,6 +46,17 @@ export function Header() {
   const getInitials = () => {
     if (!user) return "?";
     return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`;
+  };
+
+  const handleVoiceTranscriptSubmit = (transcript: string) => {
+    // Here you can handle the voice transcript by sending it to your LLM/AI processing
+    console.log('Voice input:', transcript);
+    // For example, you could set search query or trigger a search
+    if (transcript.toLowerCase().includes('search for')) {
+      const searchTerm = transcript.toLowerCase().replace('search for', '').trim();
+      // Set search term and trigger search
+      console.log('Searching for:', searchTerm);
+    }
   };
 
   return (
@@ -92,6 +111,22 @@ export function Header() {
           >
             <SettingsIcon className="h-5 w-5" />
           </Button>
+
+          {voiceEnabled && (
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full"
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+              
+              <div className="absolute right-0 mt-2 w-80 z-50">
+                <VoiceInputOutput onTranscriptSubmit={handleVoiceTranscriptSubmit} />
+              </div>
+            </div>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

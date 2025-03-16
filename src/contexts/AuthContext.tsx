@@ -52,13 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(true)
         
         // Check for demo user in localStorage first
-        const demoUser = localStorage.getItem('rtpa_demo_user');
+        const demoUser = localStorage.getItem('planning_manager_demo_user');
         if (demoUser) {
           console.log('Found demo user in localStorage');
           setUser(JSON.parse(demoUser));
           
           // Set a cookie to indicate demo mode for server-side API routes
-          document.cookie = "rtpa_demo_mode=true; path=/; max-age=86400";
+          document.cookie = "planning_manager_demo_mode=true; path=/; max-age=86400";
           
           setIsLoading(false);
           return;
@@ -210,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         // Save to localStorage to persist the session
-        localStorage.setItem('rtpa_demo_user', JSON.stringify(demoAdminUser));
+        localStorage.setItem('planning_manager_demo_user', JSON.stringify(demoAdminUser));
         setUser(demoAdminUser);
         
         setIsLoading(false);
@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         // Save to localStorage to persist the session
-        localStorage.setItem('rtpa_demo_user', JSON.stringify(demoRegularUser));
+        localStorage.setItem('planning_manager_demo_user', JSON.stringify(demoRegularUser));
         setUser(demoRegularUser);
         
         setIsLoading(false);
@@ -307,11 +307,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       
       // If using demo user, just remove from localStorage
-      if (localStorage.getItem('rtpa_demo_user')) {
-        localStorage.removeItem('rtpa_demo_user')
+      if (localStorage.getItem('planning_manager_demo_user')) {
+        localStorage.removeItem('planning_manager_demo_user')
         
         // Clear the demo cookie
-        document.cookie = "rtpa_demo_mode=; path=/; max-age=0";
+        document.cookie = "planning_manager_demo_mode=; path=/; max-age=0";
         
         setUser(null)
         setIsLoading(false)

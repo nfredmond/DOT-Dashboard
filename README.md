@@ -6,7 +6,7 @@ A comprehensive transportation project management system built with Next.js, Rea
 
 Planning Manager is a sophisticated web application designed for transportation agencies to manage, score, prioritize, and visualize infrastructure projects. It combines modern web technologies with advanced GIS capabilities and AI integration to provide a complete solution for transportation project planning and management.
 
-![RTPA Planning Manager](public/Circle_Green_TranspRoad.png)
+![Planning Manager](public/Circle_Green_TranspRoad.png)
 
 ## Features
 
@@ -53,6 +53,7 @@ Planning Manager is a sophisticated web application designed for transportation 
 - Customizable user profiles and preferences
 - Agency-specific settings and configurations
 - Secure authentication via Supabase Auth
+- Organization branding with custom logo uploads
 
 ### 🚀 User Experience
 
@@ -106,7 +107,7 @@ Planning Manager is a sophisticated web application designed for transportation 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/planning-manager.git
+git clone https://github.com/your-org/planning-manager.git
 cd planning-manager
 ```
 
@@ -343,3 +344,126 @@ OPENAI_API_KEY=
 ## License
 
 MIT
+
+# RTPA Portal
+
+A comprehensive transportation planning application with advanced AI capabilities, voice integration, and real-time collaboration features.
+
+## Features
+
+### AI Model Integration
+
+The application integrates with multiple AI models, providing a flexible and powerful foundation for various tasks:
+
+- **Model Selection System**: Choose from various AI models based on your needs, with Claude 3.7 Sonnet Thinking as the default.
+- **Task-Specific Model Selection**: The system automatically selects the most appropriate model based on task requirements.
+- **Custom Model Support**: Add your own custom models to the system.
+- **Model Capabilities**: Models are tagged with capabilities like thinking, vision, research, and code generation.
+
+Supported models include:
+1. Claude 3.7 Sonnet Thinking (default)
+2. Claude 3.7 Sonnet
+3. OpenAI o3-mini-thinking
+4. OpenAI o3-mini
+5. OpenAI o1-pro (research-focused)
+6. Meta Llama 3
+7. Google GEMMA 3
+8. DeepSeek R1
+9. xAI Grok 3
+10. xAI Grok 3 Thinking
+
+### Voice Integration
+
+Interact with the application using natural language:
+
+- **Speech-to-Text**: Uses OpenAI's Whisper for accurate transcription.
+- **Text-to-Speech**: Supports OpenAI's TTS (default) and Sesame CSM.
+- **Voice Commands**: Execute actions through voice commands.
+- **Voice Agent**: A complete voice interface component for easy integration.
+- **Multi-modal Interaction**: Combine voice with traditional UI interactions.
+
+### Agent System
+
+The application uses an agent-based architecture to process complex tasks:
+
+- **Model Context Protocol (MCP)**: Provides context-aware processing of queries.
+- **Agent SDK**: Extensible framework for building intelligent agents.
+- **Voice Agent Service**: Bridges voice input with the agent ecosystem.
+
+### Project Planning Tools
+
+- Project creation and management
+- Task assignment and tracking
+- Document management
+- Real-time collaboration
+- Scoring and evaluation
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Access to OpenAI and/or Anthropic API keys (for AI features)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-org/planning-manager.git
+   cd planning-manager
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn
+   ```
+
+3. Configure environment variables:
+   ```
+   # Create a .env.local file with the following variables
+   OPENAI_API_KEY=your_openai_key
+   ANTHROPIC_API_KEY=your_anthropic_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+## Configuration
+
+### AI Models
+
+Configure AI models in the Settings page or modify the default settings in:
+- `src/lib/models/model-types.ts`
+
+### Voice Settings
+
+Voice settings can be configured in:
+- `src/lib/voice-service.ts`
+
+## Architecture
+
+The application is built with:
+
+- **Next.js**: React framework for the frontend
+- **TypeScript**: Type-safe JavaScript
+- **Tailwind CSS**: Utility-first CSS framework
+- **shadcn/ui**: Component library
+- **Supabase**: Backend and authentication
+- **AI Models**: Integration with various AI providers
+
+## Contributing
+
+Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

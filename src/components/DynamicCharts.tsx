@@ -36,11 +36,17 @@ export const BarChart = ({ data }: BarChartProps) => {
             dataKey="active"
             fill="hsl(var(--chart-1, 222.2 47.4% 55.2%))"
             radius={4}
+            animationDuration={1200}
+            animationBegin={200}
+            animationEasing="ease-out"
           />
           <Bar
             dataKey="completed"
             fill="hsl(var(--chart-2, 143.8 61.2% 60.6%))"
             radius={4}
+            animationDuration={1200}
+            animationBegin={400}
+            animationEasing="ease-out"
           />
         </RechartsBarChart>
       </ResponsiveContainer>
@@ -70,6 +76,8 @@ export const LineChart = ({ data }: LineChartProps) => {
             stroke="hsl(var(--chart-1, 222.2 47.4% 55.2%))"
             strokeWidth={2}
             dot={true}
+            animationDuration={1500}
+            animationEasing="ease-out"
           />
         </RechartsLineChart>
       </ResponsiveContainer>

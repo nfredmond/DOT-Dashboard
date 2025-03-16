@@ -1,4 +1,6 @@
 import { getEnvVariable } from "./env-service";
+import { openai } from '@/lib/openai-service';
+import type { ChatCompletionMessageParam } from 'openai/resources';
 
 // LLM providers
 export enum LLMProvider {
@@ -463,4 +465,87 @@ export async function analyzeMobilityImpacts(
     .replace('{current_conditions}', currentConditions);
   
   return getCompletion(prompt, options);
+}
+
+/**
+ * LLM Service
+ * 
+ * Provides functionality for processing text through language models
+ */
+
+// Types for LLM processing
+export interface LLMProcessOptions {
+  text: string;
+  context?: Record<string, any>;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+}
+
+/**
+ * Process text through a language model
+ * 
+ * @param options Options for processing the text
+ * @returns The processed text response
+ */
+export async function processWithLLM(options: LLMProcessOptions): Promise<string> {
+  try {
+    const {
+      text,
+      context = {},
+      model = 'gpt-4-turbo',
+      temperature = 0.7,
+      maxTokens = 1000,
+      systemPrompt
+    } = options;
+    
+    // Prepare the messages array
+    const messages: ChatCompletionMessageParam[] = [];
+    
+    // Add system prompt if provided
+    if (systemPrompt) {
+      messages.push({
+        role: 'system',
+        content: systemPrompt
+      });
+    } else {
+      // Default system prompt
+      messages.push({
+        role: 'system',
+        content: 'You are a helpful AI assistant for a transportation planning application. ' +
+          'Provide accurate, concise, and relevant information to the user\'s query.'
+      });
+    }
+    
+    // Add context if available
+    if (Object.keys(context).length > 0) {
+      const contextString = JSON.stringify(context, null, 2);
+      messages.push({
+        role: 'system',
+        content: `Current context information:\n${contextString}`
+      });
+    }
+    
+    // Add the user's message
+    messages.push({
+      role: 'user',
+      content: text
+    });
+    
+    // Send to the OpenAI API
+    const response = await openai.chat.completions.create({
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens
+    });
+    
+    // Return the generated text
+    return response.choices[0]?.message?.content || 'No response generated';
+    
+  } catch (error) {
+    console.error('Error processing with LLM:', error);
+    throw new Error(`LLM processing failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 } 

@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/hooks/useAuth"
+import { useVoice } from "@/contexts/VoiceContext"
 import { 
   User2Icon, 
   MailIcon, 
@@ -24,13 +25,26 @@ import {
   TwitterIcon,
   ArrowLeftIcon,
   Sun,
-  Moon
+  Moon,
+  Mic,
+  Volume2
 } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 
 export default function Settings() {
   const router = useRouter()
   const { user, updateUserProfile } = useAuth()
   const { toast } = useToast()
+  const { 
+    voiceEnabled, 
+    toggleVoiceEnabled, 
+    voiceSettings, 
+    updateVoiceSettings, 
+    speak,
+    startListening,
+    stopListening 
+  } = useVoice()
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
   
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -91,6 +105,27 @@ export default function Settings() {
       }
     }
   }, [user])
+  
+  // Get available voices for speech synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const updateVoices = () => {
+        setAvailableVoices(window.speechSynthesis.getVoices());
+      };
+      
+      updateVoices();
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+      
+      return () => {
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    }
+  }, []);
+  
+  // Test voice function
+  const testVoice = () => {
+    speak("This is a test of the voice output. You can adjust the settings to customize how the voice sounds.");
+  };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -156,15 +191,16 @@ export default function Settings() {
         </Button>
       </div>
       
-      <Tabs defaultValue="account" className="w-full">
+      <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="voice">Voice Settings</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="account">
+        <TabsContent value="profile">
           <Card>
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
@@ -617,6 +653,186 @@ export default function Settings() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="voice" className="space-y-4">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Voice Settings</CardTitle>
+                <CardDescription>
+                  Configure voice input and output settings for the application
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="voice-enabled" className="flex items-center gap-2">
+                      <Mic className="h-4 w-4" />
+                      Enable Voice Features
+                    </Label>
+                    <Switch
+                      id="voice-enabled"
+                      checked={voiceEnabled}
+                      onCheckedChange={toggleVoiceEnabled}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Turn on to enable voice input and output throughout the application
+                  </p>
+                </div>
+                
+                {voiceEnabled && (
+                  <>
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <Volume2 className="h-4 w-4" />
+                        Voice Output Settings
+                      </h4>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="voice-select">Voice</Label>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={testVoice}
+                            >
+                              Test Voice
+                            </Button>
+                          </div>
+                          <Select
+                            value={voiceSettings.preferredVoiceName || ''}
+                            onValueChange={(value) => 
+                              updateVoiceSettings({ preferredVoiceName: value || null })
+                            }
+                          >
+                            <SelectTrigger id="voice-select" className="w-full">
+                              <SelectValue placeholder="Select a voice" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Default Voice</SelectItem>
+                              {availableVoices.map((voice) => (
+                                <SelectItem key={voice.name} value={voice.name}>
+                                  {voice.name} ({voice.lang})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="voice-rate">Speed</Label>
+                            <span className="text-sm">{voiceSettings.voiceRate.toFixed(1)}x</span>
+                          </div>
+                          <Slider
+                            id="voice-rate"
+                            min={0.5}
+                            max={2}
+                            step={0.1}
+                            value={[voiceSettings.voiceRate]}
+                            onValueChange={(value) => 
+                              updateVoiceSettings({ voiceRate: value[0] })
+                            }
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="voice-pitch">Pitch</Label>
+                            <span className="text-sm">{voiceSettings.voicePitch.toFixed(1)}</span>
+                          </div>
+                          <Slider
+                            id="voice-pitch"
+                            min={0.5}
+                            max={2}
+                            step={0.1}
+                            value={[voiceSettings.voicePitch]}
+                            onValueChange={(value) => 
+                              updateVoiceSettings({ voicePitch: value[0] })
+                            }
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="voice-volume">Volume</Label>
+                            <span className="text-sm">{Math.round(voiceSettings.voiceVolume * 100)}%</span>
+                          </div>
+                          <Slider
+                            id="voice-volume"
+                            min={0}
+                            max={1}
+                            step={0.1}
+                            value={[voiceSettings.voiceVolume]}
+                            onValueChange={(value) => 
+                              updateVoiceSettings({ voiceVolume: value[0] })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        Voice Input Settings
+                      </h4>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-listen">Auto-Listen on Page Load</Label>
+                            <Switch
+                              id="auto-listen"
+                              checked={voiceSettings.autoListen}
+                              onCheckedChange={(checked) => 
+                                updateVoiceSettings({ autoListen: checked })
+                              }
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically start listening when pages load
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-start">Automatic Response</Label>
+                            <Switch
+                              id="auto-start"
+                              checked={voiceSettings.autoStart}
+                              onCheckedChange={(checked) => 
+                                updateVoiceSettings({ autoStart: checked })
+                              }
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically read responses aloud after voice input
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium">Privacy Notice</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Voice data is processed locally in your browser and is not stored or sent to any server unless 
+                        explicitly submitted for AI processing. You can disable voice features at any time.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button variant="default" onClick={() => toast({ title: "Voice settings saved" })}>
+                  Save Changes
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

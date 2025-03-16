@@ -46,7 +46,7 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              RTPA Portal
+              Planning Manager
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Transportation Planning

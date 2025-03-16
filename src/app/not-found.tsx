@@ -11,7 +11,7 @@ export default function NotFound() {
           <div className="relative h-20 w-20">
             <Image 
               src="/Circle_Green_TranspRoad.png" 
-              alt="RTPA Planning Manager" 
+              alt="Planning Manager" 
               width={80} 
               height={80} 
               className="opacity-70"

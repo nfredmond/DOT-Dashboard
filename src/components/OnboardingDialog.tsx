@@ -28,14 +28,14 @@ export function OnboardingDialog() {
 
   useEffect(() => {
     // Check if this is the first time the user is accessing the app
-    const hasSeenOnboarding = localStorage.getItem('rtpa_onboarding_shown');
+    const hasSeenOnboarding = localStorage.getItem('planning_manager_onboarding_shown');
     if (!hasSeenOnboarding) {
       setOpen(true);
     }
   }, []);
 
   const handleClose = () => {
-    localStorage.setItem('rtpa_onboarding_shown', 'true');
+    localStorage.setItem('planning_manager_onboarding_shown', 'true');
     setOpen(false);
   };
 
@@ -48,7 +48,7 @@ export function OnboardingDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Welcome to the RTPA Portal</DialogTitle>
+          <DialogTitle className="text-2xl">Welcome to the Planning Manager</DialogTitle>
           <DialogDescription>
             Let's get you started with the transportation planning manager
           </DialogDescription>
@@ -67,7 +67,7 @@ export function OnboardingDialog() {
             <div className="flex flex-col items-center text-center px-8 py-4">
               <img 
                 src="/logo-icon.png" 
-                alt="RTPA Logo" 
+                alt="Planning Manager Logo" 
                 className="w-20 h-20 mb-4" 
               />
               <h3 className="text-xl font-semibold mb-2">

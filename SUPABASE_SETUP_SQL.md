@@ -8,7 +8,7 @@ This document contains the complete SQL code needed to set up the database schem
 2. Select your project
 3. Go to the SQL Editor
 4. Create a new query
-5. Paste the SQL code below
+5. Paste the SQL code from the `supabase_schema.sql` file
 6. Run the query
 
 > **Important**: The provided SQL script will **DROP and RECREATE** the public schema, removing all existing data. This is intentional to give you a clean slate each time you run it.
@@ -23,6 +23,8 @@ For your convenience, the full database setup script is available in `supabase_s
 4. Creating indexes for performance optimization
 5. Setting up Row Level Security (RLS)
 6. Adding sample data for demo mode
+7. Setting up AI model integration
+8. Configuring voice assistant functionality
 
 ## Authentication Modes
 
@@ -52,8 +54,93 @@ The schema includes the following main components:
 - **Document Management**: files, comments
 - **Feedback**: ratings, comments
 - **Audit & Logging**: activity tracking
+- **AI Integration**: ai_models for LLM integration
+- **Voice Features**: voice_settings and voice_command_logs
 
 For detailed table structures and relationships, please refer to the `DATABASE_SCHEMA.md` document.
+
+## Schema Reset Approach
+
+The schema setup script takes a comprehensive approach to resetting the database:
+
+```sql
+-- Drop the entire public schema and recreate it (this removes ALL tables, functions, views, etc.)
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
+```
+
+This approach ensures:
+1. All existing tables, views, functions, and other objects are completely removed
+2. No issues with table dependencies during dropping
+3. A clean slate for reapplying the entire schema
+4. No orphaned objects or data
+
+## New Features in Schema
+
+### AI Model Integration
+
+The schema now includes support for AI model integration:
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_models (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    version TEXT NOT NULL,
+    description TEXT,
+    thinking_capable BOOLEAN DEFAULT TRUE,
+    vision_capable BOOLEAN DEFAULT FALSE,
+    research_capable BOOLEAN DEFAULT TRUE,
+    code_capable BOOLEAN DEFAULT FALSE,
+    voice_capable BOOLEAN DEFAULT FALSE,
+    max_token_limit INTEGER NOT NULL,
+    cost_per_1k_tokens DECIMAL(10, 6) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+The schema includes five pre-defined AI models:
+- GPT-4 Turbo (OpenAI)
+- Claude 3 Opus (Anthropic)
+- Gemini Pro (Google)
+- Mistral Large (Mistral AI)
+- Llama 3 70B (Meta)
+
+### Voice Assistant Features
+
+The schema supports voice assistant functionality through:
+
+1. **voice_settings**: User preferences for voice interactions
+2. **voice_command_logs**: Records of voice commands and responses
+3. Helper functions like `get_user_voice_settings()` and `log_voice_command()`
+4. Views for aggregating usage statistics
+
+## Security Considerations
+
+The schema implements Row Level Security (RLS) for all tables, including the new AI and voice-related tables:
+
+```sql
+-- Create RLS policies if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'ai_models' AND policyname = 'Administrators can manage AI models') THEN
+        CREATE POLICY "Administrators can manage AI models" ON ai_models
+            USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.user_id = auth.uid() AND profiles.isGlobalAdmin = TRUE));
+    END IF;
+    
+    -- Additional policies...
+END $$;
+```
+
+These policies ensure that:
+- Regular users can only view active AI models
+- Only administrators can manage AI models
+- Users can only view and update their own voice settings
+- Voice command logs are properly secured
 
 ## Initial Setup
 

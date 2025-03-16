@@ -34,9 +34,16 @@ import {
   AlertCircleIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
+  MonitorIcon,
+  MicIcon
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useVoice } from "@/contexts/VoiceContext";
+import { VoiceInputOutput } from "@/components/VoiceInputOutput";
 
 export default function LlmAssistant() {
+  const router = useRouter();
+  const { voiceEnabled } = useVoice();
   const [activeTab, setActiveTab] = useState("grant-support");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -57,18 +64,34 @@ export default function LlmAssistant() {
   return (
     <div className="flex-1 p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">LLM Assistant</h1>
-          <p className="text-muted-foreground">
-            Generate content and insights using AI
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">LLM Assistant</h1>
+            <p className="text-muted-foreground">
+              Generate content and insights using AI
+            </p>
+          </div>
+          
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => router.push('/llm-assistant/screen-share')}
+            >
+              <MonitorIcon className="h-4 w-4" />
+              Screen Share
+            </Button>
+          </div>
         </div>
         
-        <Tabs
-          defaultValue={activeTab}
-          className="space-y-4"
-          onValueChange={setActiveTab as (value: string) => void}
-        >
+        {voiceEnabled && (
+          <div className="mb-4">
+            <VoiceInputOutput showResponseTab={true} />
+          </div>
+        )}
+
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-4 mb-6">
             <TabsTrigger value="grant-support">
               <FileTextIcon className="h-4 w-4 mr-2" />
@@ -602,33 +625,6 @@ export default function LlmAssistant() {
                       Implement AI-powered traffic flow optimization with
                       real-time adjustments
                     </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="font-medium flex items-center">
-                      <CheckIcon
-                        className="h-4 w-4 text-green-500 mr-2"
-                      />
-                      Recycled Construction Materials
-                    </h3>
-                    <p className="text-sm text-muted-foreground pl-6">
-                      Use recycled concrete aggregate and reclaimed asphalt
-                      pavement to reduce environmental impact
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="font-medium flex items-center">
-                      <CheckIcon
-                        className="h-4 w-4 text-green-500 mr-2"
-                      />
-                      Community Art Integration
-                    </h3>
-                    <p className="text-sm text-muted-foreground pl-6">
-                      Partner with local artists to incorporate public art into
-                      infrastructure, enhancing community acceptance
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -686,306 +682,317 @@ export default function LlmAssistant() {
                       <SelectValue
                         placeholder="Select projects to include"
                       />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        All Active Projects
-                      </SelectItem>
-                      <SelectItem value="highway">
-                        Highway Projects Only
-                      </SelectItem>
-                      <SelectItem value="transit">
-                        Transit Projects Only
-                      </SelectItem>
-                      <SelectItem value="active">
-                        Active Transportation Only
-                      </SelectItem>
-                      <SelectItem value="custom">
-                        Custom Selection
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Include Projects
+                </label>
+                <Select defaultValue="all">
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder="Select projects to include"
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      All Active Projects
+                    </SelectItem>
+                    <SelectItem value="highway">
+                      Highway Projects Only
+                    </SelectItem>
+                    <SelectItem value="transit">
+                      Transit Projects Only
+                    </SelectItem>
+                    <SelectItem value="active">
+                      Active Transportation Only
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      Custom Selection
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Report Elements
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Report Elements
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label
-                        htmlFor="exec-summary"
-                        className="text-sm"
-                      >
-                        Executive Summary
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+                    <label
+                      htmlFor="exec-summary"
+                      className="text-sm"
+                    >
+                      Executive Summary
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label
-                        htmlFor="project-details"
-                        className="text-sm"
-                      >
-                        Project Details
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+                    <label
+                      htmlFor="project-details"
+                      className="text-sm"
+                    >
+                      Project Details
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label htmlFor="maps" className="text-sm">
-                        Maps & Visuals
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+                    <label htmlFor="maps" className="text-sm">
+                      Maps & Visuals
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label htmlFor="budget" className="text-sm">
-                        Budget Analysis
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+                    <label htmlFor="budget" className="text-sm">
+                      Budget Analysis
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label htmlFor="timeline" className="text-sm">
-                        Timeline
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
+                    <label htmlFor="timeline" className="text-sm">
+                      Timeline
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                      <label
-                        htmlFor="recommendations"
-                        className="text-sm"
-                      >
-                        Recommendations
-                      </label>
-                    </div>
+                    <label
+                      htmlFor="recommendations"
+                      className="text-sm"
+                    >
+                      Recommendations
+                    </label>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Output Format
-                  </label>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1">
-                      PDF
-                    </Button>
-                    <Button variant="secondary" className="flex-1">
-                      Word
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      Markdown
-                    </Button>
-                  </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Output Format
+                </label>
+                <div className="flex space-x-2">
+                  <Button variant="outline" className="flex-1">
+                    PDF
+                  </Button>
+                  <Button variant="secondary" className="flex-1">
+                    Word
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    Markdown
+                  </Button>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full">
-                  <FileTextIcon className="mr-2 h-4 w-4" />
-                  Generate Report
-                </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full">
+                <FileTextIcon className="mr-2 h-4 w-4" />
+                Generate Report
+              </Button>
+            </CardFooter>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Recently Generated Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div
-                    className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
-                  >
-                    <div className="flex items-center">
-                      <FileTextIcon
-                        className="h-5 w-5 mr-3 text-blue-500"
-                      />
-                      <div>
-                        <h3 className="font-medium">
-                          Q2 2023 Transportation Plan Update
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Generated July 15, 2023
-                        </p>
-                      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Recently Generated Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div
+                  className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <FileTextIcon
+                      className="h-5 w-5 mr-3 text-blue-500"
+                    />
+                    <div>
+                      <h3 className="font-medium">
+                        Q2 2023 Transportation Plan Update
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Generated July 15, 2023
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
                   </div>
+                  <Button variant="ghost" size="sm">
+                    <DownloadIcon className="h-4 w-4" />
+                  </Button>
+                </div>
 
-                  <div
-                    className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
-                  >
-                    <div className="flex items-center">
-                      <FileTextIcon
-                        className="h-5 w-5 mr-3 text-green-500"
-                      />
-                      <div>
-                        <h3 className="font-medium">
-                          Active Transportation Grant Application
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Generated July 10, 2023
-                        </p>
-                      </div>
+                <div
+                  className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <FileTextIcon
+                      className="h-5 w-5 mr-3 text-green-500"
+                    />
+                    <div>
+                      <h3 className="font-medium">
+                        Active Transportation Grant Application
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Generated July 10, 2023
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
                   </div>
+                  <Button variant="ghost" size="sm">
+                    <DownloadIcon className="h-4 w-4" />
+                  </Button>
+                </div>
 
-                  <div
-                    className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
-                  >
-                    <div className="flex items-center">
-                      <FileTextIcon
-                        className="h-5 w-5 mr-3 text-purple-500"
-                      />
-                      <div>
-                        <h3 className="font-medium">
-                          Highway 101 Project Status Report
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Generated July 5, 2023
-                        </p>
-                      </div>
+                <div
+                  className="flex items-center justify-between p-3 bg-secondary/50 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <FileTextIcon
+                      className="h-5 w-5 mr-3 text-purple-500"
+                    />
+                    <div>
+                      <h3 className="font-medium">
+                        Highway 101 Project Status Report
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Generated July 5, 2023
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <DownloadIcon className="h-4 w-4" />
-                    </Button>
                   </div>
+                  <Button variant="ghost" size="sm">
+                    <DownloadIcon className="h-4 w-4" />
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent
-            value="community-responses"
-            className="space-y-6"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquareIcon className="h-5 w-5 mr-2" />
-                  Community Feedback Response Assistant
-                </CardTitle>
-                <CardDescription>
-                  Generate consistent, thoughtful responses to community input
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Community Comment
-                  </label>
-                  <Textarea
-                    placeholder="Paste community comment here..."
-                    className="min-h-[100px]"
-                    defaultValue="I'm concerned about the proposed bike lane on Main Street. While I support more bike infrastructure, removing parking spaces will hurt local businesses. Has the agency considered alternatives that preserve parking while still improving bike safety?"
-                  />
+        <TabsContent
+          value="community-responses"
+          className="space-y-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MessageSquareIcon className="h-5 w-5 mr-2" />
+                Community Feedback Response Assistant
+              </CardTitle>
+              <CardDescription>
+                Generate consistent, thoughtful responses to community input
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Community Comment
+                </label>
+                <Textarea
+                  placeholder="Paste community comment here..."
+                  className="min-h-[100px]"
+                  defaultValue="I'm concerned about the proposed bike lane on Main Street. While I support more bike infrastructure, removing parking spaces will hurt local businesses. Has the agency considered alternatives that preserve parking while still improving bike safety?"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Related Project
+                </label>
+                <Select defaultValue="bike-network">
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder="Select related project"
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bike-network">
+                      Bike Lane Network Expansion
+                    </SelectItem>
+                    <SelectItem value="downtown-transit">
+                      Downtown Transit Center
+                    </SelectItem>
+                    <SelectItem value="highway-101">
+                      Highway 101 Expansion
+                    </SelectItem>
+                    <SelectItem value="none">
+                      No Specific Project
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Response Tone
+                </label>
+                <div className="flex space-x-2">
+                  <Button variant="outline" className="flex-1">
+                    Formal
+                  </Button>
+                  <Button variant="secondary" className="flex-1">
+                    Conversational
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    Technical
+                  </Button>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Related Project
-                  </label>
-                  <Select defaultValue="bike-network">
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder="Select related project"
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bike-network">
-                        Bike Lane Network Expansion
-                      </SelectItem>
-                      <SelectItem value="downtown-transit">
-                        Downtown Transit Center
-                      </SelectItem>
-                      <SelectItem value="highway-101">
-                        Highway 101 Expansion
-                      </SelectItem>
-                      <SelectItem value="none">
-                        No Specific Project
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Include in Response
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Response Tone
-                  </label>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1">
-                      Formal
-                    </Button>
-                    <Button variant="secondary" className="flex-1">
-                      Conversational
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      Technical
-                    </Button>
+                    <label
+                      htmlFor="acknowledge"
+                      className="text-sm"
+                    >
+                      Acknowledge Concerns
+                    </label>
                   </div>
-                </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      defaultChecked
+                    />
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Include in Response
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
-
-                      <label
-                        htmlFor="acknowledge"
-                        className="text-sm"
-                      >
-                        Acknowledge Concerns
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        defaultChecked
-                      />
-
+                    <label
+                      htmlFor="project-context"
                       <label
                         htmlFor="project-context"
                         className="text-sm"

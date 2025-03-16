@@ -149,7 +149,7 @@ export async function GET(
   const { data: { session } } = await supabase.auth.getSession();
   
   // Check for demo mode
-  const demoCookie = cookies().get('rtpa_demo_mode');
+  const demoCookie = cookies().get('planning_manager_demo_mode');
   const isDemo = !session && demoCookie?.value === 'true';
   
   if (!session && !isDemo) {

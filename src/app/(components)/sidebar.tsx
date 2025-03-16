@@ -19,6 +19,7 @@ import {
   BarChartIcon,
   GitBranchIcon,
   ListChecksIcon,
+  MonitorIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -47,6 +48,7 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
     { id: "scenarios", label: "Scenarios", icon: GitBranchIcon, path: "/scenarios" },
     { id: "reports", label: "Reports", icon: FileTextIcon, path: "/reports" },
     { id: "analysis", label: "AI Analysis", icon: BrainIcon, path: "/llm-assistant" },
+    { id: "screen-share", label: "Screen Share", icon: MonitorIcon, path: "/screen-share" },
     { id: "community", label: "Community", icon: MessageSquareTextIcon, path: "/community" },
   ];
 
@@ -75,7 +77,7 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              RTPA Portal
+              Planning Manager
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Transportation Planning

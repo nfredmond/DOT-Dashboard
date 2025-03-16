@@ -45,7 +45,7 @@ export default function AdminPanel() {
     {
       id: 2,
       name: "Emily Johnson",
-      email: "emily.johnson@rtpa.org",
+      email: "emily.johnson@planningmanager.org",
       organization: "Sacramento Area Council of Governments",
       role: "Manager",
       requestDate: "2023-07-24",

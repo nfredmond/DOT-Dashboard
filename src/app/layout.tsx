@@ -12,6 +12,8 @@ import Loading from './loading';
 import { geistSans, geistMono } from '@/lib/fonts';
 import { LLMProvider } from '@/contexts/LLMContext';
 import { OnboardingDialog } from '@/components/OnboardingDialog';
+import { VoiceProvider } from "@/contexts/VoiceContext";
+import { ModelProvider } from '@/lib/models/model-context';
 
 export default function AppLayout({
   children,
@@ -91,23 +93,27 @@ export default function AppLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <SupabaseProvider>
-              <LLMProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Header />
-                  <div className="flex flex-1">
-                    <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
-                    <main className="flex-1 p-6 overflow-auto">
-                      {children}
-                    </main>
-                  </div>
-                </div>
-                <Toaster />
-                <OnboardingDialog />
-              </LLMProvider>
-            </SupabaseProvider>
-          </AuthProvider>
+          <ModelProvider>
+            <AuthProvider>
+              <VoiceProvider>
+                <SupabaseProvider>
+                  <LLMProvider>
+                    <div className="flex flex-col min-h-screen">
+                      <Header />
+                      <div className="flex flex-1">
+                        <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
+                        <main className="flex-1 p-6 overflow-auto">
+                          {children}
+                        </main>
+                      </div>
+                    </div>
+                    <Toaster />
+                    <OnboardingDialog />
+                  </LLMProvider>
+                </SupabaseProvider>
+              </VoiceProvider>
+            </AuthProvider>
+          </ModelProvider>
         </ThemeProvider>
       </body>
     </html>

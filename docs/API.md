@@ -236,7 +236,7 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### Project Scoring
+#### Project Scoring
 
 #### Calculate Score
 
@@ -418,6 +418,166 @@ Content-Type: application/json
   "updated_at": "2024-01-01T00:00:00Z"
 }
 ```
+
+### Organizations
+
+#### List Organizations
+
+```http
+GET /organizations
+Authorization: Bearer <jwt_token>
+```
+
+**Query Parameters**
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Items per page (default: 10)
+- `onlyMine` (optional): Filter by organizations the user is a member of (default: false)
+
+**Response**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Organization Name",
+      "description": "Organization description",
+      "logo_url": "https://storage.example.com/organization_logos/org_123.png",
+      "settings": {},
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "metadata": {
+    "total": 25,
+    "page": 1,
+    "limit": 10,
+    "pages": 3
+  }
+}
+```
+
+#### Get Organization
+
+```http
+GET /organizations/{id}
+Authorization: Bearer <jwt_token>
+```
+
+**Response**
+```json
+{
+  "id": "uuid",
+  "name": "Organization Name",
+  "description": "Organization description",
+  "logo_url": "https://storage.example.com/organization_logos/org_123.png",
+  "website": "https://example.org",
+  "address": "123 Main St",
+  "city": "San Francisco",
+  "state": "CA",
+  "zipCode": "94105",
+  "primaryContactName": "Jane Smith",
+  "primaryContactEmail": "jane@example.org",
+  "primaryContactPhone": "555-123-4567",
+  "settings": {},
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+#### Create Organization
+
+```http
+POST /organizations
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "name": "Organization Name",
+  "description": "Organization description",
+  "website": "https://example.org",
+  "address": "123 Main St",
+  "city": "San Francisco",
+  "state": "CA",
+  "zipCode": "94105",
+  "primaryContactName": "Jane Smith",
+  "primaryContactEmail": "jane@example.org",
+  "primaryContactPhone": "555-123-4567",
+  "settings": {}
+}
+```
+
+**Response**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Organization Name",
+    "description": "Organization description",
+    "website": "https://example.org",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+#### Update Organization
+
+```http
+PATCH /organizations/{id}
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "name": "Updated Organization Name",
+  "description": "Updated organization description"
+}
+```
+
+**Response**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Updated Organization Name",
+    "description": "Updated organization description",
+    "logo_url": "https://storage.example.com/organization_logos/org_123.png",
+    "website": "https://example.org",
+    "updated_at": "2024-01-02T00:00:00Z"
+  }
+}
+```
+
+#### Upload Organization Logo
+
+```http
+POST /organizations/{id}/logo
+Authorization: Bearer <jwt_token>
+Content-Type: multipart/form-data
+
+{
+  "logo": <file>
+}
+```
+
+**Response**
+```json
+{
+  "data": {
+    "logoUrl": "https://storage.example.com/organization_logos/org_123_timestamp.png",
+    "organization": {
+      "id": "uuid",
+      "name": "Organization Name",
+      "logo_url": "https://storage.example.com/organization_logos/org_123_timestamp.png",
+      "updated_at": "2024-01-02T00:00:00Z"
+    }
+  }
+}
+```
+
+**Notes**
+- Supported file formats: JPEG, PNG, GIF, SVG
+- Maximum file size: 2MB
+- Previous logo files are not automatically deleted
 
 ## Error Responses
 

@@ -46,7 +46,7 @@ export default function Login() {
       }
 
       // In a real app, this would be an API call to authenticate
-      if (email === "admin@rtpa.gov" && password === "password") {
+      if (email === "admin@planningmanager.org" && password === "password") {
         // Redirect to dashboard or set authenticated state
         window.location.href = "/dashboard";
       } else {
@@ -71,7 +71,7 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">
-                RTPA Portal
+                Planning Manager
               </h1>
               <p
                 className="text-sm text-gray-500 dark:text-gray-400"
@@ -238,8 +238,8 @@ export default function Login() {
         >
           <p>
             For technical support, please contact{" "}
-            <a href="mailto:support@rtpa.gov" className="underline">
-              support@rtpa.gov
+            <a href="mailto:support@planningmanager.org" className="underline">
+              support@planningmanager.org
             </a>
           </p>
         </div>
