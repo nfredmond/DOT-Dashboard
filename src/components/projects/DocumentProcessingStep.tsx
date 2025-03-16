@@ -65,6 +65,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Label } from "@/components/ui/label";
 
 interface DocumentProcessingStepProps {
   projectData: any;

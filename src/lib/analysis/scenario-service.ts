@@ -3,10 +3,37 @@
  * using AI agents with support for both MCP and OpenAI Agents SDK.
  */
 
-import { runAgentQuery, AgentType } from '@/lib/agents-service';
-import { Project } from '@/types/project';
-import { getCensusDataForLocation } from '@/lib/census/census-service';
-import { getCollisionDataForLocation } from '@/lib/traffic/safety-service';
+// Stub implementation for census data
+export const getCensusDataForLocation = async (location: any) => {
+  console.log('Stub implementation of getCensusDataForLocation called with:', location);
+  return {
+    population: 0,
+    demographics: {
+      age: {},
+      race: {},
+      income: {}
+    },
+    housing: {
+      units: 0,
+      occupancy: 0
+    }
+  };
+};
+
+// Stub implementation for collision data
+export const getCollisionDataForLocation = async (location: any) => {
+  console.log('Stub implementation of getCollisionDataForLocation called with:', location);
+  return {
+    total: 0,
+    fatal: 0,
+    injury: 0,
+    property: 0,
+    pedestrian: 0,
+    bicycle: 0,
+    motorcycle: 0,
+    vehicle: 0
+  };
+};
 
 export enum ScenarioGenerationType {
   COST_ALTERNATIVES = 'cost_alternatives',

@@ -154,48 +154,6 @@ interface TileLayerOptions {
   accessToken?: string;
 }
 
-// Add a helper at the top level to provide global access to Leaflet functionality
-export function setupGlobalLeafletAccess(map: any) {
-  if (typeof window !== 'undefined') {
-    (window as any).leafletMapInstance = map;
-    (window as any).leafletUtils = {
-      zoomIn: () => {
-        try {
-          const currentZoom = map.getZoom();
-          map.setZoom(currentZoom + 1);
-          console.log('Global zoomIn called, new level:', currentZoom + 1);
-          return true;
-        } catch (e) {
-          console.error('Error in global zoomIn:', e);
-          return false;
-        }
-      },
-      zoomOut: () => {
-        try {
-          const currentZoom = map.getZoom();
-          map.setZoom(currentZoom - 1);
-          console.log('Global zoomOut called, new level:', currentZoom - 1);
-          return true;
-        } catch (e) {
-          console.error('Error in global zoomOut:', e);
-          return false;
-        }
-      },
-      resetView: (center: [number, number], zoom: number) => {
-        try {
-          map.setView(center, zoom);
-          console.log('Global resetView called');
-          return true;
-        } catch (e) {
-          console.error('Error in global resetView:', e);
-          return false;
-        }
-      }
-    };
-    console.log('Global Leaflet utilities initialized');
-  }
-}
-
 // Create a context for the Leaflet map instance
 const MapContext = createContext<LeafletMap | null>(null);
 
