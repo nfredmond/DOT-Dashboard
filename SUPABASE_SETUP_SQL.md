@@ -11,6 +11,50 @@ This document contains the complete SQL code needed to set up the database schem
 5. Paste the SQL code below
 6. Run the query
 
+> **Important**: The provided SQL script will **DROP and RECREATE** the public schema, removing all existing data. This is intentional to give you a clean slate each time you run it.
+
+## Complete Schema Setup
+
+For your convenience, the full database setup script is available in `supabase_schema.sql`. The script includes:
+
+1. Dropping and recreating the public schema
+2. Enabling required extensions
+3. Creating all tables with proper relationships
+4. Creating indexes for performance optimization
+5. Setting up Row Level Security (RLS)
+6. Adding sample data for demo mode
+
+## Authentication Modes
+
+The application supports two authentication scenarios:
+
+### Demo Mode
+- Login credentials:
+  - **Admin demo**: Email: `admin@example.com`, Password: `password`
+  - **User demo**: Email: `user@example.com`, Password: `password`
+- No connection to Supabase is required
+- Data is loaded from mock data sources
+
+### Real Authentication Mode
+- Real user credentials (e.g., `nathaniel@greendottransportation.com`)
+- Requires proper Supabase setup with the complete schema
+- All changes persist to the database
+
+## Database Schema Overview
+
+The schema includes the following main components:
+
+- **Core Tables**: agencies, organizations, projects
+- **User Management**: profiles, permissions
+- **Project Scoring**: criteria, scoring, templates
+- **Prioritization**: scenarios, weights
+- **Spatial Data**: geometry columns with PostGIS support
+- **Document Management**: files, comments
+- **Feedback**: ratings, comments
+- **Audit & Logging**: activity tracking
+
+For detailed table structures and relationships, please refer to the `DATABASE_SCHEMA.md` document.
+
 ## Initial Setup
 
 First, we'll enable the required extensions:

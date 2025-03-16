@@ -38,6 +38,7 @@ You can enable these extensions in the Supabase dashboard under Database > Exten
 6. [Offline Database Support](#offline-database-support)
 7. [Sample Data](#sample-data)
 8. [Development Notes](#development-notes)
+9. [Demo Mode](#demo-mode)
 
 ## Getting Started
 
@@ -47,31 +48,39 @@ To set up the database in Supabase:
 2. Navigate to your project
 3. Go to the SQL Editor
 4. Create a new query
-5. Copy and paste the SQL code from the `supabase_schema.sql` file
-6. Execute the query
+5. Copy and paste the entire SQL code from the `supabase_schema.sql` file
+6. Run the query to create all tables, indices, and sample data
 
-For a quick overview of the complete database structure, refer to `DATABASE_SCHEMA.md`.
+**Important**: The SQL script will drop and recreate the public schema, removing all existing data. This is designed to give you a clean slate each time you run it.
 
-If you need offline database support, see the [Offline Database Support](#offline-database-support) section.
+## Demo Mode vs Real Authentication
 
-### Admin User Access
+The application supports two modes of operation:
 
-The schema includes setup for an admin user with the following credentials:
+### Demo Mode
+- Activated when logging in with test credentials:
+  - **Admin demo**: Email: `admin@example.com`, Password: `password`
+  - **User demo**: Email: `user@example.com`, Password: `password`
+- Uses pre-loaded sample data from the database
+- Changes may not persist between sessions
+- Ideal for testing and demonstration purposes
 
-- **Email**: <nathaniel@greendottransportation.com>
-- **Password**: Yuba530#
-- **Role**: admin (highest level access)
-- **UUID**: ab61773c-3a28-44d5-95c2-846fa5608811
-
-When executing the full schema, this user will be automatically assigned admin privileges for the demo agency. To use this account:
-
-1. Ensure the user exists in Supabase Auth with the exact email address
-2. Use the provided password to log in
-3. The user will have full administrative access to the system
-
-For production deployments, you should change these credentials and create your own admin users.
+### Real Authentication Mode
+- Activated when logging in with real credentials (e.g., `nathaniel@greendottransportation.com`)
+- Connects to the actual Supabase database
+- All changes are persisted
+- Requires proper database setup with the complete schema
 
 ## Schema Overview
+
+The database consists of these main components:
+
+1. **Core Tables** - agencies, organizations, projects
+2. **Scoring System** - criteria, scoring, templates, prioritization scenarios
+3. **User Management** - profiles, permissions
+4. **Document Management** - documents, comments, feedback
+5. **Location Data** - spatial features with PostGIS support
+6. **Audit and Reporting** - logs, notifications, reports
 
 The database schema follows these design principles:
 
@@ -81,17 +90,6 @@ The database schema follows these design principles:
 - **Spatial support**: PostGIS integration for location-based data
 - **Performance optimized**: Strategic indices for common query patterns
 - **Offline capability**: Support for working offline with synchronization
-
-The database consists of the following main components:
-
-- Core tables (agencies, users, projects)
-- Scoring system (criteria, scoring, templates)
-- Document management
-- Feedback collection
-- LLM integration
-- Reporting
-- Audit logging
-- Offline synchronization
 
 ## Core Tables
 

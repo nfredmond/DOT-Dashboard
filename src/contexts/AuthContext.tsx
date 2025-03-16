@@ -189,32 +189,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     
     try {
-      // Special case for demo credentials
+      // Special case for demo admin credentials
       if (email === 'admin@example.com' && password === 'password') {
-        console.log('Using demo login credentials');
+        console.log('Using demo admin login credentials');
         
-        // Create a mock user for demo purposes
-        setUser({
-          id: 'demo-user-id',
-          email: 'demo@example.com',
+        // Create a mock admin user for demo purposes
+        const demoAdminUser: User = {
+          id: 'demo-admin-id',
+          email: 'admin@example.com',
           firstName: 'Demo',
-          lastName: 'User',
+          lastName: 'Admin',
           role: 'global_admin',
+          isGlobalAdmin: true,
           organizationId: 'demo-org-id',
           organizationName: 'Demo Organization'
-        });
+        };
         
         // Save to localStorage to persist the session
-        localStorage.setItem('rtpa_demo_user', JSON.stringify({
+        localStorage.setItem('rtpa_demo_user', JSON.stringify(demoAdminUser));
+        setUser(demoAdminUser);
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Special case for demo regular user credentials
+      if (email === 'user@example.com' && password === 'password') {
+        console.log('Using demo regular user login credentials');
+        
+        // Create a mock regular user for demo purposes
+        const demoRegularUser: User = {
           id: 'demo-user-id',
-          email: 'demo@example.com',
+          email: 'user@example.com',
           firstName: 'Demo',
           lastName: 'User',
-          role: 'global_admin',
+          role: 'org_member',
+          isGlobalAdmin: false,
           organizationId: 'demo-org-id',
           organizationName: 'Demo Organization'
-        }));
+        };
         
+        // Save to localStorage to persist the session
+        localStorage.setItem('rtpa_demo_user', JSON.stringify(demoRegularUser));
+        setUser(demoRegularUser);
+        
+        setIsLoading(false);
         return true;
       }
       
