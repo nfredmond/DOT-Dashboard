@@ -10,7 +10,9 @@ api/
 │   └── [...nextauth]  # NextAuth.js configuration
 ├── projects/          # Project management endpoints
 │   ├── [id]/          # Single project operations
-│   └── batch/         # Batch operations on multiple projects
+│   │   ├── bca/       # Benefit-Cost Analysis endpoints
+│   │   │   └── camp-integration/ # Integration with CAMP model data
+│   │   └── batch/         # Batch operations on multiple projects
 ├── scoring/           # Project scoring endpoints
 │   └── criteria/      # Scoring criteria configuration
 ├── mapping/           # GIS mapping related endpoints
@@ -48,11 +50,291 @@ All responses follow this structure:
 The API uses NextAuth.js for authentication with the following providers:
 - Email/password authentication
 - Google OAuth
-- Microsoft OAuth
-Protected routes require a valid JWT token in the Authorization header:
-```bash
-Authorization: Bearer <token>
+
+## Benefit-Cost Analysis API
+
+The benefit-cost analysis API provides endpoints for creating, managing, and calculating benefit-cost analyses for transportation projects.
+
+### `GET /api/projects/[id]/bca`
+
+Retrieves all benefit-cost analyses for a specific project.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: BenefitCostAnalysis[]
+}
 ```
+
+### `GET /api/projects/[id]/bca/[analysisId]`
+
+Retrieves a specific benefit-cost analysis by ID.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: BenefitCostAnalysis
+}
+```
+
+### `POST /api/projects/[id]/bca`
+
+Creates a new benefit-cost analysis for a project.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+
+**Request Body:**
+```typescript
+{
+  name: string;
+  description?: string;
+  discountRate: number;
+  baseYear: number;
+  analysisHorizon: number;
+  parameters: MonetizationParameters;
+  benefits?: BenefitValueCalculation[];
+  costs?: CostValueCalculation[];
+  methodology?: string;
+  scenarioId?: string;
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: BenefitCostAnalysis
+}
+```
+
+### `PATCH /api/projects/[id]/bca/[analysisId]`
+
+Updates an existing benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Request Body:**
+```typescript
+{
+  name?: string;
+  description?: string;
+  discountRate?: number;
+  baseYear?: number;
+  analysisHorizon?: number;
+  parameters?: MonetizationParameters;
+  benefits?: BenefitValueCalculation[];
+  costs?: CostValueCalculation[];
+  methodology?: string;
+  scenarioId?: string;
+  isPublic?: boolean;
+  status?: 'draft' | 'reviewed' | 'final';
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: BenefitCostAnalysis
+}
+```
+
+### `DELETE /api/projects/[id]/bca/[analysisId]`
+
+Deletes a benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: { id: string }
+}
+```
+
+### `POST /api/projects/[id]/bca/[analysisId]/calculate`
+
+Calculates or recalculates a benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: BenefitCostAnalysisResult
+}
+```
+
+### `POST /api/projects/[id]/bca/[analysisId]/sensitivity`
+
+Performs sensitivity analysis on a benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Request Body:**
+```typescript
+{
+  parameters: {
+    parameterName: string;
+    baseValue: number;
+    lowValue: number;
+    highValue: number;
+  }[]
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: SensitivityAnalysis
+}
+```
+
+### `POST /api/projects/[id]/bca/[analysisId]/monte-carlo`
+
+Performs Monte Carlo simulation on a benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+- `analysisId` (path parameter): The UUID of the analysis
+
+**Request Body:**
+```typescript
+{
+  parameters: {
+    parameterName: string;
+    distribution: 'normal' | 'uniform' | 'triangular' | 'custom';
+    mean?: number;
+    standardDeviation?: number;
+    min?: number;
+    max?: number;
+    mode?: number;
+    customValues?: number[];
+  }[];
+  iterations: number;
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: MonteCarloSimulation
+}
+```
+
+### `POST /api/projects/[id]/bca/camp-integration`
+
+Integrates CAMP model data into a benefit-cost analysis.
+
+**Parameters:**
+- `id` (path parameter): The UUID of the project
+
+**Request Body:**
+```typescript
+{
+  analysisId: string;
+  campModelId: string;
+  scenarioId: string;
+  options: {
+    mapTravelTime: boolean;
+    mapEmissions: boolean;
+    mapSafety: boolean;
+    mapVehicleOperating: boolean;
+    mapHealth: boolean;
+  }
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    message: string;
+    updatedAnalysis: BenefitCostAnalysis;
+  }
+}
+```
+
+### Data Models
+
+#### MonetizationParameters
+
+The MonetizationParameters interface supports both legacy flat structure and the new structured format:
+
+```typescript
+interface MonetizationParameters {
+  // Index signature for backward compatibility
+  [key: string]: number | string | object | undefined;
+  
+  // Structured parameters for various benefit categories
+  valueOfTime?: {
+    commuter: number;
+    commercial: number;
+    freight: number;
+  };
+  
+  // Emissions costs
+  emissions?: {
+    co2: number; // $ per metric ton
+    nox: number; // $ per ton
+    pm: number;  // $ per ton
+  };
+  
+  // Safety/accident costs
+  accidentCosts?: {
+    fatal: number;     // $ per fatal accident
+    injury: number;    // $ per injury accident
+    propertyDamage: number; // $ per PDO accident
+  };
+  
+  // Vehicle operating costs
+  vehicleOperating?: {
+    fuelCost: number;     // $ per gallon
+    maintenance: number;  // $ per mile
+    depreciation: number; // $ per mile
+  };
+  
+  // Health benefits
+  health?: {
+    walking: number; // $ per mile walked
+    biking: number;  // $ per mile biked
+  };
+  
+  // Legacy fields for backward compatibility
+  valueOfTime_legacy?: number;
+  fatalityCost?: number;
+  injuryCost?: number;
+  emissionsCostPerTon?: number;
+}
+```
+
+## Rate Limiting
+API endpoints are rate-limited to prevent abuse:
+- 100 requests per minute for authenticated users
+- 20 requests per minute for unauthenticated users
 ## Project Endpoints
 ### GET /api/projects
 Retrieve a list of projects with optional filtering and pagination.
@@ -212,24 +494,3 @@ API errors use appropriate HTTP status codes and provide detailed error informat
   }
 }
 ```
-Common error codes:
-- `INVALID_REQUEST`: Invalid request parameters
-- `NOT_FOUND`: Resource not found
-- `UNAUTHORIZED`: Authentication required
-- `FORBIDDEN`: Insufficient permissions
-- `INTERNAL_ERROR`: Server error
-## Rate Limiting
-API endpoints are rate-limited to prevent abuse:
-- 100 requests per minute for authenticated users
-- 20 requests per minute for unauthenticated users
-## Data Models
-TypeScript interfaces for the main data models can be found in the `src/types` directory.
-## Development Guidelines
-When adding new API endpoints:
-1. Follow the established directory structure
-2. Use consistent request/response formats
-3. Implement proper validation using Zod
-4. Handle errors with appropriate status codes
-5. Document the endpoint in this README
-6. Add appropriate tests
-

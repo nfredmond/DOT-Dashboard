@@ -49,6 +49,11 @@ export default function Help() {
         "You can provide feedback on a project by visiting the Community page, finding the project you want to comment on, and clicking the 'Provide Feedback' button. Alternatively, you can use the Community Mapping feature to add location-specific feedback directly on the map with support for images and location pins.",
     },
     {
+      question: "How do I create and use benefit-cost analyses?",
+      answer:
+        "To create a benefit-cost analysis, navigate to a project's detail page and click on the 'Benefit-Cost' tab. Click 'New Analysis' and fill in the required information including name, discount rate, and analysis horizon. Configure the monetization parameters in the 'Parameters' tab where you can define values for different categories like Value of Time, Emissions Costs, Safety Costs, Vehicle Operating Costs, and Health Benefits. Add benefits and costs in their respective sections, then view results in the Charts tab. You can also perform sensitivity analysis, Monte Carlo simulations, and compare multiple analyses side by side.",
+    },
+    {
       question: "What is the LLM Assistant?",
       answer:
         "The LLM Assistant is an AI-powered tool that helps with various tasks such as evaluating project descriptions against grant criteria, suggesting improvements to projects, generating reports, and drafting responses to community feedback. You can access it from the LLM Assistant page or use the chat interface available throughout the app.",
@@ -250,18 +255,25 @@ export default function Help() {
               Training Resources
             </CardTitle>
             <CardDescription>
-              Videos, webinars, and training materials
+              Learn how to effectively use the app
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm">
-              Access our library of training resources to learn how to use the
-              Transportation Planning App effectively.
+              Access tutorials, videos, and training materials to help you
+              master the Transportation Planning App.
             </p>
+            <ul className="text-sm space-y-1 mt-2">
+              <li>
+                <Link href="/help/benefit-cost" className="text-blue-500 hover:underline">
+                  Benefit-Cost Analysis Guide
+                </Link>
+              </li>
+            </ul>
           </CardContent>
           <CardFooter>
             <Button className="w-full">
-              View Resources
+              View Training
             </Button>
           </CardFooter>
         </Card>

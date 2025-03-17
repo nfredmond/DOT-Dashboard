@@ -11,13 +11,14 @@
 5. [GIS Mapping](#gis-mapping)
 6. [Project Scoring & Prioritization](#project-scoring--prioritization)
 7. [Scenario Development](#scenario-development)
-8. [Travel Demand Forecasting & Trend Analysis](#travel-demand-forecasting--trend-analysis)
-9. [AI Assistant](#ai-assistant)
-10. [Reporting](#reporting)
-11. [User Management](#user-management)
-12. [Community Feedback](#community-feedback)
-13. [Troubleshooting](#troubleshooting)
-14. [Glossary](#glossary)
+8. [Benefit-Cost Analysis](#benefit-cost-analysis)
+9. [Travel Demand Forecasting & Trend Analysis](#travel-demand-forecasting--trend-analysis)
+10. [AI Assistant](#ai-assistant)
+11. [Reporting](#reporting)
+12. [User Management](#user-management)
+13. [Community Feedback](#community-feedback)
+14. [Troubleshooting](#troubleshooting)
+15. [Glossary](#glossary)
 
 ## Introduction
 
@@ -265,6 +266,137 @@ The system can provide scoring suggestions based on project data:
 3. Select the scenarios to compare
 4. View the comparison table and charts
 5. Use the "Export Comparison" button to save the analysis
+
+## Benefit-Cost Analysis
+
+The Benefit-Cost Analysis module provides comprehensive tools for evaluating the economic efficiency of transportation projects. It helps calculate metrics such as Net Present Value (NPV), Benefit-Cost Ratio (BCR), Internal Rate of Return (IRR), and Payback Period to assist in project decision-making.
+
+### Creating a Benefit-Cost Analysis
+
+1. Navigate to a project's detail page
+2. Click on the "Benefit-Cost" tab
+3. Click "New Analysis" button
+4. Fill in the required information:
+   * Analysis Name
+   * Description
+   * Base Year
+   * Analysis Horizon (years)
+   * Discount Rate
+5. Configure benefits and costs
+6. Click "Save Analysis" to create
+
+### Configuring Monetization Parameters
+
+The system uses structured monetization parameters to ensure consistent valuation across analyses:
+
+1. Navigate to an analysis edit page
+2. Click on the "Parameters" tab
+3. Configure values for each category:
+   
+   **Value of Time**
+   * Commuter Value of Time ($/hour)
+   * Commercial Value of Time ($/hour) 
+   * Freight Value of Time ($/hour)
+   
+   **Emissions Costs**
+   * CO2 ($/metric ton)
+   * NOx ($/ton)
+   * PM ($/ton)
+   
+   **Safety/Accident Costs**
+   * Fatal Accidents ($/accident)
+   * Injury Accidents ($/accident)
+   * Property Damage Only ($/accident)
+   
+   **Vehicle Operating Costs**
+   * Fuel Cost ($/gallon)
+   * Maintenance ($/mile)
+   * Depreciation ($/mile)
+   
+   **Health Benefits**
+   * Walking ($/mile)
+   * Biking ($/mile)
+
+4. Click "Apply Parameters" to update the analysis
+
+### Adding Benefits and Costs
+
+1. Navigate to the analysis edit page
+2. In the "Benefits" section, click "Add Benefit"
+3. Select benefit category (Travel Time Savings, Safety, Emissions, etc.)
+4. Enter annual value or specific year-by-year values
+5. Specify growth rate if applicable
+6. Add notes to document assumptions
+7. Repeat for all benefits
+
+8. In the "Costs" section, click "Add Cost"
+9. Select cost category (Capital, Maintenance, Operations, etc.)
+10. Enter costs by year or as annual values
+11. Add notes to document assumptions
+12. Click "Save" to update the analysis
+
+### Viewing Analysis Results
+
+1. Navigate to the analysis detail page
+2. The "Charts" tab displays key metrics:
+   * Benefit-Cost Ratio
+   * Net Present Value
+   * Internal Rate of Return
+   * Payback Period
+3. View timeline charts showing benefits and costs over time
+4. Click "Parameters" tab to view the monetization parameters used
+
+### Sensitivity Analysis
+
+Sensitivity analysis helps understand how changes in key parameters affect results:
+
+1. Navigate to the analysis detail page
+2. Click the "Sensitivity" tab
+3. Select parameters to test (discount rate, benefit values, etc.)
+4. Specify low, base, and high values for each parameter
+5. Click "Run Sensitivity Analysis"
+6. View tornado charts and switching-point analysis results
+
+### Monte Carlo Risk Analysis
+
+Monte Carlo simulation helps quantify uncertainty in your benefit-cost analysis:
+
+1. Navigate to the analysis detail page
+2. Click the "Risk" tab
+3. Configure parameters for simulation:
+   * Select parameters to vary
+   * Choose probability distributions (normal, uniform, triangular)
+   * Set distribution parameters (mean, standard deviation, min/max)
+4. Click "Run Simulation" (1000 iterations)
+5. View results including:
+   * Probability distributions for key metrics
+   * Confidence intervals
+   * Probability of positive NPV
+   * Probability of BCR > 1
+
+### Integrating with CAMP and TrendNavigator
+
+To use travel demand model outputs in benefit-cost analysis:
+
+1. Navigate to the analysis detail page
+2. Click "Import Data"
+3. Select "CAMP Integration" or "TrendNavigator Integration"
+4. Select the model run to use
+5. Configure integration options:
+   * Travel time data mapping
+   * Emissions data mapping
+   * Safety data mapping
+   * Vehicle operating cost data mapping
+6. Click "Import" to incorporate model data into your analysis
+
+### Comparing Multiple Analyses
+
+1. Navigate to the project's benefit-cost page
+2. Select two or more analyses using checkboxes
+3. Click "Compare Selected"
+4. View side-by-side comparison of key metrics
+5. Compare timelines and benefit/cost breakdowns
+6. Export comparison to PDF or Excel
 
 ## Travel Demand Forecasting & Trend Analysis
 
@@ -514,11 +646,21 @@ For additional assistance:
 
 **ADA Compliance**: Standards ensuring accessibility for individuals with disabilities, following the Americans with Disabilities Act requirements.
 
+### B
+
+**Benefit-Cost Analysis (BCA)**: An economic assessment methodology that compares the benefits and costs of a project over time, expressed in monetary terms, to determine economic efficiency and return on investment.
+
+**Benefit-Cost Ratio (BCR)**: A ratio of the present value of benefits to the present value of costs. Projects with a BCR greater than 1.0 are considered economically viable.
+
 ### C
 
 **CAMP**: Chained Activity Modeling Process, a methodology for travel demand forecasting that models trip chains rather than isolated trips.
 
 **Community Feedback**: Input gathered from the public regarding transportation projects and plans.
+
+### D
+
+**Discount Rate**: The rate used to convert future costs and benefits to present values, reflecting the time value of money and risk.
 
 ### G
 
@@ -526,13 +668,33 @@ For additional assistance:
 
 **Grant Criteria**: Specific requirements that must be met to qualify for funding from federal, state, or local sources.
 
+### I
+
+**Internal Rate of Return (IRR)**: The discount rate at which the net present value of a project becomes zero, representing the project's rate of return.
+
 ### M
 
 **Mode Share**: The percentage of travelers using a particular type of transportation (e.g., car, public transit, bicycle).
 
+**Monte Carlo Simulation**: A risk analysis technique that uses random sampling and statistical modeling to estimate the probability distribution of possible outcomes.
+
+**Monetization Parameters**: Values used to convert physical impacts (such as time savings or emissions reductions) into monetary terms for benefit-cost analysis.
+
+### N
+
+**Net Present Value (NPV)**: The difference between the present value of benefits and the present value of costs. A positive NPV indicates an economically viable project.
+
 ### P
 
+**Payback Period**: The time required for the cumulative benefits of a project to equal its costs.
+
+**Present Value**: The current worth of a future sum of money or stream of cash flows given a specified rate of return.
+
 **Project Prioritization**: The process of ranking transportation projects based on specific criteria to determine implementation order.
+
+### S
+
+**Sensitivity Analysis**: An analysis technique that tests how changes in key assumptions affect the outcome of a benefit-cost analysis.
 
 ### T
 
@@ -545,5 +707,7 @@ For additional assistance:
 **TrendNavigator**: Scenario planning tool that explores how future trends might impact transportation patterns.
 
 ### V
+
+**Value of Time**: The monetary value assigned to time savings in transportation projects, typically expressed as dollars per hour, often differentiated by trip purpose or vehicle occupancy.
 
 **VMT**: Vehicle Miles Traveled, a measure of the total distance traveled by vehicles in a specific area over a given time period. 

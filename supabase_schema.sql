@@ -1172,4 +1172,412 @@ USING (bucket_id = 'public_records_documents' AND (
     )
 ));
 
+-- Organizations table
+CREATE TABLE IF NOT EXISTS organizations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  parent_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+  organization_type TEXT NOT NULL DEFAULT 'agency',
+  subdomain TEXT,
+  logo_url TEXT,
+  settings JSONB DEFAULT '{}',
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Organization members junction table
+CREATE TABLE IF NOT EXISTS organization_members (
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'member', 'viewer')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (organization_id, user_id)
+);
+
+-- Create indexes for organizations
+CREATE INDEX IF NOT EXISTS idx_organizations_parent_id ON organizations(parent_id);
+CREATE INDEX IF NOT EXISTS idx_organizations_subdomain ON organizations(subdomain);
+CREATE INDEX IF NOT EXISTS idx_organization_members_organization_id ON organization_members(organization_id);
+CREATE INDEX IF NOT EXISTS idx_organization_members_user_id ON organization_members(user_id);
+
+-- Scenarios table for modeling different project scenarios
+CREATE TABLE IF NOT EXISTS scenarios (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  year INTEGER NOT NULL,
+  data JSONB DEFAULT '{}',
+  metadata JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes for scenarios
+CREATE INDEX IF NOT EXISTS idx_scenarios_organization_id ON scenarios(organization_id);
+CREATE INDEX IF NOT EXISTS idx_scenarios_project_id ON scenarios(project_id);
+CREATE INDEX IF NOT EXISTS idx_scenarios_created_by ON scenarios(created_by);
+CREATE INDEX IF NOT EXISTS idx_scenarios_status ON scenarios(status);
+
+-- Row Level Security for scenarios
+ALTER TABLE scenarios ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY scenarios_select ON scenarios
+  FOR SELECT USING (
+    -- Users can view scenarios if they belong to the organization or if they are project members
+    auth.uid() IN (
+      SELECT user_id FROM organization_members WHERE organization_id = scenarios.organization_id
+    ) OR
+    auth.uid() IN (
+      SELECT user_id FROM project_users WHERE project_id = scenarios.project_id
+    )
+  );
+
+CREATE POLICY scenarios_insert ON scenarios
+  FOR INSERT WITH CHECK (
+    -- Users can insert scenarios if they belong to the organization or if they are project contributors/managers
+    auth.uid() IN (
+      SELECT user_id FROM organization_members WHERE organization_id = scenarios.organization_id
+    ) OR
+    auth.uid() IN (
+      SELECT user_id FROM project_users 
+      WHERE project_id = scenarios.project_id AND role IN ('manager', 'contributor')
+    )
+  );
+
+CREATE POLICY scenarios_update ON scenarios
+  FOR UPDATE USING (
+    -- Users can update scenarios if they created them, are org members, or are project contributors/managers
+    auth.uid() = created_by OR
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = scenarios.organization_id AND role = 'admin'
+    ) OR
+    auth.uid() IN (
+      SELECT user_id FROM project_users 
+      WHERE project_id = scenarios.project_id AND role IN ('manager', 'contributor')
+    )
+  );
+
+CREATE POLICY scenarios_delete ON scenarios
+  FOR DELETE USING (
+    -- Users can delete scenarios if they created them, are org admins, or are project managers
+    auth.uid() = created_by OR
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = scenarios.organization_id AND role = 'admin'
+    ) OR
+    auth.uid() IN (
+      SELECT user_id FROM project_users 
+      WHERE project_id = scenarios.project_id AND role = 'manager'
+    )
+  );
+
+-- Benefit Cost Analysis Tables 
+-- Includes updated schema for structured monetization parameters
+
+-- Monetization parameters
+CREATE TABLE IF NOT EXISTS benefit_cost_parameters (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  value FLOAT NOT NULL,
+  unit TEXT NOT NULL,
+  description TEXT,
+  source TEXT,
+  year_valid INTEGER,
+  adjustment_factor FLOAT,
+  parameter_type TEXT, -- To identify structured parameter types (valueOfTime, emissions, etc.)
+  parameter_subtype TEXT, -- For specific subcategories (commuter, freight, etc.)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Benefit cost analysis templates
+CREATE TABLE IF NOT EXISTS benefit_cost_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  parameters JSONB NOT NULL, -- Now supports structured parameters
+  benefit_categories TEXT[] NOT NULL,
+  cost_categories TEXT[] NOT NULL,
+  default_analysis_horizon INTEGER NOT NULL DEFAULT 20,
+  default_discount_rate FLOAT NOT NULL DEFAULT 0.07,
+  methodologies TEXT[] NOT NULL,
+  sensitivity_defaults JSONB,
+  distributional_defaults JSONB,
+  grant_program JSONB,
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Main benefit cost analyses table
+CREATE TABLE IF NOT EXISTS benefit_cost_analyses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  scenario_id UUID REFERENCES scenarios(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  
+  -- Core analysis parameters
+  discount_rate FLOAT NOT NULL DEFAULT 0.07,
+  base_year INTEGER NOT NULL,
+  analysis_horizon INTEGER NOT NULL DEFAULT 20,
+  
+  -- Results by method
+  net_present_value FLOAT DEFAULT 0,
+  benefit_cost_ratio FLOAT DEFAULT 0,
+  internal_rate_of_return FLOAT,
+  payback_period FLOAT,
+  
+  -- Detailed calculations
+  benefits JSONB NOT NULL DEFAULT '[]',
+  costs JSONB NOT NULL DEFAULT '[]',
+  
+  -- Annual streams
+  annual_benefits JSONB NOT NULL DEFAULT '[]',
+  annual_costs JSONB NOT NULL DEFAULT '[]',
+  
+  -- Monetization parameters used (supports new structured format)
+  parameters JSONB NOT NULL,
+  
+  -- Risk and sensitivity analysis
+  sensitivity_analysis JSONB,
+  monte_carlo_simulation JSONB,
+  distributional_analysis JSONB,
+  
+  -- Flags and metadata
+  is_public BOOLEAN NOT NULL DEFAULT FALSE,
+  status TEXT NOT NULL DEFAULT 'draft',
+  methodology TEXT,
+  assumptions JSONB DEFAULT '[]',
+  limitations JSONB DEFAULT '[]',
+  tags TEXT[] DEFAULT '{}',
+  
+  -- Integration with other models
+  camp_integration_options JSONB,
+  imported_data_source TEXT,
+  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Table for storing Monte Carlo simulation detailed results
+CREATE TABLE IF NOT EXISTS monte_carlo_results (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  analysis_id UUID NOT NULL REFERENCES benefit_cost_analyses(id) ON DELETE CASCADE,
+  iteration INTEGER NOT NULL,
+  input_parameters JSONB NOT NULL,
+  output_results JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Table for tracking shared and exported analyses
+CREATE TABLE IF NOT EXISTS benefit_cost_exports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  analysis_id UUID NOT NULL REFERENCES benefit_cost_analyses(id) ON DELETE CASCADE,
+  export_type TEXT NOT NULL, -- 'pdf', 'excel', 'grant'
+  file_url TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Row Level Security Policies
+
+-- Benefit cost parameters: organization admins can manage, others can read
+ALTER TABLE benefit_cost_parameters ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_parameters_select ON benefit_cost_parameters
+  FOR SELECT USING (
+    (auth.uid() IN (SELECT user_id FROM organization_members WHERE organization_id = benefit_cost_parameters.organization_id)) OR
+    benefit_cost_parameters.organization_id IS NULL
+  );
+
+CREATE POLICY benefit_cost_parameters_insert ON benefit_cost_parameters
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_parameters.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+CREATE POLICY benefit_cost_parameters_update ON benefit_cost_parameters
+  FOR UPDATE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_parameters.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+CREATE POLICY benefit_cost_parameters_delete ON benefit_cost_parameters
+  FOR DELETE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_parameters.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+-- Benefit cost templates
+ALTER TABLE benefit_cost_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_templates_select ON benefit_cost_templates
+  FOR SELECT USING (
+    (auth.uid() IN (SELECT user_id FROM organization_members WHERE organization_id = benefit_cost_templates.organization_id)) OR
+    benefit_cost_templates.organization_id IS NULL
+  );
+
+CREATE POLICY benefit_cost_templates_insert ON benefit_cost_templates
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_templates.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+CREATE POLICY benefit_cost_templates_update ON benefit_cost_templates
+  FOR UPDATE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_templates.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+CREATE POLICY benefit_cost_templates_delete ON benefit_cost_templates
+  FOR DELETE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = benefit_cost_templates.organization_id 
+      AND role = 'admin'
+    )
+  );
+
+-- Benefit cost analyses
+ALTER TABLE benefit_cost_analyses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_analyses_select ON benefit_cost_analyses
+  FOR SELECT USING (
+    -- Public analyses can be viewed by anyone in the organization
+    (is_public AND auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = (
+        SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+      )
+    )) OR
+    -- Created by user or user is admin
+    (auth.uid() = created_by OR auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = (
+        SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+      ) AND role = 'admin'
+    ))
+  );
+
+CREATE POLICY benefit_cost_analyses_insert ON benefit_cost_analyses
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = (
+        SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+      )
+    )
+  );
+
+CREATE POLICY benefit_cost_analyses_update ON benefit_cost_analyses
+  FOR UPDATE USING (
+    auth.uid() = created_by OR 
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = (
+        SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+      ) AND role = 'admin'
+    )
+  );
+
+CREATE POLICY benefit_cost_analyses_delete ON benefit_cost_analyses
+  FOR DELETE USING (
+    auth.uid() = created_by OR 
+    auth.uid() IN (
+      SELECT user_id FROM organization_members 
+      WHERE organization_id = (
+        SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+      ) AND role = 'admin'
+    )
+  );
+
+-- Monte Carlo results
+ALTER TABLE monte_carlo_results ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY monte_carlo_results_select ON monte_carlo_results
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM benefit_cost_analyses
+      WHERE id = monte_carlo_results.analysis_id
+      AND (
+        (is_public AND auth.uid() IN (
+          SELECT user_id FROM organization_members 
+          WHERE organization_id = (
+            SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+          )
+        )) OR
+        auth.uid() = created_by OR 
+        auth.uid() IN (
+          SELECT user_id FROM organization_members 
+          WHERE organization_id = (
+            SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+          ) AND role = 'admin'
+        )
+      )
+    )
+  );
+
+-- Exports
+ALTER TABLE benefit_cost_exports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_exports_select ON benefit_cost_exports
+  FOR SELECT USING (
+    auth.uid() = user_id OR
+    EXISTS (
+      SELECT 1 FROM benefit_cost_analyses
+      WHERE id = benefit_cost_exports.analysis_id
+      AND (
+        auth.uid() = created_by OR 
+        auth.uid() IN (
+          SELECT user_id FROM organization_members 
+          WHERE organization_id = (
+            SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+          ) AND role = 'admin'
+        )
+      )
+    )
+  );
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_parameters_organization ON benefit_cost_parameters(organization_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_parameters_category ON benefit_cost_parameters(category);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_parameters_parameter_type ON benefit_cost_parameters(parameter_type);
+
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_templates_organization ON benefit_cost_templates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_templates_is_default ON benefit_cost_templates(is_default);
+
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_project ON benefit_cost_analyses(project_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_created_by ON benefit_cost_analyses(created_by);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_scenario ON benefit_cost_analyses(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_status ON benefit_cost_analyses(status);
+
+CREATE INDEX IF NOT EXISTS idx_monte_carlo_results_analysis ON monte_carlo_results(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_exports_analysis ON benefit_cost_exports(analysis_id);
+
 -- End of schema definition
