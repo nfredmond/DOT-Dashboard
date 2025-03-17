@@ -99,7 +99,8 @@ export default function AppLayout({
         />
         
         {/* Fallback JS loader for Leaflet */}
-        <Script id="leaflet-fallback">{`
+        <Script id="leaflet-fallback">
+          {`
           // Ensure Leaflet is available
           document.addEventListener('DOMContentLoaded', function() {
             if (!window.L) {
@@ -114,7 +115,7 @@ export default function AppLayout({
               console.log('Leaflet already loaded via script tag');
             }
           });
-        `}
+          `}
         </Script>
         
         {/* Fallback CSS for Leaflet */}

@@ -89,7 +89,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self' https://planningmanager.ai; img-src 'self' data: https://i.imgur.com https://planningmanager.ai; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';`
+            value: `default-src 'self' https://planningmanager.ai; img-src 'self' data: https://i.imgur.com https://planningmanager.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';`
           }
         ]
       }

@@ -15,6 +15,8 @@ export async function middleware(request: NextRequest) {
   const isPrimaryDomain = hostname.includes(APP_DOMAIN);
   
   // Redirect root path to homepage with highest priority
+  // Note: The root page ('/') is still accessible as a separate route in the codebase
+  // but we want authenticated users to see the dashboard by default
   if (pathname === '/') {
     console.log('Redirecting from root to homepage via middleware with highest priority');
     return NextResponse.redirect(new URL('/homepage', request.url));
@@ -39,6 +41,7 @@ export async function middleware(request: NextRequest) {
     '/community',
     '/admin-panel',
     '/llm-assistant',
+    '/scenarios'
   ];
   
   // Public routes that don't require authentication
