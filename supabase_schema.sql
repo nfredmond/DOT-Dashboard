@@ -2,7 +2,7 @@
 -- Complete schema setup for the Planning Manager application
 
 -- Drop everything and reinstall from scratch
--- Drop the entire public schema and recreate it (this removes ALL tables, functions, views, etc.)
+-- This will completely remove the current schema and recreate it
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
@@ -649,13 +649,12 @@ BEGIN
         AND (NOT p_require_research OR m.research_capable = TRUE)
         AND (NOT p_require_code OR m.code_capable = TRUE)
         AND m.max_token_limit >= p_min_token_limit
-    ORDER BY
-        -- Order logic based on task type
-        CASE
+    ORDER BY 
+        CASE 
+            WHEN p_task_type = 'analysis' THEN m.max_token_limit
             WHEN p_task_type = 'conversation' THEN m.cost_per_1k_tokens
-            WHEN p_task_type = 'analysis' THEN m.max_token_limit DESC
             ELSE m.cost_per_1k_tokens
-        END
+        END DESC
     LIMIT 1;
 END;
 $$ LANGUAGE plpgsql;

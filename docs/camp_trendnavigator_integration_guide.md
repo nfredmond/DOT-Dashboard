@@ -1,4 +1,22 @@
-### User Interface Components
+# CAMP and TrendNavigator Integration Guide - Planning Manager v6
+
+## Implementation Status
+
+**Status**: Primary integration complete, optimization and extensions in progress
+
+| Component | Status |
+|-----------|--------|
+| Database Schema | ✅ Complete |
+| Core Services | ✅ Complete |
+| UI Components | ✅ Complete |
+| API Endpoints | ✅ Complete |
+| AI Integration | ✅ Complete |
+| Documentation | 🔄 In Progress |
+| Performance Optimization | 🔄 In Progress |
+| External Data Source Integration | 🔄 In Progress |
+| Advanced Visualization | 🔄 In Progress |
+
+## User Interface Components
 
 The following key components have been implemented to provide a rich user experience:
 
@@ -16,7 +34,7 @@ The following key components have been implemented to provide a rich user experi
 
 These components integrate with the backend services to provide a seamless user experience, from scenario creation to results visualization and analysis.
 
-### Database Schema
+## Database Schema
 
 The database schema has been extended to support CAMP and TrendNavigator with the following tables:
 
@@ -45,32 +63,150 @@ All tables include appropriate row-level security policies to enforce multi-tena
 
 The complete SQL schema can be found in `docs/camp_trendnavigator_schema.sql`.
 
-### API Routes
+## API Endpoints
 
 The following API routes have been implemented to support the CAMP and TrendNavigator integration:
 
-1. **Scenario Management**:
-   - `GET /api/scenarios`: List all scenarios for the authenticated user's organization
-   - `POST /api/scenarios`: Create a new scenario
-   - `GET /api/scenarios/[id]`: Get a specific scenario by ID
-   - `PUT /api/scenarios/[id]`: Update a scenario
-   - `DELETE /api/scenarios/[id]`: Delete a scenario
+1. **Scenario Management**
+   - `GET /api/scenarios` - List all scenarios for the current organization
+   - `POST /api/scenarios` - Create a new scenario
+   - `GET /api/scenarios/:id` - Get details for a specific scenario
+   - `PUT /api/scenarios/:id` - Update a scenario
+   - `DELETE /api/scenarios/:id` - Delete a scenario
 
-2. **Scenario Execution**:
-   - `POST /api/scenarios/[id]/run`: Run a scenario through the CAMP model
-   - `GET /api/scenarios/[id]/run`: Get the status of the latest run for a scenario
+2. **Model Configuration**
+   - `GET /api/camp/configs` - List all CAMP model configurations
+   - `POST /api/camp/configs` - Create a new CAMP model configuration
+   - `GET /api/camp/configs/:id` - Get details for a specific CAMP configuration
+   - `PUT /api/camp/configs/:id` - Update a CAMP configuration
 
-3. **Scenario Insights**:
-   - `GET /api/scenarios/[id]/insights`: Get AI-generated insights for a scenario
-   - `POST /api/scenarios/[id]/insights`: Generate new insights for a scenario
+3. **Model Execution**
+   - `POST /api/scenarios/:id/run` - Run the CAMP model for a scenario
+   - `GET /api/scenarios/:id/status` - Check the status of a model run
+   - `GET /api/scenarios/:id/results` - Get the results of a model run
 
-4. **Scenario Comparison**:
-   - `POST /api/scenarios/compare`: Compare multiple scenarios simultaneously
-   - `GET /api/scenarios/compare/insights`: Get existing comparative insights
-   - `POST /api/scenarios/compare/insights`: Generate new comparative insights between scenarios
+4. **Insights and Analysis**
+   - `POST /api/scenarios/:id/insights` - Generate AI insights for a scenario
+   - `GET /api/scenarios/:id/insights` - Get AI-generated insights for a scenario
+   - `POST /api/scenarios/compare` - Compare multiple scenarios
+   - `GET /api/scenarios/compare/:id` - Get comparison results
 
-5. **GIS Data**:
-   - `GET /api/scenarios/[id]/gis/zones`: Get zone-level GIS data for a scenario
-   - `GET /api/scenarios/[id]/gis/network`: Get network-level GIS data for a scenario
+5. **TrendNavigator Configuration**
+   - `GET /api/trend-navigator/configs` - Get TrendNavigator configuration
+   - `PUT /api/trend-navigator/configs` - Update TrendNavigator configuration
 
-All routes implement appropriate authentication and authorization checks to ensure that users can only access data from their own organization. 
+## Service Implementation
+
+The following key services have been implemented to power the CAMP and TrendNavigator functionality:
+
+1. **camp-runner.ts**
+   - Handles the execution of CAMP travel demand models
+   - Manages the trip generation, distribution, mode choice, and assignment steps
+   - Processes and stores model results
+
+2. **trend-navigator-service.ts**
+   - Manages scenario definitions, assumptions, and policies
+   - Coordinates with CAMP runner for model execution
+   - Provides scenario comparison functionality
+
+3. **scenario-insights-service.ts**
+   - Generates AI-powered insights from scenario results
+   - Uses Claude or OpenAI models to analyze results and generate recommendations
+   - Provides comparative analysis between scenarios
+
+4. **mcp-integration-service.ts**
+   - Connects with external Model Component Package (MCP) servers
+   - Enables integration with specialized modeling tools
+   - Supports advanced analysis through MCP agents
+
+## Integration with AI Services
+
+The CAMP and TrendNavigator modules are deeply integrated with AI services to provide enhanced analysis capabilities:
+
+1. **Result Analysis**
+   - AI-powered analysis of model results
+   - Identification of key trends and patterns
+   - Generation of natural language insights
+
+2. **Comparative Analysis**
+   - AI comparison of multiple scenarios
+   - Identification of trade-offs between scenarios
+   - Recommendations based on organizational priorities
+
+3. **Policy Recommendations**
+   - AI-generated policy suggestions based on scenario outcomes
+   - Impact assessment of potential policy interventions
+   - Customized recommendations based on agency goals
+
+4. **MCP Agent Integration**
+   - Domain-specific agents for specialized analysis
+   - Integration with OpenAI Agents SDK for enhanced capabilities
+   - Complex query handling through agent-based interactions
+
+## Current Development Focus
+
+The current development focus for CAMP and TrendNavigator includes:
+
+1. **Performance Optimization**
+   - Improving calculation speed for large networks
+   - Implementing caching strategies for model results
+   - Optimizing database queries for scenario analysis
+
+2. **External Data Integration**
+   - Census Transportation Planning Package integration
+   - GTFS transit data integration
+   - GIS data source integration
+
+3. **Enhanced Visualization**
+   - 3D visualization of model results
+   - Temporal visualization of scenario impacts over time
+   - Customizable dashboards for scenario analysis
+
+4. **Advanced AI Features**
+   - Enhanced prompt engineering for more detailed insights
+   - Multi-modal AI analysis (text + maps)
+   - Automated scenario generation based on goals
+
+## Getting Started
+
+To begin using the CAMP and TrendNavigator modules:
+
+1. Navigate to the Scenarios section in the application
+2. Create a new scenario with the Scenario Editor
+3. Configure trend variables and policy packages
+4. Run the scenario model
+5. View results and AI-generated insights
+6. Compare with other scenarios
+
+## Documentation
+
+Comprehensive documentation for the CAMP and TrendNavigator modules is available:
+
+- **User Guide**: Step-by-step instructions for using the modeling features
+- **API Documentation**: Details on all available API endpoints
+- **Technical Reference**: Implementation details for developers
+- **Model Methodology**: Documentation on the CAMP model methodology
+
+## Future Enhancements
+
+Planned enhancements for future versions include:
+
+1. **Activity-Based Modeling**
+   - Enhanced individual travel itinerary simulation
+   - Time-of-day modeling improvements
+   - Tour-based modeling capabilities
+
+2. **Advanced Visualization**
+   - 3D city visualization for scenario impacts
+   - Animated temporal visualization
+   - Virtual reality scenario exploration
+
+3. **Enhanced AI Capabilities**
+   - Automated scenario optimization based on goals
+   - Enhanced natural language query capabilities
+   - AI-driven calibration assistance
+
+4. **Integration Enhancements**
+   - Additional transportation data source integrations
+   - Real-time data feed capabilities
+   - Enhanced MCP agent capabilities 

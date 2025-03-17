@@ -46,12 +46,12 @@ export default function Help() {
     {
       question: "How can I provide feedback on a project?",
       answer:
-        "You can provide feedback on a project by visiting the Community page, finding the project you want to comment on, and clicking the 'Provide Feedback' button. Alternatively, you can use the Community Mapping feature to add location-specific feedback.",
+        "You can provide feedback on a project by visiting the Community page, finding the project you want to comment on, and clicking the 'Provide Feedback' button. Alternatively, you can use the Community Mapping feature to add location-specific feedback directly on the map with support for images and location pins.",
     },
     {
       question: "What is the LLM Assistant?",
       answer:
-        "The LLM Assistant is an AI-powered tool that helps with various tasks such as evaluating project descriptions against grant criteria, suggesting improvements to projects, generating reports, and drafting responses to community feedback.",
+        "The LLM Assistant is an AI-powered tool that helps with various tasks such as evaluating project descriptions against grant criteria, suggesting improvements to projects, generating reports, and drafting responses to community feedback. You can access it from the LLM Assistant page or use the chat interface available throughout the app.",
     },
     {
       question: "How do I use the Community Input Mapping Tool?",
@@ -66,12 +66,32 @@ export default function Help() {
     {
       question: "How do I generate a report?",
       answer:
-        "To generate a report, go to the Reports page and click on 'Generate Report'. Select the report type, choose which projects to include, select the report elements you want, and choose your preferred output format. Then click 'Generate Report'.",
+        "To generate a report, go to the Reports page and click on 'Generate Report'. Select the report type, choose which projects to include, select the report elements you want, and choose your preferred output format. Then click 'Generate Report'. You can also schedule recurring reports from the Reports settings page.",
     },
     {
       question: "How do I change my notification settings?",
       answer:
-        "You can change your notification settings by going to the Settings page, selecting the 'Notifications' tab, and adjusting your preferences for different types of notifications.",
+        "You can change your notification settings by going to the Settings page, selecting the 'Notifications' tab, and adjusting your preferences for different types of notifications. You can enable or disable email, in-app, and mobile notifications separately.",
+    },
+    {
+      question: "Can I use the app offline?",
+      answer:
+        "Yes, the Planning Manager v6 supports offline functionality. Your data will be stored locally and synchronized with the server when you reconnect to the internet. You can continue adding projects, updating information, and even creating scenarios while offline.",
+    },
+    {
+      question: "How do I set up voice controls?",
+      answer:
+        "Voice controls are available throughout the app. Click on the microphone icon in the navigation bar to activate voice mode, or say 'Hey Assistant' if wake word detection is enabled. You can customize voice settings, including language and wake word, in the Settings page under the 'Voice' tab.",
+    },
+    {
+      question: "How does the app integrate with other systems?",
+      answer:
+        "The Planning Manager v6 supports integration with CAMP for travel demand modeling, TrendNavigator for scenario planning, and MCP for project management. You can configure these integrations in the Admin panel under 'Integrations'. The app also provides API endpoints for custom integrations with other systems.",
+    },
+    {
+      question: "Is my data secure in the app?",
+      answer:
+        "Yes, all data is stored securely using Supabase with row-level security policies. Each agency's data is isolated, and users can only access data based on their assigned permissions. All connections are encrypted, and the app follows security best practices for authentication and data protection.",
     },
   ];
 

@@ -145,6 +145,21 @@ npx prisma migrate reset
    npx prisma migrate dev
    ```
 
+#### SQL Syntax Error with DESC Keyword
+
+If you encounter a syntax error like `ERROR: 42601: syntax error at or near "DESC"` when running the `supabase_schema.sql` script, it may be related to the `get_best_model_for_task` function. The error occurs because the `DESC` keyword should be placed outside the CASE statement in the ORDER BY clause, not inside it.
+
+**Solution**: Ensure your SQL script has the correct syntax:
+
+```sql
+ORDER BY 
+    CASE 
+        WHEN p_task_type = 'analysis' THEN m.max_token_limit
+        WHEN p_task_type = 'conversation' THEN m.cost_per_1k_tokens
+        ELSE m.cost_per_1k_tokens
+    END DESC
+```
+
 For more detailed information, see the [Prisma documentation](https://www.prisma.io/docs/).
 
 ## Supabase Configuration for Production
