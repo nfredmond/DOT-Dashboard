@@ -4,6 +4,14 @@
 
 This document outlines detailed instructions for setting up the database schema for the Planning Manager v5 application using Supabase. The database is designed for transportation planning agencies to manage projects, score them using customizable criteria, and track feedback.
 
+## Domain Configuration
+
+The Planning Manager application is now available at [https://planningmanager.ai](https://planningmanager.ai). When setting up your Supabase project, you should configure the following:
+
+1. **Site URL:** Set to `https://planningmanager.ai` in the Supabase Authentication settings
+2. **Redirect URLs:** Add `https://planningmanager.ai/api/auth/callback` and `https://planningmanager.ai/auth/callback` to the allowed redirect URLs 
+3. **CORS Origins:** Add `https://planningmanager.ai` to the allowed CORS origins
+
 ## Required Extensions
 
 The following extensions must be enabled in your Supabase project:

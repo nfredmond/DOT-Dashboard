@@ -28,9 +28,15 @@ Create a `.env` file in the root directory with the following content:
 # Database URL (replace with your own PostgreSQL connection string)
 DATABASE_URL="postgresql://username:password@localhost:5432/planning_manager?schema=public"
 
-# Authentication
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key"
+# NextAuth configuration
+NEXTAUTH_SECRET="your-auth-secret-here"
+NEXTAUTH_URL="http://localhost:3000" # For development
+# NEXTAUTH_URL="https://planningmanager.ai" # For production
+
+# Application configuration
+NEXT_PUBLIC_APP_ENV="development" # Use "production" for production
+# NEXT_PUBLIC_APP_DOMAIN="planningmanager.ai" # For production
+# NEXT_PUBLIC_APP_URL="https://planningmanager.ai" # For production
 
 # OpenAI for AI Analysis
 OPENAI_API_KEY="your-openai-api-key"
@@ -139,4 +145,29 @@ npx prisma migrate reset
    npx prisma migrate dev
    ```
 
-For more detailed information, see the [Prisma documentation](https://www.prisma.io/docs/). 
+For more detailed information, see the [Prisma documentation](https://www.prisma.io/docs/).
+
+## Supabase Configuration for Production
+
+When deploying to production at https://planningmanager.ai, you'll need to configure your Supabase project with the following settings:
+
+### Authentication Settings
+
+1. Go to Authentication > URL Configuration in your Supabase dashboard
+2. Set the Site URL to `https://planningmanager.ai`
+3. Add the following redirect URLs:
+   - `https://planningmanager.ai/api/auth/callback`
+   - `https://planningmanager.ai/auth/callback`
+4. Add `https://planningmanager.ai` to allowed CORS origins
+
+### API Settings
+
+1. Go to Project Settings > API in your Supabase dashboard
+2. Note your project URL and anon/public key
+3. Use these values in your production environment:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+For more detailed information about the domain configuration, refer to [DNS_CONFIGURATION.md](./DNS_CONFIGURATION.md) and the deployment documentation. 

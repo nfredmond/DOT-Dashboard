@@ -6,6 +6,8 @@ A comprehensive transportation project management system built with Next.js, Rea
 
 Planning Manager is a sophisticated web application designed for transportation agencies to manage, score, prioritize, and visualize infrastructure projects. It combines modern web technologies with advanced GIS capabilities and AI integration to provide a complete solution for transportation project planning and management.
 
+The application is now available at [https://planningmanager.ai](https://planningmanager.ai).
+
 ![Planning Manager](public/Circle_Green_TranspRoad.png)
 
 ## Features

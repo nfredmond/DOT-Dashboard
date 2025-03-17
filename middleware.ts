@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware';
 
+// Get the app domain from environment variables
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'planningmanager.ai';
+
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
   // Get the pathname from the URL
   const { pathname } = request.nextUrl;
+  
+  // Check if the request is for our domain
+  const hostname = request.headers.get('host') || '';
+  const isPrimaryDomain = hostname.includes(APP_DOMAIN);
   
   // Redirect root path to homepage with highest priority
   if (pathname === '/') {

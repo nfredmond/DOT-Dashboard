@@ -6,6 +6,8 @@ This document outlines the comprehensive system architecture for the Planning Ma
 
 The Planning Manager is a full-stack web application built on Next.js that enables transportation agencies to manage, score, prioritize, and visualize infrastructure projects. The architecture follows a modular, service-oriented approach with clear separation of concerns.
 
+The application is deployed at [https://planningmanager.ai](https://planningmanager.ai).
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Client Layer                          │

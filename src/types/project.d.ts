@@ -1,4 +1,6 @@
 // Project data model types
+import { CAMPModelResults } from './camp';
+import { ScenarioDefinition, ScenarioResults, ScenarioComparison } from './trend-navigator';
 
 // Project status options
 export type ProjectStatus = 
@@ -223,6 +225,14 @@ export interface Project {
   // Integration with mapping
   mapType?: string;
   layers?: string[];
+  
+  // CAMP and TrendNavigator integration
+  campModelRuns?: CAMPModelResults[];
+  trendScenarios?: ScenarioDefinition[];
+  trendResults?: ScenarioResults[];
+  scenarioComparisons?: ScenarioComparison[];
+  selectedBaselineScenarioId?: string;
+  selectedAlternativeScenarioIds?: string[];
 }
 
 // Project template for creating new projects
@@ -254,9 +264,11 @@ export type WizardStepType =
   | "environmental"
   | "scoring"
   | "metrics"
-  | "custom";
+  | "custom"
+  | "camp"
+  | "trend-navigator";
 
-// AI Analysis Result Types
+// Scenario Analysis
 export interface ScenarioAnalysis {
   id: string;
   name: string;
@@ -268,9 +280,13 @@ export interface ScenarioAnalysis {
   feasibility?: number;
   createdAt?: string;
   updatedBy?: string;
+  
+  // Link to CAMP and TrendNavigator
+  campModelRunId?: string;
+  trendScenarioId?: string;
 }
 
-// Collision Data Types for Safety Analysis
+// Collision severity types
 export type CollisionSeverity = 'fatal' | 'severe' | 'visible' | 'complaint' | 'pdo';
 export type CollisionType = 'pedestrian' | 'bicycle' | 'motorcycle' | 'vehicle' | 'fixed_object' | 'other';
 
@@ -306,7 +322,6 @@ export interface CollisionData {
   lastUpdated: string;
 }
 
-// Demographic Data Types for Equity Analysis
 export interface AgeDistribution {
   under18: number;
   age18to24: number;
@@ -339,7 +354,6 @@ export interface DemographicData {
   year?: number;
 }
 
-// Project Score Categories
 export enum ProjectScoreCategory {
   SAFETY = 'safety',
   EQUITY = 'equity',
@@ -347,4 +361,76 @@ export enum ProjectScoreCategory {
   ECONOMIC = 'economic',
   FEASIBILITY = 'feasibility',
   OVERALL = 'overall'
+}
+
+// Analysis result types
+export enum AnalysisType {
+  CAMP_MODEL = 'camp_model',
+  TREND_SCENARIO = 'trend_scenario',
+  SAFETY = 'safety',
+  EQUITY = 'equity',
+  ENVIRONMENTAL = 'environmental',
+  ECONOMIC = 'economic'
+}
+
+export interface AnalysisResult {
+  id: string;
+  type: AnalysisType;
+  name: string;
+  description?: string;
+  summary: string;
+  date: string;
+  data: any; // Specific to the analysis type
+  scores?: Record<string, number>; // Scoring by category
+  createdBy: string;
+  aiGenerated: boolean;
+}
+
+// CAMP Specific Analysis
+export interface CAMPAnalysisResult extends AnalysisResult {
+  type: AnalysisType.CAMP_MODEL;
+  data: {
+    modelRunId: string;
+    baselineModelRunId?: string;
+    keyMetrics: {
+      totalTrips: number;
+      vmt: number;
+      vht: number;
+      modeShares: Record<string, number>;
+      tripsByPurpose: Record<string, number>;
+    };
+    comparisons?: {
+      vmtChange: number;
+      vhtChange: number;
+      modeShareChanges: Record<string, number>;
+      congestionChanges: Record<string, number>;
+    };
+  };
+}
+
+// TrendNavigator Specific Analysis
+export interface TrendScenarioAnalysisResult extends AnalysisResult {
+  type: AnalysisType.TREND_SCENARIO;
+  data: {
+    scenarioId: string;
+    baselineScenarioId?: string;
+    horizonYears: number[];
+    keyMetrics: Record<number, {
+      vmt: number;
+      ght: number;
+      modeShares: Record<string, number>;
+      accessibility: number;
+      equity: number;
+    }>;
+    trendImpacts: {
+      trendName: string;
+      impactDescription: string;
+      magnitude: number;
+    }[];
+    policyImpacts?: {
+      policyName: string;
+      impactDescription: string;
+      magnitude: number;
+    }[];
+  };
 } 

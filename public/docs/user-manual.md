@@ -31,7 +31,7 @@ The Transportation Planning Manager is a comprehensive web application designed 
 
 ### Access and Login
 
-1. Navigate to the application URL provided by your organization
+1. Navigate to the application at [https://planningmanager.ai](https://planningmanager.ai) or use the URL provided by your organization
 2. Enter your username and password
 3. Click "Log in" to access the system
 

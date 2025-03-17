@@ -618,3 +618,32 @@ The system leverages advanced AI capabilities:
 - Automated reporting
 - Scenario generation and comparison
 - Impact predictions
+
+# Deployment and Operations
+
+## Deployment Process
+
+The Planning Manager application is deployed using a CI/CD pipeline on Vercel, which is triggered by commits to the main branch. The deployment process includes:
+
+1. Running tests and linting
+2. Building the Next.js application
+3. Deploying to the production environment
+4. Running post-deployment checks
+
+## Domain Configuration
+
+The Planning Manager is hosted at [https://planningmanager.ai](https://planningmanager.ai). The domain configuration includes:
+
+- **Primary domain**: planningmanager.ai
+- **Redirect**: www.planningmanager.ai → planningmanager.ai
+- **DNS provider**: Hostinger
+- **SSL**: Automatically managed by Vercel
+
+The application is configured to reference this domain in authentication flows, API endpoints, and all URLs. Domain-specific configuration is managed through environment variables:
+
+```
+NEXT_PUBLIC_APP_DOMAIN=planningmanager.ai
+NEXT_PUBLIC_APP_URL=https://planningmanager.ai
+```
+
+## Monitoring and Logging

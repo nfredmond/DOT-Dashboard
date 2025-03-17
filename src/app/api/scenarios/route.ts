@@ -8,59 +8,143 @@ import {
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { createClient } from '@/lib/supabase/server';
+import { getScenarios, createScenario } from '@/lib/trend-navigator-service';
 
-export async function POST(req: NextRequest) {
+/**
+ * GET /api/scenarios
+ * 
+ * Retrieves all scenarios for the authenticated user's organization
+ */
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const supabase = createClient();
     
-    if (!session?.user) {
+    // Get the user's session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       return NextResponse.json(
-        { error: 'You must be signed in to access this endpoint' },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
     
-    const body = await req.json();
-    const { projectId, scenarioType, options } = body;
+    // Get organization ID from user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('agency_id')
+      .eq('user_id', session.user.id)
+      .single();
     
-    if (!projectId) {
+    if (!profile?.agency_id) {
       return NextResponse.json(
-        { error: 'Project ID is required' },
+        { error: 'User not associated with an organization' },
         { status: 400 }
       );
     }
     
-    if (!Object.values(ScenarioGenerationType).includes(scenarioType as ScenarioGenerationType)) {
+    // Get organization's TrendNavigator config
+    const { data: config } = await supabase
+      .from('trend_navigator_configs')
+      .select('id')
+      .eq('agency_id', profile.agency_id)
+      .limit(1)
+      .single();
+    
+    if (!config) {
       return NextResponse.json(
-        { error: 'Invalid scenario type' },
+        { error: 'No TrendNavigator configuration found for your organization' },
         { status: 400 }
       );
     }
     
-    // Fetch the project from the database
-    const project = await db.project.findUnique({
-      where: { id: projectId },
-    });
+    // Get scenarios for the organization
+    const { data: scenarios } = await supabase
+      .from('scenarios')
+      .select('*')
+      .eq('organization_id', profile.agency_id)
+      .order('updated_at', { ascending: false });
     
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
-    }
+    return NextResponse.json(scenarios || []);
+  } catch (error: any) {
+    console.error('Error retrieving scenarios:', error.message);
     
-    // Generate scenarios
-    const result = await generateScenarios(
-      project, 
-      scenarioType as ScenarioGenerationType, 
-      options
-    );
-    
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Error generating scenarios:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An error occurred while generating scenarios' },
+      { error: 'Failed to retrieve scenarios' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/scenarios
+ * 
+ * Creates a new scenario
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const supabase = createClient();
+    
+    // Get the user's session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    // Get organization ID from user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, agency_id')
+      .eq('user_id', session.user.id)
+      .single();
+    
+    if (!profile?.agency_id) {
+      return NextResponse.json(
+        { error: 'User not associated with an organization' },
+        { status: 400 }
+      );
+    }
+    
+    // Parse request body
+    const body = await req.json();
+    
+    // Create new scenario
+    const scenarioData = {
+      name: body.name,
+      description: body.description || '',
+      base_year: body.baseYear || new Date().getFullYear(),
+      horizon_years: body.horizonYears || [new Date().getFullYear() + 10],
+      assumptions: body.assumptions || [],
+      policy_packages: body.policyPackages || [],
+      tags: body.tags || [],
+      created_by: profile.id,
+      organization_id: profile.agency_id,
+      baseline_scenario_id: body.baselineScenarioId || null
+    };
+    
+    const { data: scenario, error } = await supabase
+      .from('scenarios')
+      .insert([scenarioData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating scenario:', error);
+      return NextResponse.json(
+        { error: 'Failed to create scenario' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json(scenario, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating scenario:', error.message);
+    
+    return NextResponse.json(
+      { error: 'Failed to create scenario' },
       { status: 500 }
     );
   }

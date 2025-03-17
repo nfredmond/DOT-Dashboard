@@ -34,10 +34,12 @@ Add the following environment variables in the Vercel dashboard:
 
 ```
 DATABASE_URL=your_production_database_url
-NEXTAUTH_URL=https://your-domain.vercel.app
+NEXTAUTH_URL=https://planningmanager.ai
 NEXTAUTH_SECRET=your_production_secret
 OPENAI_API_KEY=your_production_api_key
 MCP_URL=your_model_context_protocol_url (if applicable)
+NEXT_PUBLIC_APP_DOMAIN=planningmanager.ai
+NEXT_PUBLIC_APP_URL=https://planningmanager.ai
 ```
 
 #### 4. Deploy
@@ -47,6 +49,18 @@ MCP_URL=your_model_context_protocol_url (if applicable)
    vercel --prod
    ```
 2. Vercel will automatically build and deploy your application.
+
+#### 5. Domain Configuration
+
+The Planning Manager application is deployed at [https://planningmanager.ai](https://planningmanager.ai). To configure your Vercel project with this domain:
+
+1. In the Vercel dashboard, go to your project settings
+2. Navigate to the "Domains" tab
+3. Add "planningmanager.ai" as a domain
+4. Follow Vercel's instructions to update DNS settings
+5. Ensure the DNS configuration matches what's described in [DNS_CONFIGURATION.md](./DNS_CONFIGURATION.md)
+
+For detailed DNS configuration instructions, see [DNS_CONFIGURATION.md](./DNS_CONFIGURATION.md).
 
 ### Option 2: Docker Deployment
 

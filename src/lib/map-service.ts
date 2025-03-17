@@ -1,95 +1,215 @@
-import { getEnvVariable, isMapProviderConfigured, TileLayerOptions } from "./map-helpers";
+import { createClient } from '@/lib/supabase/client';
 
-/**
- * Get available map tile providers with their configuration
- * @returns Object with available map tile providers
- */
-export function getMapTiles(): Record<string, TileLayerOptions> {
-  return {
-    // CARTO basemaps (always available, doesn't require API key)
-    cartoPositron: {
-      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    },
-    cartoDarkMatter: {
-      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    },
-    cartoVoyager: {
-      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    },
-    
-    // Mapbox basemaps (requires access token)
-    ...(isMapProviderConfigured('mapbox') ? {
-      mapboxStreets: {
-        url: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}",
-        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN', '')
-      },
-      mapboxSatellite: {
-        url: "https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}",
-        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN', '')
-      },
-      mapboxLight: {
-        url: "https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles/{z}/{x}/{y}?access_token={accessToken}",
-        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN', '')
-      }
-    } : {}),
-    
-    // MapTiler basemaps (requires access token)
-    ...(isMapProviderConfigured('maptiler') ? {
-      maptilerStreets: {
-        url: "https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key={accessToken}",
-        attribution: '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPTILER_ACCESS_TOKEN', '')
-      },
-      maptilerSatellite: {
-        url: "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key={accessToken}",
-        attribution: '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPTILER_ACCESS_TOKEN', '')
-      },
-      maptilerOutdoors: {
-        url: "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key={accessToken}",
-        attribution: '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        accessToken: getEnvVariable('NEXT_PUBLIC_MAPTILER_ACCESS_TOKEN', '')
-      }
-    } : {}),
-    
-    // Fallback to OSM if no token is available
-    osm: {
-      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }
-  };
+// Define simplified GeoJSON types
+interface GeoJSONGeometry {
+  type: string;
+  coordinates: any;
+}
+
+interface GeoJSONFeature {
+  type: 'Feature';
+  properties: Record<string, any>;
+  geometry: GeoJSONGeometry;
+}
+
+interface GeoJSONCollection {
+  type: 'FeatureCollection';
+  features: GeoJSONFeature[];
 }
 
 /**
- * Get available basemap options for UI dropdowns
- * @returns Array of available map types
+ * Fetches zone geometry data for a scenario
  */
-export function getAvailableMapTypes(): {value: string, label: string}[] {
-  const mapTiles = getMapTiles();
+export async function fetchZoneGeometry(scenarioId: string): Promise<GeoJSONCollection> {
+  const supabase = createClient();
   
-  return Object.keys(mapTiles).map(key => {
-    // Format the label for display (convert camelCase to Title Case with spaces)
-    const label = key
-      // Insert a space before all caps
-      .replace(/([A-Z])/g, ' $1')
-      // Replace first char with uppercase
-      .replace(/^./, str => str.toUpperCase());
+  try {
+    // First get the organization ID from the scenario
+    const { data: scenario, error: scenarioError } = await supabase
+      .from('scenarios')
+      .select('organization_id')
+      .eq('id', scenarioId)
+      .single();
     
-    return { value: key, label };
-  });
+    if (scenarioError) throw scenarioError;
+    
+    // Fetch zone data for the organization
+    const { data: zones, error: zonesError } = await supabase
+      .from('zones')
+      .select('*')
+      .eq('organization_id', scenario.organization_id);
+    
+    if (zonesError) throw zonesError;
+    
+    // Convert to GeoJSON format
+    const features: GeoJSONFeature[] = zones.map(zone => {
+      // Parse geometry from the database
+      let geometry: GeoJSONGeometry;
+      
+      try {
+        if (typeof zone.geometry === 'string') {
+          geometry = JSON.parse(zone.geometry);
+        } else if (zone.geometry && typeof zone.geometry === 'object') {
+          geometry = zone.geometry as GeoJSONGeometry;
+        } else {
+          // Default geometry
+          geometry = {
+            type: 'Point',
+            coordinates: [0, 0]
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing zone geometry:', e);
+        // Default to a point if geometry is invalid
+        geometry = {
+          type: 'Point',
+          coordinates: [0, 0]
+        };
+      }
+      
+      return {
+        type: 'Feature',
+        properties: {
+          id: zone.id,
+          zone_id: zone.id,
+          name: zone.name || '',
+          description: zone.description || '',
+          area: zone.area || 0,
+          population: zone.population || 0,
+          employment: zone.employment || 0
+        },
+        geometry
+      };
+    });
+    
+    return {
+      type: 'FeatureCollection',
+      features
+    };
+  } catch (error) {
+    console.error('Error fetching zone geometry:', error);
+    // Return empty feature collection if error
+    return {
+      type: 'FeatureCollection',
+      features: []
+    };
+  }
 }
 
 /**
- * Get the default map type based on available providers
- * @returns Default map type key
+ * Fetches network link geometry data for a scenario
  */
-export function getDefaultMapType(): string {
-  // Always default to CARTO Voyager as it doesn't require an API key
-  return 'cartoVoyager';
+export async function fetchNetworkGeometry(scenarioId: string): Promise<GeoJSONCollection> {
+  const supabase = createClient();
+  
+  try {
+    // First get the organization ID from the scenario
+    const { data: scenario, error: scenarioError } = await supabase
+      .from('scenarios')
+      .select('organization_id')
+      .eq('id', scenarioId)
+      .single();
+    
+    if (scenarioError) throw scenarioError;
+    
+    // Fetch network link data for the organization
+    const { data: links, error: linksError } = await supabase
+      .from('network_links')
+      .select('*')
+      .eq('organization_id', scenario.organization_id);
+    
+    if (linksError) throw linksError;
+    
+    // Convert to GeoJSON format
+    const features: GeoJSONFeature[] = links.map(link => {
+      // Parse geometry from the database
+      let geometry: GeoJSONGeometry;
+      
+      try {
+        if (typeof link.geometry === 'string') {
+          geometry = JSON.parse(link.geometry);
+        } else if (link.geometry && typeof link.geometry === 'object') {
+          geometry = link.geometry as GeoJSONGeometry;
+        } else {
+          // Default geometry
+          geometry = {
+            type: 'LineString',
+            coordinates: [[0, 0], [0, 0]]
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing link geometry:', e);
+        // Default to a linestring if geometry is invalid
+        geometry = {
+          type: 'LineString',
+          coordinates: [[0, 0], [0, 0]]
+        };
+      }
+      
+      return {
+        type: 'Feature',
+        properties: {
+          id: link.id,
+          link_id: link.id,
+          name: link.name || '',
+          description: link.description || '',
+          length: link.length || 0,
+          capacity: link.capacity || 0,
+          speed_limit: link.speed_limit || 0,
+          link_type: link.link_type || ''
+        },
+        geometry
+      };
+    });
+    
+    return {
+      type: 'FeatureCollection',
+      features
+    };
+  } catch (error) {
+    console.error('Error fetching network geometry:', error);
+    // Return empty feature collection if error
+    return {
+      type: 'FeatureCollection',
+      features: []
+    };
+  }
+}
+
+/**
+ * Gets a color for a value based on a min-max range and color scheme
+ */
+export function getColorForValue(
+  value: number, 
+  min: number, 
+  max: number, 
+  colorScheme: 'red' | 'green' | 'blue' = 'blue'
+): string {
+  // Normalize value to 0-1 range
+  const normalizedValue = max === min ? 0.5 : (value - min) / (max - min);
+  
+  // Red color scheme (higher values are red - for negative metrics like congestion)
+  if (colorScheme === 'red') {
+    if (normalizedValue >= 0.8) return '#ef4444';
+    if (normalizedValue >= 0.6) return '#f97316';
+    if (normalizedValue >= 0.4) return '#facc15';
+    if (normalizedValue >= 0.2) return '#a3e635';
+    return '#22c55e';
+  }
+  
+  // Green color scheme (higher values are green - for positive metrics like transit share)
+  if (colorScheme === 'green') {
+    if (normalizedValue >= 0.8) return '#22c55e';
+    if (normalizedValue >= 0.6) return '#a3e635';
+    if (normalizedValue >= 0.4) return '#facc15';
+    if (normalizedValue >= 0.2) return '#f97316';
+    return '#ef4444';
+  }
+  
+  // Blue color scheme (higher values are darker blue - neutral)
+  if (normalizedValue >= 0.8) return '#1e40af';
+  if (normalizedValue >= 0.6) return '#3b82f6';
+  if (normalizedValue >= 0.4) return '#60a5fa';
+  if (normalizedValue >= 0.2) return '#93c5fd';
+  return '#bfdbfe';
 } 

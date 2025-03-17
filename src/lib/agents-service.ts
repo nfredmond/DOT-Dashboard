@@ -23,14 +23,18 @@ import {
   MCPRequestOptions
 } from './mcp-service';
 
+import { createClient } from '@/lib/supabase/client';
+
 /**
  * Types of agents available
  */
 export enum AgentType {
-  ANALYSIS = 'analysis',    // Project analysis (cost-benefit, environmental, equity, etc.)
-  PLANNING = 'planning',    // Project planning and scenario development
-  BROWSER = 'browser',      // Web browsing for research
-  COMPUTER = 'computer'     // Code/data interpretation and analysis
+  GENERAL = 'general',
+  SCENARIO_ANALYSIS = 'scenario_analysis',
+  SCENARIO_INSIGHTS = 'scenario_insights',
+  SCENARIO_ASPECT_ANALYSIS = 'scenario_aspect_analysis',
+  POLICY_RECOMMENDATIONS = 'policy_recommendations',
+  COMPARISON = 'comparison'
 }
 
 /**
@@ -48,13 +52,21 @@ export interface AgentContext {
  * Options for agent queries
  */
 export interface AgentQueryOptions {
-  prompt: string;
-  agentType: AgentType;
-  systemPrompt?: string;
-  maxTokens?: number;
+  context?: Record<string, any>;
+  modelName?: string;
   temperature?: number;
-  tools?: any[];
-  streamHandler?: (event: { type: string; delta?: string }) => void;
+  maxTokens?: number;
+}
+
+export interface AgentQueryResponse {
+  result: any;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  created?: number;
+  model?: string;
 }
 
 /**
@@ -73,42 +85,54 @@ function getOpenAIClient(): OpenAI {
 }
 
 /**
- * Run a query using an AI agent
+ * Run a query with an AI agent
  * 
- * This function will choose between OpenAI API and MCP server
- * based on available configuration and capabilities
- * 
- * @param options Query options 
- * @returns Response from the agent
+ * @param options The query options
+ * @returns The agent response
  */
-export async function runAgentQuery(
-  options: AgentQueryOptions
-): Promise<string> {
-  const { prompt, agentType, systemPrompt, maxTokens, tools, streamHandler } = options;
-  
-  const hasOpenAI = hasOpenAIAPIKey();
-  const hasMCP = hasMCPAgentCapability(agentType);
-  const preferMCP = shouldPreferMCPOverOpenAI();
-  
-  if ((preferMCP || !hasOpenAI) && hasMCP) {
-    return runMCPAgentQuery({
-      prompt,
-      agentType,
-      systemPrompt,
-      maxTokens,
-      streamHandler
+export async function runAgentQuery(options: {
+  type: AgentType;
+  query: string;
+  context?: Record<string, any>;
+  modelName?: string;
+  temperature?: number;
+  maxTokens?: number;
+}): Promise<AgentQueryResponse> {
+  try {
+    const supabase = createClient();
+    
+    const { data: user } = await supabase.auth.getUser();
+    
+    if (!user || !user.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Prepare the API payload
+    const payload = {
+      type: options.type,
+      query: options.query,
+      context: options.context || {},
+      modelConfig: {
+        modelName: options.modelName || 'claude-3-sonnet-20240229',
+        temperature: options.temperature || 0.7,
+        maxTokens: options.maxTokens || 4000
+      }
+    };
+    
+    // Call the Edge Function
+    const { data, error } = await supabase.functions.invoke('run-agent', {
+      body: payload
     });
-  } else if (hasOpenAI) {
-    return runOpenAIFallbackQuery({
-      prompt,
-      agentType,
-      systemPrompt,
-      maxTokens,
-      tools,
-      streamHandler
-    });
-  } else {
-    throw new Error('No agent service is available. Please configure either OpenAI API key or MCP servers.');
+    
+    if (error) {
+      console.error('Error running agent query:', error);
+      throw error;
+    }
+    
+    return data as AgentQueryResponse;
+  } catch (error) {
+    console.error('Error in runAgentQuery:', error);
+    throw error;
   }
 }
 
@@ -136,8 +160,9 @@ export async function runAgentQueryStreamed(
   // Run the query with streaming
   try {
     fullResponse = await runAgentQuery({
-      prompt: enhancedQuery,
-      agentType,
+      type: agentType,
+      query: enhancedQuery,
+      context: context,
       streamHandler: onEvent ? (event) => {
         // Forward the event to the callback
         onEvent(event);
@@ -337,5 +362,108 @@ function getSystemPromptForAgent(agentType: AgentType): string {
     
     default:
       return "You are an AI assistant helping with transportation planning tasks.";
+  }
+}
+
+/**
+ * Format scenario data for agent consumption
+ * 
+ * @param scenarioId Scenario ID
+ * @param includeResults Whether to include results
+ * @returns Formatted scenario data
+ */
+export async function formatScenarioForAgent(scenarioId: string, includeResults = true): Promise<Record<string, any>> {
+  try {
+    const supabase = createClient();
+    
+    // Get scenario data
+    const { data: scenario, error: scenarioError } = await supabase
+      .from('scenarios')
+      .select(`
+        *,
+        ${includeResults ? 'results:scenario_results(*),' : ''}
+        baseline:baseline_scenario_id(id, name)
+      `)
+      .eq('id', scenarioId)
+      .single();
+    
+    if (scenarioError || !scenario) {
+      console.error('Error fetching scenario:', scenarioError);
+      throw new Error('Failed to fetch scenario data');
+    }
+    
+    // Format the data for the agent
+    return {
+      id: scenario.id,
+      name: scenario.name,
+      description: scenario.description,
+      baseYear: scenario.base_year,
+      horizonYears: scenario.horizon_years,
+      assumptions: scenario.assumptions,
+      policyPackages: scenario.policy_packages,
+      tags: scenario.tags,
+      baseline: scenario.baseline,
+      results: scenario.results,
+      createdAt: scenario.created_at,
+      updatedAt: scenario.updated_at
+    };
+  } catch (error) {
+    console.error('Error formatting scenario for agent:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get AI-powered policy recommendations based on scenario results
+ * 
+ * @param scenarioId Scenario ID
+ * @returns Policy recommendations
+ */
+export async function getPolicyRecommendations(scenarioId: string): Promise<any> {
+  try {
+    // Format scenario data
+    const scenarioData = await formatScenarioForAgent(scenarioId);
+    
+    // Run agent query
+    const response = await runAgentQuery({
+      type: AgentType.POLICY_RECOMMENDATIONS,
+      query: 'Recommend policies to improve this scenario',
+      context: { scenario: scenarioData }
+    });
+    
+    return response.result;
+  } catch (error) {
+    console.error('Error getting policy recommendations:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get AI-powered comparison between two scenarios
+ * 
+ * @param scenarioId1 First scenario ID
+ * @param scenarioId2 Second scenario ID
+ * @returns Comparison results
+ */
+export async function compareScenarios(scenarioId1: string, scenarioId2: string): Promise<any> {
+  try {
+    // Format scenario data
+    const scenario1Data = await formatScenarioForAgent(scenarioId1);
+    const scenario2Data = await formatScenarioForAgent(scenarioId2);
+    
+    // Run agent query
+    const response = await runAgentQuery({
+      type: AgentType.COMPARISON,
+      query: 'Compare these two scenarios',
+      context: {
+        scenario1: scenario1Data,
+        scenario2: scenario2Data
+      }
+    });
+    
+    return response.result;
+  } catch (error) {
+    console.error('Error comparing scenarios:', error);
+    throw error;
   }
 } 

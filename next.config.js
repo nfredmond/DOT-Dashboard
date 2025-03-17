@@ -75,8 +75,26 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'i.imgur.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'planningmanager.ai',
+      },
     ],
   },
+  // Add the new domain in the headers configuration
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: `default-src 'self' https://planningmanager.ai; img-src 'self' data: https://i.imgur.com https://planningmanager.ai; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';`
+          }
+        ]
+      }
+    ];
+  }
 };
 
 module.exports = nextConfig; 
