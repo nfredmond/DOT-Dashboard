@@ -69,7 +69,7 @@ export function createMockClient(): MockSupabaseClient {
   return {
     from: (table: string): MockTable => {
       return {
-        select: (columns?: string) => {
+        select: (_columns?: string) => {
           return {
             eq: (column: string, value: any) => mockQuery(table, [{ column, value, op: 'eq' }]),
             neq: (column: string, value: any) => mockQuery(table, [{ column, value, op: 'neq' }]),
@@ -103,7 +103,7 @@ export function createMockClient(): MockSupabaseClient {
         },
         insert: (data: any) => {
           return {
-            select: (columns?: string) => mockQuery(table),
+            select: (_columns?: string) => mockQuery(table),
             then: (callback) => {
               // In a real implementation, this would add to the table
               return Promise.resolve(callback({
@@ -113,7 +113,7 @@ export function createMockClient(): MockSupabaseClient {
             }
           };
         },
-        update: (data: any) => {
+        update: (_data: any) => {
           return mockQuery(table);
         },
         delete: () => {
@@ -127,7 +127,7 @@ export function createMockClient(): MockSupabaseClient {
       signUp: async () => ({ data: { user: {}, session: null }, error: null }),
       user: () => tables.users[0],
       session: () => ({}),
-      onAuthStateChange: (callback) => ({ data: { subscription: { unsubscribe: () => {} } } })
+      onAuthStateChange: (_callback) => ({ data: { subscription: { unsubscribe: () => {} } } })
     }
   };
 }

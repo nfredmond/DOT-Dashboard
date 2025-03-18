@@ -8,18 +8,13 @@
 import { OpenAI } from 'openai';
 import { getEnvVariable } from './env-service';
 import {
-  hasMCPAgentCapability,
   chooseBestMCPServerForAgent,
-  formatMCPAgentRequest,
-  processMCPAgentResponseChunks,
-  shouldPreferMCPOverOpenAI,
-  hasOpenAIAPIKey
+  processMCPAgentResponseChunks
 } from './mcp-agents-utils';
 
 import {
   sendMCPRequest,
   MCPCapability,
-  MCPServerConfig,
   MCPRequestOptions
 } from './mcp-service';
 

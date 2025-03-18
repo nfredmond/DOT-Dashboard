@@ -115,7 +115,7 @@ let SAMPLE_PROJECTS: ProjectMarker[] = [
 export function updateProjectsData(projects: ProjectMarker[]): void {
   if (Array.isArray(projects) && projects.length > 0) {
     SAMPLE_PROJECTS = projects;
-    console.log(`Updated projects data with ${projects.length} projects`);
+    logger.log(`Updated projects data with ${projects.length} projects`);
     
     // Refresh the map if it's already initialized
     if (typeof window !== 'undefined' && window.leafletMapInstance) {
@@ -226,7 +226,7 @@ function getColorForStatus(status: string): string {
 }
 
 // Get icon URL based on project category
-function getIconUrl(category: string): string {
+function _getIconUrl(_category: string): string {
   const defaultIcon = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
   
   // In a real implementation, you would have category-specific icons
@@ -542,12 +542,12 @@ function setupSearchControl(map: L.Map): void {
       script.async = true;
       
       script.onload = () => {
-        console.log('Geocoder script loaded');
+        logger.log('Geocoder script loaded');
         initializeSearchControl(map);
       };
       
       script.onerror = (error) => {
-        console.error('Error loading geocoder script:', error);
+        logger.error('Error loading geocoder script:', error);
       };
       
       document.head.appendChild(script);
@@ -556,7 +556,7 @@ function setupSearchControl(map: L.Map): void {
       initializeSearchControl(map);
     }
   } catch (error) {
-    console.error('Error setting up search control:', error);
+    logger.error('Error setting up search control:', error);
   }
 }
 
@@ -564,7 +564,7 @@ function setupSearchControl(map: L.Map): void {
 function initializeSearchControl(map: L.Map): void {
   try {
     if (!window.L.Control.Geocoder) {
-      console.error('Geocoder control not available');
+      logger.error('Geocoder control not available');
       return;
     }
     
@@ -662,9 +662,9 @@ function initializeSearchControl(map: L.Map): void {
     
     // Add the control to the map
     controlContainer.addTo(map);
-    console.log('Added search control to map');
+    logger.log('Added search control to map');
   } catch (error) {
-    console.error('Error initializing search control:', error);
+    logger.error('Error initializing search control:', error);
   }
 }
 
@@ -725,9 +725,9 @@ function setupGeolocation(map: L.Map): void {
     };
     
     locateControl.addTo(map);
-    console.log('Added geolocation control to map');
+    logger.log('Added geolocation control to map');
   } catch (error) {
-    console.error('Error setting up geolocation:', error);
+    logger.error('Error setting up geolocation:', error);
   }
 }
 
@@ -853,7 +853,7 @@ function getUserLocation(map: L.Map): void {
       },
       // Error handler
       (error) => {
-        console.error('Error getting user location:', error);
+        logger.error('Error getting user location:', error);
         
         // Update loading indicator with error message
         if (loadingContainer.parentNode) {
@@ -919,7 +919,7 @@ function getUserLocation(map: L.Map): void {
       }
     );
   } catch (error) {
-    console.error('Error with geolocation:', error);
+    logger.error('Error with geolocation:', error);
   }
 }
 
@@ -929,7 +929,7 @@ export function focusProjectMarker(projectId: string): void {
   
   const feature = projectFeatures[projectId];
   if (!feature) {
-    console.warn(`No feature found for project ID: ${projectId}`);
+    logger.warn(`No feature found for project ID: ${projectId}`);
     return;
   }
   
@@ -953,7 +953,7 @@ export function focusProjectMarker(projectId: string): void {
     const bounds = feature.getBounds();
     const center = bounds.getCenter();
     
-    const popup = window.L.popup()
+    const _popup = window.L.popup()
       .setLatLng(center)
       .setContent(createPopupContent(feature.projectData || SAMPLE_PROJECTS[0]))
       .openOn(window.leafletMapInstance);
@@ -985,7 +985,7 @@ function highlightFeature(feature: LeafletFeature): void {
         });
       }
     } catch (e) {
-      console.warn('Error resetting feature style:', e);
+      logger.warn('Error resetting feature style:', e);
     }
   });
   
@@ -1010,7 +1010,7 @@ function highlightFeature(feature: LeafletFeature): void {
       }
     }
   } catch (e) {
-    console.warn('Error highlighting feature:', e);
+    logger.warn('Error highlighting feature:', e);
   }
 }
 
@@ -1067,7 +1067,7 @@ function refreshMapFeatures(): void {
         // Add click handler for all feature types
         feature.on('click', () => {
           // Log the click
-          console.log(`Feature clicked for project: ${project.name}`);
+          logger.log(`Feature clicked for project: ${project.name}`);
           
           // Highlight the feature
           highlightFeature(feature as LeafletFeature);
@@ -1090,13 +1090,13 @@ function refreshMapFeatures(): void {
         const group = window.L.featureGroup(allFeatures);
         map.fitBounds(group.getBounds().pad(0.2));
       } catch (e) {
-        console.warn('Error fitting bounds:', e);
+        logger.warn('Error fitting bounds:', e);
       }
     }
     
-    console.log('Refreshed map features successfully');
+    logger.log('Refreshed map features successfully');
   } catch (error) {
-    console.error('Error refreshing map features:', error);
+    logger.error('Error refreshing map features:', error);
   }
 }
 
@@ -1162,7 +1162,7 @@ function createMarkerForProject(project: ProjectMarker): LeafletFeature {
   }
   
   // Fallback for incomplete data - create a simple marker at a default position
-  console.warn('Incomplete project data for', project.name);
+  logger.warn('Incomplete project data for', project.name);
   const defaultMarker = L.marker([39.2615, -121.0149], {
     title: project.name + ' (Location Approximated)',
     icon: getMarkerIcon(project)
@@ -1193,18 +1193,18 @@ function getMarkerIcon(project: ProjectMarker): any {
 export function initializeDirectMap(containerId: string, config?: Partial<MapConfig>): void {
   if (typeof window === 'undefined') return;
   
-  console.log(`Attempting direct map initialization for container ${containerId}`);
+  logger.log(`Attempting direct map initialization for container ${containerId}`);
   
   // Make sure Leaflet is loaded
   if (!window.L) {
-    console.error('Leaflet is not loaded. Cannot initialize map.');
+    logger.error('Leaflet is not loaded. Cannot initialize map.');
     return;
   }
   
   // Get the container element
   const container = document.getElementById(containerId);
   if (!container) {
-    console.error(`Container with ID ${containerId} not found.`);
+    logger.error(`Container with ID ${containerId} not found.`);
     return;
   }
   
@@ -1220,11 +1220,11 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
     // Force layout recalculation
     container.getBoundingClientRect();
     
-    console.log(`Container dimensions: ${container.clientWidth}x${container.clientHeight}`);
+    logger.log(`Container dimensions: ${container.clientWidth}x${container.clientHeight}`);
     
     // Check if the map is already initialized in this container
     if (container.querySelector('.leaflet-container')) {
-      console.warn('Map already exists in container. Skipping initialization.');
+      logger.warn('Map already exists in container. Skipping initialization.');
       return;
     }
     
@@ -1317,7 +1317,7 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
         // Add click handler for all feature types
         feature.on('click', () => {
           // Log the click
-          console.log(`Feature clicked for project: ${project.name}`);
+          logger.log(`Feature clicked for project: ${project.name}`);
           
           // Highlight the feature
           highlightFeature(feature as LeafletFeature);
@@ -1343,39 +1343,39 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
         const group = window.L.featureGroup(allFeatures);
         map.fitBounds(group.getBounds().pad(0.2));
       } catch (e) {
-        console.warn('Error fitting bounds:', e);
+        logger.warn('Error fitting bounds:', e);
       }
     }
     
     // Force a resize to ensure correct dimensions
     setTimeout(() => {
       map.invalidateSize(true);
-      console.log('Map size invalidated after creation');
+      logger.log('Map size invalidated after creation');
     }, 500);
     
-    console.log('Map initialized successfully with direct DOM method');
+    logger.log('Map initialized successfully with direct DOM method');
     
     // Dispatch event to notify that map is ready
     const event = new CustomEvent('leaflet-map-ready');
     window.dispatchEvent(event);
     
   } catch (error) {
-    console.error('Error initializing Leaflet map:', error);
+    logger.error('Error initializing Leaflet map:', error);
   }
 }
 
 export function cleanupDirectMap(): void {
   if (typeof window === 'undefined') return;
   
-  console.log('Cleaning up direct map implementation');
+  logger.log('Cleaning up direct map implementation');
   
   if (window.leafletMapInstance) {
     try {
       window.leafletMapInstance.remove();
       window.leafletMapInstance = null;
-      console.log('Map instance removed');
+      logger.log('Map instance removed');
     } catch (e) {
-      console.warn('Error removing map instance:', e);
+      logger.warn('Error removing map instance:', e);
     }
   }
   
@@ -1401,9 +1401,9 @@ export function cleanupDirectMap(): void {
       window.dismissSearchButton = null;
     }
     
-    console.log('Removed Leaflet DOM elements');
+    logger.log('Removed Leaflet DOM elements');
   } catch (e) {
-    console.warn('Error cleaning up Leaflet DOM elements:', e);
+    logger.warn('Error cleaning up Leaflet DOM elements:', e);
   }
 }
 
@@ -1433,6 +1433,8 @@ if (typeof window !== 'undefined') {
   });
   
   // Watch for theme changes from manual toggles (class changes on document)
+import logger from '../../lib/logger';
+
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -1471,7 +1473,7 @@ if (typeof window !== 'undefined') {
   // Listen for localStorage changes
   document.addEventListener('localStorage', (e: any) => {
     if (e.detail && e.detail.key === 'theme' && window.leafletMapInstance) {
-      console.log('Theme changed in localStorage:', e.detail.value);
+      logger.log('Theme changed in localStorage:', e.detail.value);
       // Refresh the map features to update popup styles
       setTimeout(refreshMapFeatures, 0);
     }

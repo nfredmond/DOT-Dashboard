@@ -12,8 +12,6 @@ import {
   CAMPModelParams, 
   CAMPModelResults, 
   CAMPRunRequest,
-  Zone,
-  NetworkLink,
   LinkFlow,
   ODMatrix,
   ModeShare
@@ -21,7 +19,6 @@ import {
 import { runAgentQuery, AgentType } from './agents-service';
 import { AgentContext } from './agents-service';
 import { initSupabaseClient } from './supabase-service';
-import { CAMPModelType } from '@/types/camp';
 
 // Initialize Supabase client
 const supabaseClient = initSupabaseClient();

@@ -8,7 +8,7 @@ export default function DebugAppStructure() {
     console.log("Debug component mounted");
     
     // Check if all required JS and CSS files are loaded
-    const requiredFiles = [
+    const _requiredFiles = [
       'layout.css',
       'page.js',
       'main-app.js',

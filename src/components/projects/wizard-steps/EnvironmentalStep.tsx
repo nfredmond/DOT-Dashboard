@@ -35,7 +35,7 @@ interface EnvironmentalFormData {
   environmentalClearanceDate: string;
 }
 
-const EnvironmentalStep: React.FC<EnvironmentalStepProps> = ({ projectData, onSave, errors }) => {
+const EnvironmentalStep: React.FC<EnvironmentalStepProps> = ({ projectData, onSave, _errors }) => {
   const { config } = useProjectWizard();
   
   const [formData, setFormData] = useState<EnvironmentalFormData>({

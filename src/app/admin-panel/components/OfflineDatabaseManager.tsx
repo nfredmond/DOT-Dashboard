@@ -5,7 +5,6 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
@@ -54,7 +53,7 @@ export function OfflineDatabaseManager() {
   const [config, setConfig] = useState<OfflineDatabaseConfig | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncResults, setSyncResults] = useState<{ synced: number; errors: number } | null>(null);
-  const [availableTables, setAvailableTables] = useState<string[]>([
+  const [availableTables, _setAvailableTables] = useState<string[]>([
     'projects',
     'users',
     'comments',

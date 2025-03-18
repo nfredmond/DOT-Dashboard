@@ -16,11 +16,8 @@ import {
   Marker, 
   Popup, 
   useMapEvents,
-  ZoomControl as LeafletZoomControl,
-  AttributionControl,
   GeoJSON
 } from 'react-leaflet';
-import { divIcon } from 'leaflet';
 import { SearchControl } from './SearchControl';
 import { LayerSelector, BaseMapOption, OverlayLayer } from './LayerSelector';
 import { GeolocateControl } from './GeolocateControl';
@@ -31,8 +28,7 @@ import { getMapForUser } from '@/lib/map-config-service';
 import { getMapTiles } from '@/lib/map-service';
 import { AuthContext } from '@/contexts/AuthContext';
 import 'leaflet/dist/leaflet.css';
-import { cleanupLeafletMapById, resetLeafletGlobalState, markContainerAsInitialized, isContainerInitialized } from '@/lib/leaflet-cleanup';
-import LeafletMapWrapper from '@/lib/LeafletMapWrapper';
+import { cleanupLeafletMapById, resetLeafletGlobalState, markContainerAsInitialized } from '@/lib/leaflet-cleanup';
 
 // Add the leafletMapInstance property to the Window interface
 declare global {
@@ -188,8 +184,8 @@ function MapEventHandler() {
 // GeoJSON Layer component for map overlays
 function GeoJSONLayer({ url, visible }: { url: string, visible: boolean }) {
   const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_loading, setLoading] = useState(false);
+  const [_error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     if (!visible) return;
@@ -250,8 +246,8 @@ export function ProjectMapping({
   // Set safe default if context is missing
   const user = authContext?.user || null;
   
-  const { leafletLoaded, leafletInstance } = useLeaflet();
-  const mapRef = useRef(null);
+  const { leafletLoaded, _leafletInstance } = useLeaflet();
+  const _mapRef = useRef(null);
   
   // Track map initialization state
   const [isMapInitialized, setIsMapInitialized] = useState(false);
@@ -263,12 +259,12 @@ export function ProjectMapping({
   const mapId = useRef(`map-${Math.random().toString(36).substr(2, 9)}`);
 
   // State
-  const [activeBasemap, setActiveBasemap] = useState<BaseMapOption>(DEFAULT_BASE_MAPS[0]);
-  const [availableBasemaps, setAvailableBasemaps] = useState<BaseMapOption[]>(DEFAULT_BASE_MAPS);
-  const [activeOverlays, setActiveOverlays] = useState<OverlayLayer[]>([]);
-  const [availableOverlays, setAvailableOverlays] = useState<OverlayLayer[]>([]);
+  const [_activeBasemap, _setActiveBasemap] = useState<BaseMapOption>(DEFAULT_BASE_MAPS[0]);
+  const [_availableBasemaps, _setAvailableBasemaps] = useState<BaseMapOption[]>(DEFAULT_BASE_MAPS);
+  const [_activeOverlays, _setActiveOverlays] = useState<OverlayLayer[]>([]);
+  const [_availableOverlays, _setAvailableOverlays] = useState<OverlayLayer[]>([]);
   const [mapReady, setMapReady] = useState(false);
-  const [showAttribution, setShowAttribution] = useState(true);
+  const [showAttribution, _setShowAttribution] = useState(true);
 
   // Import LeafletMapWrapper dynamically to prevent SSR issues
   const LeafletMapWrapper = useMemo(() => 
@@ -420,7 +416,7 @@ export function ProjectMapping({
   }, [selectedProject, localProjects]);
   
   // Get map configuration from map-config-service
-  const [mapConfig, setMapConfig] = useState(() => {
+  const [mapConfig, _setMapConfig] = useState(() => {
     try {
       return getMapForUser(user?.id || 'all');
     } catch (error) {

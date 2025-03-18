@@ -17,8 +17,6 @@
 
 import { transcribeSpeech, VoiceSettings, defaultVoiceSettings } from './voice-service';
 import type { AgentContext } from './agent-sdk';
-import { processWithLLM } from '@/lib/llm-service';
-import { MCPRequest, MCPResponse, processWithMCP } from '@/lib/mcp-service';
 
 /**
  * Result of processing a voice command

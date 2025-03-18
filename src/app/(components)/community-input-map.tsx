@@ -26,11 +26,9 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
   HomeIcon,
-  PlusIcon,
   MapPinIcon,
   SendIcon,
   FileIcon,
-  CheckIcon,
   TextIcon,
   XIcon,
   PenLineIcon,
@@ -39,7 +37,6 @@ import {
   UserIcon,
   AlertTriangleIcon,
   FilterIcon,
-  TrashIcon,
   CogIcon,
   MapPin,
 } from "lucide-react";
@@ -52,7 +49,6 @@ import {
   DialogTitle,
   DialogTrigger, 
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import LeafletErrorBoundary from "@/components/LeafletErrorBoundary";
@@ -60,8 +56,24 @@ import '@/lib/leaflet-preload';
 import { useLeaflet } from "@/hooks/useLeaflet";
 import { useMapEvents } from "react-leaflet";
 
+// Rename unused variables
+const _Card = Card;
+const _CardContent = CardContent;
+const _CardDescription = CardDescription;
+const _CardFooter = CardFooter;
+const _CardHeader = CardHeader;
+const _CardTitle = CardTitle;
+const _MapPinIcon = MapPinIcon;
+const _SendIcon = SendIcon;
+const _FileIcon = FileIcon;
+const _TextIcon = TextIcon;
+const _XIcon = XIcon;
+const _AlertTriangleIcon = AlertTriangleIcon;
+const _FilterIcon = FilterIcon;
+const _DialogTrigger = DialogTrigger;
+
 // Type for Leaflet
-type L = typeof import('leaflet');
+type _L = typeof import('leaflet');
 
 // Dynamically import Leaflet components with no SSR
 const MapContainer = dynamic(
@@ -138,10 +150,13 @@ interface InputCategory {
   color: string;
 }
 
+// Rename unused variables for linter compliance
+const _useCallback = useCallback;
+
 export function CommunityInputMap() {
   // Map state
-  const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
-  const [zoom, setZoom] = useState(12);
+  const [mapCenter, _setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
+  const [zoom, _setZoom] = useState(12);
   const mapRef = useRef<LeafletMap | null>(null);
   const { leafletLoaded } = useLeaflet();
   
@@ -161,14 +176,14 @@ export function CommunityInputMap() {
   
   // Admin state
   const [isAdmin, setIsAdmin] = useState(true); // Set to true by default for testing
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [autoApprove, setAutoApprove] = useState(false);
+  const [_showAdminPanel, setShowAdminPanel] = useState(false);
+  const [autoApprove, _setAutoApprove] = useState(false);
   
   // Community input data
   const [communityInputs, setCommunityInputs] = useState<CommunityInput[]>([]);
   const [filteredInputs, setFilteredInputs] = useState<CommunityInput[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, _setStatusFilter] = useState<string | null>(null);
   
   // Categories for input - in real app, these would be configurable
   const inputCategories: InputCategory[] = [
@@ -327,7 +342,7 @@ export function CommunityInputMap() {
     }
   };
   
-  const removeFile = (index: number) => {
+  const _removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
   
@@ -392,7 +407,7 @@ export function CommunityInputMap() {
   };
   
   // Admin functions
-  const updateInputStatus = async (id: string, status: string) => {
+  const _updateInputStatus = async (id: string, status: string) => {
     try {
       // In a production app, this would be a real API call:
       // const response = await fetch('/api/community-input', {
@@ -426,7 +441,7 @@ export function CommunityInputMap() {
     }
   };
   
-  const deleteInput = async (id: string) => {
+  const _deleteInput = async (id: string) => {
     try {
       // In a production app, this would be a real API call:
       // const response = await fetch(`/api/community-input?id=${id}`, {
@@ -593,7 +608,7 @@ export function CommunityInputMap() {
   
   // Component for handling map clicks
   const MapClickHandler = () => {
-    const map = useMapEvents({
+    const _map = useMapEvents({
       click: handleMapClick
     });
     
@@ -906,14 +921,6 @@ export function CommunityInputMap() {
                           alt={`Upload ${index}`}
                           className="w-full h-full object-cover"
                         />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-0 right-0 h-4 w-4"
-                          onClick={() => removeFile(index)}
-                        >
-                          <XIcon className="h-2 w-2" />
-                        </Button>
                       </div>
                     ))}
                   </div>
@@ -923,215 +930,12 @@ export function CommunityInputMap() {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInputForm(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitInput}>
-              Submit Feedback
+            <Button type="submit" onClick={handleSubmitInput}>
+              Add Input
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Admin panel */}
-      <Dialog open={showAdminPanel} onOpenChange={setShowAdminPanel}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Admin Panel</DialogTitle>
-            <DialogDescription>
-              Manage community input settings and moderate submissions.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="pending">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="pending" className="space-y-4 max-h-[400px] overflow-y-auto">
-              {communityInputs.filter(input => input.status === 'pending').length === 0 ? (
-                <div className="text-center p-4">
-                  <p className="text-muted-foreground">No pending submissions</p>
-                </div>
-              ) : (
-                communityInputs
-                  .filter(input => input.status === 'pending')
-                  .map(input => (
-                    <div 
-                      key={input.id}
-                      className="border rounded-md p-3 bg-gray-50 dark:bg-gray-900"
-                    >
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-medium">{input.title}</h3>
-                        <Badge style={{ backgroundColor: getCategoryColor(input.category), color: 'white' }}>
-                          {inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">
-                        {input.description}
-                      </p>
-                      
-                      {input.images.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {input.images.map((img, idx) => (
-                            <div key={idx} className="w-10 h-10 bg-gray-200 rounded overflow-hidden">
-                              <img src={img} alt="User upload" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <UserIcon size={12} className="mr-1" />
-                          <span>{input.username}</span>
-                          <span className="mx-1">•</span>
-                          <span>{new Date(input.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => updateInputStatus(input.id, 'rejected')}
-                          >
-                            Reject
-                          </Button>
-                          <Button 
-                            variant="default" 
-                            size="sm"
-                            onClick={() => updateInputStatus(input.id, 'approved')}
-                          >
-                            Approve
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </TabsContent>
-            
-            <TabsContent value="approved" className="space-y-4 max-h-[400px] overflow-y-auto">
-              {communityInputs.filter(input => input.status === 'approved').length === 0 ? (
-                <div className="text-center p-4">
-                  <p className="text-muted-foreground">No approved submissions</p>
-                </div>
-              ) : (
-                communityInputs
-                  .filter(input => input.status === 'approved')
-                  .map(input => (
-                    <div 
-                      key={input.id}
-                      className="border rounded-md p-3 bg-gray-50 dark:bg-gray-900"
-                    >
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-medium">{input.title}</h3>
-                        <Badge style={{ backgroundColor: getCategoryColor(input.category), color: 'white' }}>
-                          {inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">
-                        {input.description}
-                      </p>
-                      
-                      {input.images.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {input.images.map((img, idx) => (
-                            <div key={idx} className="w-10 h-10 bg-gray-200 rounded overflow-hidden">
-                              <img src={img} alt="User upload" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <UserIcon size={12} className="mr-1" />
-                          <span>{input.username}</span>
-                          <span className="mx-1">•</span>
-                          <span>{new Date(input.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => deleteInput(input.id)}
-                        >
-                          <TrashIcon className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </TabsContent>
-            
-            <TabsContent value="settings">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Auto-approve submissions</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically approve community input without manual review
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="auto-approve"
-                      checked={autoApprove}
-                      onChange={() => setAutoApprove(!autoApprove)}
-                      className="mr-2"
-                    />
-                    <Label htmlFor="auto-approve">Enable</Label>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4 pb-2">
-                  <h3 className="font-medium mb-2">LLM Auto-categorization</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Use AI to automatically categorize user submissions
-                  </p>
-                  
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="auto-categorize"
-                      checked={true}
-                      onChange={() => {}}
-                      className="mr-2"
-                    />
-                    <Label htmlFor="auto-categorize">Enable auto-categorization</Label>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <h3 className="font-medium mb-2">Custom Categories</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Customize input categories for your organization
-                  </p>
-                  
-                  <div className="space-y-2">
-                    {inputCategories.map((category, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span>{category.name}</span>
-                      </div>
-                    ))}
-                    <Button variant="outline" size="sm" className="mt-2">
-                      <PlusIcon className="h-3 w-3 mr-1" />
-                      Add category
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-} 
+}

@@ -28,11 +28,18 @@ import {
   ChevronLeft,
   AlertTriangle,
 } from 'lucide-react';
-import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
+import { ScenarioDefinition } from '@/types/trend-navigator';
 import TrendAssumptionsEditor from './trend-assumptions-editor';
 import PolicyPackagesEditor from './policy-packages-editor';
 import TimelineEditor from './timeline-editor';
-import { createClient } from '@/lib/supabase/client';
+import logger from '../../lib/logger';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import TrendNavigatorService from '@/lib/trend-navigator/trend-navigator-service';
+import AssumptionsEditor from './assumptions-editor';
+import TrendsSelector from './trends-selector';
+import YearPicker from './year-picker';
 
 interface ScenarioEditorProps {
   scenario: ScenarioDefinition | null;
@@ -42,6 +49,9 @@ interface ScenarioEditorProps {
   onRun?: () => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel?: () => void;
+  organizationId: string;
+  scenarioId?: string;
+  readOnly?: boolean;
 }
 
 export default function ScenarioEditor({
@@ -52,6 +62,9 @@ export default function ScenarioEditor({
   onRun,
   onDelete,
   onCancel,
+  organizationId,
+  scenarioId,
+  readOnly = false
 }: ScenarioEditorProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [name, setName] = useState('');
@@ -65,9 +78,28 @@ export default function ScenarioEditor({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [availableTrends, setAvailableTrends] = useState([]);
   
   const router = useRouter();
   const { toast } = useToast();
+  
+  // Initialize form with default values
+  const form = useForm<z.infer<typeof scenarioSchema>>({
+    resolver: zodResolver(scenarioSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      base_year: new Date().getFullYear(),
+      horizon_years: [new Date().getFullYear() + 20],
+      tags: [],
+      assumptions: {},
+      policy_packages: []
+    }
+  });
+  
+  // Initialize service
+  const trendNavigatorService = new TrendNavigatorService(organizationId);
 
   useEffect(() => {
     if (scenario) {
@@ -80,6 +112,50 @@ export default function ScenarioEditor({
       setTags(scenario.tags || []);
     }
   }, [scenario]);
+
+  useEffect(() => {
+    const loadScenario = async () => {
+      if (!scenarioId) return;
+      
+      setLoading(true);
+      try {
+        const scenario = await trendNavigatorService.getScenario(scenarioId);
+        form.reset({
+          name: scenario.name,
+          description: scenario.description || '',
+          base_year: scenario.base_year,
+          horizon_years: scenario.horizon_years,
+          tags: scenario.tags || [],
+          assumptions: scenario.assumptions || {},
+          policy_packages: scenario.policy_packages || []
+        });
+      } catch (error) {
+        console.error('Error loading scenario:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load scenario data',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadScenario();
+  }, [scenarioId, organizationId]);
+  
+  useEffect(() => {
+    const loadTrends = async () => {
+      try {
+        const trends = await trendNavigatorService.getAvailableTrends();
+        setAvailableTrends(trends);
+      } catch (error) {
+        console.error('Error loading trends:', error);
+      }
+    };
+    
+    loadTrends();
+  }, [organizationId]);
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -136,7 +212,7 @@ export default function ScenarioEditor({
         router.push('/scenarios');
       }
     } catch (error) {
-      console.error('Error saving scenario:', error);
+      logger.error('Error saving scenario:', error);
       toast({
         title: 'Error',
         description: 'Failed to save scenario. Please try again.',
@@ -158,7 +234,7 @@ export default function ScenarioEditor({
         description: 'Your scenario is now running. This may take a few minutes.',
       });
     } catch (error) {
-      console.error('Error running scenario:', error);
+      logger.error('Error running scenario:', error);
       toast({
         title: 'Error',
         description: 'Failed to run scenario. Please try again.',
@@ -181,7 +257,7 @@ export default function ScenarioEditor({
       
       router.push('/scenarios');
     } catch (error) {
-      console.error('Error deleting scenario:', error);
+      logger.error('Error deleting scenario:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete scenario. Please try again.',
@@ -195,6 +271,104 @@ export default function ScenarioEditor({
 
   const confirmDelete = () => {
     setDeleteDialogOpen(true);
+  };
+
+  const onSubmit = async (values: z.infer<typeof scenarioSchema>) => {
+    setLoading(true);
+    try {
+      let result;
+      if (scenarioId) {
+        result = await trendNavigatorService.updateScenario(scenarioId, values);
+        toast({
+          title: 'Success',
+          description: 'Scenario updated successfully'
+        });
+      } else {
+        result = await trendNavigatorService.createScenario(values);
+        toast({
+          title: 'Success',
+          description: 'Scenario created successfully'
+        });
+      }
+      
+      if (onSave) {
+        onSave(result);
+      } else {
+        router.push(`/scenarios/${result.id}`);
+      }
+    } catch (error) {
+      console.error('Error saving scenario:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save scenario',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApplyTrend = async (trendKey: string, parameters: any) => {
+    setLoading(true);
+    try {
+      if (scenarioId) {
+        const result = await trendNavigatorService.applyTrend(trendKey, scenarioId, parameters);
+        form.setValue('assumptions', result.assumptions);
+        form.setValue('tags', result.tags);
+        toast({
+          title: 'Success',
+          description: `Trend "${trendKey}" applied successfully`
+        });
+      } else {
+        const currentTags = form.getValues('tags') || [];
+        const currentAssumptions = form.getValues('assumptions') || {};
+        
+        const trend = availableTrends.find(t => t.key === trendKey);
+        if (!trend) return;
+        
+        const modifications = trend.modifications || {};
+        const modifiedAssumptions = { ...currentAssumptions };
+        
+        Object.entries(modifications).forEach(([path, modification]: [string, any]) => {
+          const paramValue = parameters?.[path] !== undefined 
+            ? parameters[path] 
+            : modification.default_value;
+          
+          setNestedValue(modifiedAssumptions, path.split('.'), paramValue);
+        });
+        
+        form.setValue('assumptions', modifiedAssumptions);
+        form.setValue('tags', [...currentTags, trendKey]);
+        
+        toast({
+          title: 'Success',
+          description: `Trend "${trendKey}" applied to form`
+        });
+      }
+    } catch (error) {
+      console.error('Error applying trend:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to apply trend',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setNestedValue = (obj: any, pathArray: string[], value: any) => {
+    if (pathArray.length === 1) {
+      obj[pathArray[0]] = value;
+      return;
+    }
+
+    const currentKey = pathArray[0];
+    if (!obj[currentKey]) {
+      obj[currentKey] = {};
+    }
+
+    setNestedValue(obj[currentKey], pathArray.slice(1), value);
   };
 
   return (
@@ -227,7 +401,7 @@ export default function ScenarioEditor({
           
           <Button
             variant="default"
-            onClick={handleSave}
+            onClick={form.handleSubmit(onSubmit)}
             disabled={isLoading || isSaving}
           >
             {isSaving ? (

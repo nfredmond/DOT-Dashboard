@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Measure, MeasureStatus } from '@/types/measure';
+import logger from '../../../../lib/logger';
 
 // GET /api/measures/[id] - Get a measure by ID
 export async function GET(
@@ -213,7 +214,7 @@ export async function GET(
     
     return NextResponse.json({ data: formattedMeasure });
   } catch (error: any) {
-    console.error('Error fetching measure:', error);
+    logger.error('Error fetching measure:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch measure' },
       { status: 500 }
@@ -365,7 +366,7 @@ export async function PATCH(
     
     return NextResponse.json({ data: formattedMeasure });
   } catch (error: any) {
-    console.error('Error updating measure:', error);
+    logger.error('Error updating measure:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update measure' },
       { status: 500 }
@@ -432,7 +433,7 @@ export async function DELETE(
     }
     
     // Check for child measures that depend on this one
-    const { data: childMeasures, error: childError } = await supabase
+    const { data: childMeasures, error: _childError } = await supabase
       .from('measures')
       .select('id, name')
       .eq('parent_measure_id', measureId);
@@ -448,7 +449,7 @@ export async function DELETE(
     }
     
     // Check for active projects associated with this measure
-    const { data: activeProjects, error: projectsError } = await supabase
+    const { data: activeProjects, error: _projectsError } = await supabase
       .from('measure_projects')
       .select('id, project_id, projects:project_id(name)')
       .eq('measure_id', measureId)
@@ -494,7 +495,7 @@ export async function DELETE(
       message: `Measure "${measure.name}" deleted successfully`
     });
   } catch (error: any) {
-    console.error('Error deleting measure:', error);
+    logger.error('Error deleting measure:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to delete measure' },
       { status: 500 }

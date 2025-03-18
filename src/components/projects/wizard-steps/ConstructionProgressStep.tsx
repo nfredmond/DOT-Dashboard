@@ -7,15 +7,8 @@ import {
   CardTitle, 
   CardFooter 
 } from '@/components/ui/card';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
+
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,15 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+
+
 import {
   Dialog,
   DialogContent,
@@ -44,15 +30,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, 
   Edit, 
   Trash2, 
-  AlertTriangle,
-  CheckSquare
+  AlertTriangle
 } from 'lucide-react';
 import { ConstructionProgress, ConstructionSegment } from '@/types/project';
 
@@ -200,7 +184,7 @@ const ConstructionProgressStep: React.FC<ConstructionProgressStepProps> = ({
     setIssues(updatedIssues);
   };
   
-  const handleOverallCompletionChange = (value: number[]) => {
+  const _handleOverallCompletionChange = (value: number[]) => {
     setProgress({
       ...progress,
       overallCompletion: value[0],

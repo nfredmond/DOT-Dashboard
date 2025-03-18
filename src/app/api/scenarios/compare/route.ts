@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
     const organizationId = userProfile.organization_id;
     
     // Get the scenario IDs from the request body
+import logger from '../../../../lib/logger';
+
     const body = await req.json();
     const { scenarioIds, baselineScenarioId } = body;
     
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
       .eq('organization_id', organizationId);
     
     if (scenariosError) {
-      console.error('Error fetching scenarios:', scenariosError);
+      logger.error('Error fetching scenarios:', scenariosError);
       return NextResponse.json(
         { error: 'Failed to fetch scenarios' },
         { status: 500 }
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest) {
       .order('created_at', { ascending: false });
     
     if (resultsError) {
-      console.error('Error fetching scenario results:', resultsError);
+      logger.error('Error fetching scenario results:', resultsError);
       return NextResponse.json(
         { error: 'Failed to fetch scenario results' },
         { status: 500 }
@@ -108,7 +110,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(comparisonData);
     
   } catch (error) {
-    console.error('Error in scenario comparison:', error);
+    logger.error('Error in scenario comparison:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

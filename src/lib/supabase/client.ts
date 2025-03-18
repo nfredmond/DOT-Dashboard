@@ -13,7 +13,7 @@ export function createClient() {
   }
   
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'planningmanager.ai';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${appDomain}`;
+  const _appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${appDomain}`;
   
   client = createSupabaseClient(supabaseUrl, supabaseKey, {
     auth: {

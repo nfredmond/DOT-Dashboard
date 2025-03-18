@@ -5,7 +5,6 @@
  */
 
 import { GeoJSON } from 'geojson';
-import { ScenarioDefinition } from './trend-navigator';
 
 /**
  * Transportation Analysis Zone (TAZ)
@@ -546,4 +545,147 @@ export interface CAMPResults {
   linkResults: LinkResult[];
   zoneResults: ZoneResult[];
   createdAt: string;
+}
+
+// CAMP Model Types
+
+export interface CAMPConfig {
+  id: string;
+  organization_id: string;
+  zone_data: any; // Zone data structure
+  network_data: any; // Network data structure
+  parameters: ModelParameters;
+  calibration_status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModelParameters {
+  trip_generation: {
+    production_rates: Record<string, number>;
+    attraction_rates: Record<string, number>;
+  };
+  trip_distribution: {
+    friction_factors: Record<string, number[]>;
+    k_factors: Record<string, Record<string, number>>;
+  };
+  mode_choice: {
+    constants: Record<string, number>;
+    coefficients: Record<string, number>;
+  };
+  assignment: {
+    volume_delay_parameters: {
+      alpha: number;
+      beta: number;
+    };
+    convergence_criteria: number;
+    max_iterations: number;
+  };
+}
+
+export interface ScenarioResult {
+  congestion: {
+    average_vtc: number;
+    total_delay: number;
+    congested_links: number;
+    vtc_ratios: Record<string, number>;
+    delays: Record<string, number>;
+    travel_times: Record<string, number>;
+  };
+  emissions: {
+    co2_tonnes: number;
+    nox_kg: number;
+    pm_kg: number;
+    vkt_by_mode: Record<string, number>;
+  };
+  accessibility: {
+    job_accessibility: Record<string, Record<string, number>>;
+    healthcare_accessibility: Record<string, Record<string, number>>;
+    education_accessibility: Record<string, Record<string, number>>;
+    retail_accessibility: Record<string, Record<string, number>>;
+  };
+  safety: {
+    total_crashes: number;
+    crashes_by_facility_type: Record<string, number>;
+    fatalities: number;
+    injuries: number;
+    pdo_crashes: number;
+  };
+  equity: {
+    avg_accessibility_by_group: Record<string, number>;
+    equity_ratios: Record<string, number>;
+  };
+  gis_data: {
+    links: GeoJSON.FeatureCollection;
+    zones: GeoJSON.FeatureCollection;
+  };
+  zone_metrics: Record<string, ZoneMetrics>;
+  network_metrics: {
+    total_vmt: number;
+    total_vht: number;
+    average_speed: number;
+  };
+}
+
+/**
+ * Zone metrics for TrendNavigator integration
+ * Represents processed zone data with metrics needed for trend analysis
+ */
+export interface TrendNavigatorZoneMetrics {
+  id: string;
+  name?: string;
+  population: number;
+  employment: number;
+  households?: number;
+  area?: number; // in square miles or km²
+  density?: number;
+  income?: number;
+  tripProduction: number;
+  tripAttraction: number;
+  modeShares?: {
+    auto: number;
+    transit: number;
+    walk: number;
+    bike: number;
+    shared?: number;
+    other?: number;
+  };
+  geometry?: GeoJSON.Polygon | GeoJSON.MultiPolygon;
+}
+
+export interface ModelStatus {
+  status: 'running' | 'completed' | 'failed' | 'unknown';
+  errorMessage?: string | null;
+  startTime?: string | Date | null;
+  endTime?: string | Date | null;
+}
+
+export interface ModelRun {
+  id: string;
+  scenario_id: string;
+  model_parameters: ModelParameters;
+  status: string;
+  error_message?: string | null;
+  start_time: string;
+  end_time?: string | null;
+  execution_time?: number | null;
+}
+
+// Namespace for GeoJSON types if not already defined
+namespace GeoJSON {
+  export interface Geometry {
+    type: string;
+    coordinates: any;
+  }
+
+  export interface Feature {
+    type: "Feature";
+    geometry: Geometry;
+    properties: any;
+  }
+
+  export interface FeatureCollection {
+    type: "FeatureCollection";
+    features: Feature[];
+  }
 } 

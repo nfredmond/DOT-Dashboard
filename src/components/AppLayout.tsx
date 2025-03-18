@@ -11,7 +11,7 @@ interface AppLayoutProps {
   isAdmin?: boolean;
 }
 
-export function AppLayout({ children, userRole, isAdmin }: AppLayoutProps) {
+export function AppLayout({ children, userRole, _isAdmin }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   

@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +28,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, Cell, Pie, PieChart, XAxis, YAxis, Legend, Tooltip, ResponsiveContainer } from "recharts";
+
+
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import {
   BarChart3Icon,
   PlusIcon,
@@ -42,42 +38,19 @@ import {
   FilterIcon,
   ArrowUpDownIcon,
   CheckCircleIcon,
-  XCircleIcon,
-  InfoIcon,
-  AlertCircleIcon,
-  MoreHorizontalIcon,
-  FileTextIcon,
   DownloadIcon,
-  UploadIcon,
-  RefreshCwIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  BarChart2Icon,
   TrafficConeIcon,
   BusIcon,
   BikeIcon,
-  TreesIcon,
-  SaveIcon,
   HardHatIcon,
   TruckIcon,
   LandmarkIcon,
-  PercentIcon,
   DollarSignIcon,
-  UsersIcon,
-  ClockIcon,
-  MapPinIcon,
   CalendarIcon,
-  BarChart4Icon,
-  LineChartIcon,
-  PieChartIcon,
-  LayoutDashboardIcon,
   SlidersHorizontal,
   Settings2Icon,
-  BrainIcon,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
@@ -103,24 +76,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/lib/project-service";
 import { 
   ProjectScoreSummary, 
-  PrioritizationScenario, 
-  WeightedScore,
+  PrioritizationScenario,
   getCriteria, 
-  getProjectScores, 
   calculateProjectScore,
   createPrioritizationScenario, 
   runPrioritizationScenario,
-  getPrioritizedProjects,
   getScoringTemplates,
   analyzeProjectAcrossScenarios,
   getProjectGrantAlignment,
   Criterion,
-  Score,
   ScoringTemplate,
   GrantAlignment
 } from "@/lib/scoring-service";
 import { Project } from "@/types/project";
-import { ScoringLLMAssistant } from "./components/ScoringLLMAssistant";
 import { ProjectScoringLLMAssistant } from "./components/ProjectScoringLLMAssistant";
 import { GrantAlignmentLLM } from "./components/GrantAlignmentLLM";
 
@@ -140,18 +108,18 @@ export default function ProjectScoring() {
   const [loadingScores, setLoadingScores] = useState(true);
   const [loadingScenarios, setLoadingScenarios] = useState(false);
   const [creatingScenario, setCreatingScenario] = useState(false);
-  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [_selectedScenario, _setSelectedScenario] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [projectDetails, setProjectDetails] = useState<Project | null>(null);
-  const [grantAlignments, setGrantAlignments] = useState<GrantAlignment[]>([]);
+  const [_projectDetails, setProjectDetails] = useState<Project | null>(null);
+  const [_grantAlignments, setGrantAlignments] = useState<GrantAlignment[]>([]);
   const [scenarioName, setScenarioName] = useState("");
   const [scenarioDescription, setScenarioDescription] = useState("");
   const [criteriaWeights, setCriteriaWeights] = useState<Record<string, number>>({});
-  const [scoringTemplates, setScoringTemplates] = useState<ScoringTemplate[]>([]);
-  const [activeTemplate, setActiveTemplate] = useState(null);
-  const [showLLMAssistant, setShowLLMAssistant] = useState(false);
+  const [_scoringTemplates, setScoringTemplates] = useState<ScoringTemplate[]>([]);
+  const [_activeTemplate, _setActiveTemplate] = useState(null);
+  const [_showLLMAssistant, _setShowLLMAssistant] = useState(false);
   const [selectedCriterion, setSelectedCriterion] = useState<Criterion | null>(null);
-  const [selectedProjectAnalysis, setSelectedProjectAnalysis] = useState<any | null>(null);
+  const [selectedProjectAnalysis, _setSelectedProjectAnalysis] = useState<any | null>(null);
   
   useEffect(() => {
     const loadData = async () => {
@@ -775,7 +743,7 @@ export default function ProjectScoring() {
     );
   };
   
-  const handleUpdateScoresFromLLM = (updatedScores: any[]) => {
+  const _handleUpdateScoresFromLLM = (updatedScores: any[]) => {
     if (selectedProject) {
       const updatedProjectScores = { ...projectScores };
       updatedProjectScores[selectedProject.id] = updatedScores;

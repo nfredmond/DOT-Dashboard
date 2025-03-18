@@ -1,5 +1,6 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
-import { XIcon } from 'lucide-react';
+import logger from '../lib/logger';
+
 
 interface Props {
   children: ReactNode;
@@ -34,7 +35,7 @@ class LeafletErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log the error to the console
-    console.error('LeafletErrorBoundary caught an error:', error, errorInfo);
+    logger.error('LeafletErrorBoundary caught an error:', error, errorInfo);
   }
 
   render(): ReactNode {

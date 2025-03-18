@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Project, EnvironmentalStatus, ProjectScores } from '@/types/project';
+import { Project, ProjectScores } from '@/types/project';
 import { useProjectWizard } from '@/contexts/ProjectWizardContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

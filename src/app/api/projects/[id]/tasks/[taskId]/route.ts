@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../../lib/logger';
+
 
 // PATCH /api/projects/[id]/tasks/[taskId] - Update a specific task
 export async function PATCH(
@@ -46,7 +48,7 @@ export async function PATCH(
     }
     
     // Check if the task exists and belongs to the project
-    const { data: task, error: taskError } = await supabase
+    const { data: _task, error: taskError } = await supabase
       .from('project_tasks')
       .select('id')
       .eq('id', taskId)
@@ -90,7 +92,7 @@ export async function PATCH(
     
     return NextResponse.json({ data: updatedTask });
   } catch (error) {
-    console.error('Error updating project task:', error);
+    logger.error('Error updating project task:', error);
     return NextResponse.json(
       { error: 'Failed to update project task' },
       { status: 500 }
@@ -132,7 +134,7 @@ export async function GET(
     // Check if user has access to the project
     if (project.visibility !== 'public') {
       // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -179,7 +181,7 @@ export async function GET(
     
     return NextResponse.json({ data: task });
   } catch (error) {
-    console.error('Error fetching project task:', error);
+    logger.error('Error fetching project task:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project task' },
       { status: 500 }

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
     // Upload the file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase
+    const { data: _uploadData, error: uploadError } = await supabase
       .storage
       .from('geospatial-files')
       .upload(fileName, file);
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 201 });
   } catch (error) {
-    console.error('Error processing geospatial file:', error);
+    logger.error('Error processing geospatial file:', error);
     return NextResponse.json(
       { error: 'Failed to process geospatial file' },
       { status: 500 }
@@ -108,6 +108,8 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to determine file type from extension
+import logger from '../../../../lib/logger';
+
 function getFileType(filename: string): 'kmz' | 'kml' | 'geojson' | 'shapefile' | null {
   const ext = filename.split('.').pop()?.toLowerCase();
   
@@ -174,7 +176,7 @@ async function processGeospatialFile(file: File, fileType: string): Promise<Proj
     
     return null;
   } catch (error) {
-    console.error('Error processing file:', error);
+    logger.error('Error processing file:', error);
     return null;
   }
 } 

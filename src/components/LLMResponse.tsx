@@ -7,6 +7,8 @@ import { ThumbsUp, ThumbsDown, Copy, Check, RefreshCw, Download, Share2, Volume2
 import { submitLLMFeedback } from '@/lib/llm/llmService';
 import { useToast } from '@/components/ui/use-toast';
 import { useVoice } from '@/contexts/VoiceContext';
+import logger from '../lib/logger';
+
 
 interface LLMResponseProps {
   content: string;
@@ -52,7 +54,7 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
         variant: "default",
       });
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      logger.error("Error submitting feedback:", error);
       
       toast({
         title: "Feedback Error",
@@ -76,7 +78,7 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
       
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Error copying to clipboard:", error);
+      logger.error("Error copying to clipboard:", error);
       
       toast({
         title: "Copy Error",
@@ -103,7 +105,7 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
         variant: "default",
       });
     } catch (error) {
-      console.error("Error downloading content:", error);
+      logger.error("Error downloading content:", error);
       
       toast({
         title: "Download Error",
@@ -130,7 +132,7 @@ export function LLMResponse({ content, isLoading, feedbackId, onReset, className
         text: content,
       });
     } catch (error) {
-      console.error("Error sharing content:", error);
+      logger.error("Error sharing content:", error);
       
       toast({
         title: "Share Error",

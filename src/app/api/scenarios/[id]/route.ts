@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
-import { getScenario, updateScenario, deleteScenario } from '@/lib/trend-navigator-service';
+import logger from '../../../../lib/logger';
+
 
 /**
  * GET /api/scenarios/[id]
@@ -34,7 +35,7 @@ export async function GET(
       .single();
     
     if (error) {
-      console.error('Error fetching scenario:', error);
+      logger.error('Error fetching scenario:', error);
       
       if (error.code === 'PGRST116') {
         return NextResponse.json(
@@ -51,7 +52,7 @@ export async function GET(
     
     return NextResponse.json(scenario);
   } catch (error: any) {
-    console.error('Error retrieving scenario:', error.message);
+    logger.error('Error retrieving scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to retrieve scenario' },
@@ -118,7 +119,7 @@ export async function PUT(
       .single();
     
     if (error) {
-      console.error('Error updating scenario:', error);
+      logger.error('Error updating scenario:', error);
       return NextResponse.json(
         { error: 'Failed to update scenario' },
         { status: 500 }
@@ -127,7 +128,7 @@ export async function PUT(
     
     return NextResponse.json(updatedScenario);
   } catch (error: any) {
-    console.error('Error updating scenario:', error.message);
+    logger.error('Error updating scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to update scenario' },
@@ -178,7 +179,7 @@ export async function DELETE(
       .eq('id', params.id);
     
     if (error) {
-      console.error('Error deleting scenario:', error);
+      logger.error('Error deleting scenario:', error);
       return NextResponse.json(
         { error: 'Failed to delete scenario' },
         { status: 500 }
@@ -187,7 +188,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting scenario:', error.message);
+    logger.error('Error deleting scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to delete scenario' },

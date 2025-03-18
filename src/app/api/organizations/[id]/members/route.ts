@@ -67,7 +67,7 @@ export async function GET(
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching organization members:', error);
+    logger.error('Error fetching organization members:', error);
     return NextResponse.json(
       { error: 'Failed to fetch organization members' },
       { status: 500 }
@@ -92,7 +92,7 @@ export async function POST(
   
   try {
     // Check if user is admin of the organization or global admin
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', session.user.id)
@@ -119,7 +119,8 @@ export async function POST(
     }
     
     // Get data from request
-    const requestData = await request.json();
+
+const requestData = await request.json();
     
     if (!requestData.email) {
       return NextResponse.json(
@@ -180,7 +181,7 @@ export async function POST(
       return NextResponse.json({ data: invite, type: 'invite' }, { status: 201 });
     }
   } catch (error) {
-    console.error('Error adding organization member:', error);
+    logger.error('Error adding organization member:', error);
     return NextResponse.json(
       { error: 'Failed to add organization member' },
       { status: 500 }

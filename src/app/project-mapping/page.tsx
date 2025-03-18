@@ -1,17 +1,16 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ProjectMapping } from '../components/ProjectMapping';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Menu, PlusIcon, ExternalLink, BrainIcon } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { ProjectMapLLMIntegration } from './components/ProjectMapLLMIntegration';
-import { Project, ProjectCategory } from '@/types/project';
+import { Project } from '@/types/project';
 import { cn } from '@/lib/utils';
 
 // Define a geometry type for mapping

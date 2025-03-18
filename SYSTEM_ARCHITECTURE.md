@@ -128,6 +128,8 @@ The service layer contains the business logic that sits between the API and data
 - **ScoringService**: Score calculation and prioritization
 - **GISService**: Geospatial data processing
 - **LLMService**: LLM prompt management and response processing
+- **GreenChAMPService**: Travel demand modeling with GreenChAMP
+- **TrendNavigatorService**: Emerging trends scenario modeling
 - **ReportingService**: Report generation and formatting
 - **UserService**: User and role management
 

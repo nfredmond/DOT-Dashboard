@@ -1,21 +1,22 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Popup, LayersControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, LayersControl, useMap } from 'react-leaflet';
 import { FeatureGroup } from 'leaflet';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { InfoIcon, RefreshCw, AlertCircle } from 'lucide-react';
+import { InfoIcon, RefreshCw } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
 import { fetchZoneGeometry, fetchNetworkGeometry, getColorForValue } from '@/lib/map-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 import L from 'leaflet';
-import { CAMPModelResults } from '@/types/camp';
+import logger from '../lib/logger';
+
 
 type MapMode = 'zones' | 'network';
 type ScenarioMapMetric = 
@@ -45,7 +46,7 @@ function MapController({ focusedZone }: { focusedZone: any | null }) {
         
         map.fitBounds(layer.getBounds(), { padding: [50, 50] });
       } catch (error) {
-        console.error('Error focusing on zone:', error);
+        logger.error('Error focusing on zone:', error);
       }
     }
   }, [focusedZone, map]);
@@ -62,8 +63,8 @@ export function ScenarioMapView({ scenario, results, className = '' }: ScenarioM
   const [error, setError] = useState<string | null>(null);
   const [focusedZone, setFocusedZone] = useState<any | null>(null);
   
-  const mapRef = useRef<L.Map | null>(null);
-  const geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const _mapRef = useRef<L.Map | null>(null);
+  const _geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
   
   const loadGeoData = useCallback(async () => {
     if (!scenario?.id) return;
@@ -78,7 +79,7 @@ export function ScenarioMapView({ scenario, results, className = '' }: ScenarioM
       const network = await fetchNetworkGeometry(scenario.id);
       setNetworkGeometry(network);
     } catch (err) {
-      console.error('Error loading geometry data:', err);
+      logger.error('Error loading geometry data:', err);
       setError('Failed to load map data. Please try again.');
     } finally {
       setLoading(false);

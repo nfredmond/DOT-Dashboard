@@ -9,7 +9,6 @@ import {
   MessageSquare, 
   Lightbulb, 
   Loader2,
-  BarChart,
   Users,
   AlertTriangle,
   Globe,
@@ -28,7 +27,7 @@ interface ProjectMapLLMIntegrationProps {
   onUpdateProject?: (updatedProject: MappingProject) => void;
 }
 
-export function ProjectMapLLMIntegration({ selectedProject, onUpdateProject }: ProjectMapLLMIntegrationProps) {
+export function ProjectMapLLMIntegration({ selectedProject, _onUpdateProject }: ProjectMapLLMIntegrationProps) {
   const [query, setQuery] = useState('');
   const [analysisResult, setAnalysisResult] = useState<LLMResponseType | null>(null);
   const [analysisType, setAnalysisType] = useState<'general' | 'safety' | 'equity'>('general');

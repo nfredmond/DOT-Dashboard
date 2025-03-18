@@ -20,9 +20,6 @@ import {
   LogOutIcon,
   MenuIcon,
   ShieldIcon,
-  Search,
-  Bell,
-  MessageSquare,
   Mic,
 } from "lucide-react";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -32,7 +29,7 @@ import { VoiceInputOutput } from "@/components/VoiceInputOutput";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isVoiceInputOpen, setIsVoiceInputOpen] = useState(false);
+  const [_isVoiceInputOpen, _setIsVoiceInputOpen] = useState(false);
   const authContext = useContext(AuthContext);
   // Handle the case when auth context isn't available
   const user = authContext?.user || null;

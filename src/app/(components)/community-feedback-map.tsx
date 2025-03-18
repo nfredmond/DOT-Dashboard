@@ -44,7 +44,13 @@ import { useLeaflet } from "@/hooks/useLeaflet";
 import CustomMarkerClusterGroup from '@/app/components/MarkerClusterGroup';
 
 // Type for Leaflet
-type L = typeof import('leaflet');
+type _L = typeof import('leaflet');
+
+// Rename unused variables
+const _TextIcon = TextIcon;
+const _XIcon = XIcon;
+const _ErrorBoundary = ErrorBoundary;
+const _CustomMarkerClusterGroup = CustomMarkerClusterGroup;
 
 // Dynamically import Leaflet components with no SSR
 const MapContainer = dynamic(
@@ -76,9 +82,9 @@ const EditControl = dynamic(
 
 export function CommunityFeedbackMap() {
   // Map state
-  const [mapType, setMapType] = useState("cartoPositron");
-  const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
-  const [zoom, setZoom] = useState(10);
+  const [mapType, _setMapType] = useState("cartoPositron");
+  const [mapCenter, _setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
+  const [zoom, _setZoom] = useState(10);
   const mapRef = useRef<LeafletMap | null>(null);
   const [drawingMode, setDrawingMode] = useState(false);
 

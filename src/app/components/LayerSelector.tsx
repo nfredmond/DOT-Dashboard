@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Layers, Map } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 export interface BaseMapOption {
   name: string;

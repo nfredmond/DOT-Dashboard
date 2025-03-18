@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,13 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
-  UsersIcon,
   MessageSquareIcon,
-  FileTextIcon,
   MapPinIcon,
   CalendarIcon,
   ThumbsUpIcon,
-  ThumbsDownIcon,
   SearchIcon,
   FilterIcon,
   ChevronRightIcon,
@@ -39,7 +36,7 @@ const CommunityInputMap = dynamic(
 );
 
 export default function Community() {
-  const [activeTab, setActiveTab] = useState("mapping");
+  const [_activeTab, setActiveTab] = useState("mapping");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Define types for projects and surveys

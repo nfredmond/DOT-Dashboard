@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Search,
   X,
-  Map as MapIcon,
   Eye
 } from 'lucide-react';
 
@@ -27,7 +26,7 @@ const emptyProjectData = {
 };
 
 export default function ProjectList({ mapRef }: ProjectListProps) {
-  const { focusProject, handleProjectSelect } = useMapIntegration(mapRef);
+  const { focusProject, _handleProjectSelect } = useMapIntegration(mapRef);
   const { projects, filteredProjects, deleteProject } = useProjects() || emptyProjectData;
   const [searchTerm, setSearchTerm] = useState('');
   const [expanded, setExpanded] = useState(true);
@@ -197,7 +196,7 @@ export default function ProjectList({ mapRef }: ProjectListProps) {
                       </div>
                       <div className="flex flex-col space-y-1 ml-1">
                         <button 
-                          onClick={(e) => handleFocusProject(project.id)}
+                          onClick={(_e) => handleFocusProject(project.id)}
                           className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-sm text-blue-600 dark:text-blue-400"
                           title="Focus on map"
                         >

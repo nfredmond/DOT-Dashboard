@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { Spinner } from '@/components/ui/spinner';
@@ -9,6 +9,8 @@ import { Project } from '@/types/project';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logger from '../../lib/logger';
+
 
 interface ProjectWizardWrapperProps {
   projectId?: string; // Optional - if provided, we're in edit mode
@@ -69,7 +71,7 @@ export function ProjectWizardWrapper({
       }, 2000);
       
     } catch (error) {
-      console.error('Error saving project:', error);
+      logger.error('Error saving project:', error);
       toast({
         title: "Error",
         description: "There was a problem saving your project. Please try again.",

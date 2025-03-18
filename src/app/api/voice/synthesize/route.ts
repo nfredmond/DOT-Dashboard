@@ -22,9 +22,10 @@
  * @module api/voice/synthesize
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai-service';
-import { synthesizeSpeech, isSesameAvailable } from '@/lib/sesame-service';
+import logger from '../../../../lib/logger';
+
 
 /**
  * Handle POST requests to synthesize text to speech
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error('Speech synthesis error:', error);
+    logger.error('Speech synthesis error:', error);
     return NextResponse.json(
       { error: `Speech synthesis failed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
@@ -108,7 +109,7 @@ async function synthesizeWithOpenAI(text: string, voice: string, speed: number) 
       },
     });
   } catch (error) {
-    console.error('OpenAI TTS error:', error);
+    logger.error('OpenAI TTS error:', error);
     throw new Error(`OpenAI TTS failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -122,7 +123,7 @@ async function synthesizeWithOpenAI(text: string, voice: string, speed: number) 
  * @param speed - Speech rate
  * @returns Audio data as a response stream
  */
-async function synthesizeWithSesameCsm(text: string, voice: string, speed: number) {
+async function synthesizeWithSesameCsm(_text: string, _voice: string, _speed: number) {
   // Implementation would go here - placeholder for now
   // This would call the Sesame CSM API with the appropriate parameters
   
@@ -142,7 +143,7 @@ async function synthesizeWithSesameCsm(text: string, voice: string, speed: numbe
  * @param speed - Speech rate
  * @returns Audio data as a response stream
  */
-async function synthesizeWithElevenLabs(text: string, voice: string, speed: number) {
+async function synthesizeWithElevenLabs(_text: string, _voice: string, _speed: number) {
   // Implementation would go here - placeholder for now
   // This would call the ElevenLabs API with the appropriate parameters
   

@@ -112,7 +112,7 @@ const demoPrioritizationScenarios = [
 ];
 
 // GET /api/scoring/scenarios - Get prioritization scenarios
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // Get session
   const supabase = createClient(cookies());
   const { data: { session } } = await supabase.auth.getSession();

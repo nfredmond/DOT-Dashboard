@@ -168,7 +168,7 @@ export async function GET(
     // Check if user has access to the project
     if (project.visibility !== 'public') {
       // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -182,19 +182,19 @@ export async function GET(
     }
     
     // Get task count
-    const { count: taskCount, error: taskCountError } = await supabase
+    const { count: taskCount, error: _taskCountError } = await supabase
       .from('project_tasks')
       .select('id', { count: 'exact', head: true })
       .eq('project_id', projectId);
     
     // Get comment count
-    const { count: commentCount, error: commentCountError } = await supabase
+    const { count: commentCount, error: _commentCountError } = await supabase
       .from('project_comments')
       .select('id', { count: 'exact', head: true })
       .eq('project_id', projectId);
     
     // Get document count
-    const { count: documentCount, error: documentCountError } = await supabase
+    const { count: documentCount, error: _documentCountError } = await supabase
       .from('project_documents')
       .select('id', { count: 'exact', head: true })
       .eq('project_id', projectId);
@@ -209,7 +209,7 @@ export async function GET(
     
     return NextResponse.json({ data: projectWithCounts });
   } catch (error) {
-    console.error('Error fetching project:', error);
+    logger.error('Error fetching project:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project' },
       { status: 500 }
@@ -316,7 +316,7 @@ export async function PATCH(
     
     return NextResponse.json({ data: updatedProject });
   } catch (error) {
-    console.error('Error updating project:', error);
+    logger.error('Error updating project:', error);
     return NextResponse.json(
       { error: 'Failed to update project' },
       { status: 500 }
@@ -355,7 +355,7 @@ export async function DELETE(
     }
     
     // Check if user is an admin of the organization
-    const { data: membership, error: membershipError } = await supabase
+    const { data: _membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('organization_id', project.organization_id)
@@ -406,7 +406,9 @@ export async function DELETE(
         .remove(storagePaths);
       
       if (storageError) {
-        console.error('Error deleting document files from storage:', storageError);
+        logger.error('Error deleting document files from storage:', storageError);
+import logger from '../../../../lib/logger';
+
         // Continue with deletion even if storage deletion fails
       }
     }
@@ -437,7 +439,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting project:', error);
+    logger.error('Error deleting project:', error);
     return NextResponse.json(
       { error: 'Failed to delete project' },
       { status: 500 }

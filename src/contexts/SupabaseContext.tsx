@@ -3,8 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { useAuth } from './AuthContext';
-import { getClient } from '@/lib/supabase-service';
-import { isOfflineDatabaseEnabled } from '@/lib/env-service';
 import { createClient } from '@/utils/supabase/client';
 
 // Define a User type for the auth context

@@ -35,7 +35,7 @@ export async function GET(
     // Check if user has access to the project
     if (project.visibility !== 'public') {
       // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -66,7 +66,7 @@ export async function GET(
     
     return NextResponse.json({ data: comments });
   } catch (error) {
-    console.error('Error fetching project comments:', error);
+    logger.error('Error fetching project comments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project comments' },
       { status: 500 }
@@ -105,7 +105,7 @@ export async function POST(
     }
     
     // Check if user is a member of the organization
-    const { data: membership, error: membershipError } = await supabase
+    const { data: _membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('organization_id', project.organization_id)
@@ -155,7 +155,7 @@ export async function POST(
     
     return NextResponse.json({ data: comment }, { status: 201 });
   } catch (error) {
-    console.error('Error creating project comment:', error);
+    logger.error('Error creating project comment:', error);
     return NextResponse.json(
       { error: 'Failed to create project comment' },
       { status: 500 }
@@ -172,6 +172,8 @@ export async function DELETE(
   const projectId = params.id;
   
   // Get the comment ID from the query parameters
+import logger from '../../../../../lib/logger';
+
   const { searchParams } = new URL(request.url);
   const commentId = searchParams.get('commentId');
   
@@ -217,7 +219,7 @@ export async function DELETE(
       if (projectError) throw projectError;
       
       // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -243,7 +245,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting project comment:', error);
+    logger.error('Error deleting project comment:', error);
     return NextResponse.json(
       { error: 'Failed to delete project comment' },
       { status: 500 }

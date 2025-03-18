@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Locate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Portal } from '@/components/ui/portal';
 
 interface GeolocateControlProps {
   zoomLevel?: number;
@@ -12,7 +11,7 @@ interface GeolocateControlProps {
 }
 
 // Loading state while initialization is in progress
-function GeolocateControlLoading({ className = '' }: { className?: string }) {
+function _GeolocateControlLoading({ className = '' }: { className?: string }) {
   return (
     <Button
       variant="outline"
@@ -26,7 +25,7 @@ function GeolocateControlLoading({ className = '' }: { className?: string }) {
 }
 
 // Check if Leaflet is truly ready (with multiple safety checks)
-const checkLeafletReady = () => {
+const _checkLeafletReady = () => {
   if (typeof window === 'undefined') return false;
   
   try {
@@ -54,7 +53,7 @@ const checkLeafletReady = () => {
 // This is a wrapper component that can be used anywhere
 export function GeolocateControl(props: GeolocateControlProps) {
   const [mounted, setMounted] = useState(false);
-  const [leafletReady, setLeafletReady] = useState(false);
+  const [_leafletReady, setLeafletReady] = useState(false);
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {

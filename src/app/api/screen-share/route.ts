@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Strip the MIME type prefix from the data URL to get just the base64 data
-    const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
+
+const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     
     // Use OpenAI's API or any other multimodal LLM
     const response = await openai.chat.completions.create({
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ analysis });
   } catch (error) {
-    console.error('Error processing screen share:', error);
+    logger.error('Error processing screen share:', error);
     
     // Check if it's an OpenAI API error
     if (error && typeof error === 'object' && 'status' in error) {

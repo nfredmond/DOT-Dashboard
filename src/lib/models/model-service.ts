@@ -1,4 +1,4 @@
-import { AIModel, standardModels, getDefaultModel, createCustomModel } from './model-types';
+import { AIModel, standardModels, getDefaultModel } from './model-types';
 
 /**
  * Storage keys for persisting model preferences

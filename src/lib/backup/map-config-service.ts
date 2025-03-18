@@ -1,4 +1,3 @@
-import { getEnvVariable } from "./env-service";
 import { getMapTiles, TileLayerOptions } from "./map-service";
 
 // Types for Map Settings

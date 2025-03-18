@@ -3,22 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Monitor, 
   Camera, 
-  StopCircle, 
   Send, 
-  RefreshCw, 
-  Clipboard, 
   Loader2,
-  Volume2,
-  VolumeX,
   Video,
   VideoOff,
-  Download,
-  X
+  Download
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useVoice } from '@/contexts/VoiceContext';
@@ -50,8 +42,8 @@ export default function ScreenShareLLM() {
   
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { toast } = useToast();
-  const { voiceEnabled, speak, stopSpeaking, isSpeaking } = useVoice();
+  const { _toast } = useToast();
+  const { _voiceEnabled, speak, stopSpeaking, isSpeaking } = useVoice();
 
   // Clean up the stream when component unmounts
   useEffect(() => {
@@ -164,7 +156,7 @@ export default function ScreenShareLLM() {
   };
 
   // Handle speech toggle for response
-  const handleSpeechToggle = () => {
+  const _handleSpeechToggle = () => {
     if (isSpeaking) {
       stopSpeaking();
     } else if (analysis) {

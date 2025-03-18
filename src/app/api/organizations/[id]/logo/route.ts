@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../lib/logger';
+
 
 // POST /api/organizations/[id]/logo - Upload a logo for an organization
 export async function POST(
@@ -65,7 +67,7 @@ export async function POST(
     // Upload to Supabase Storage
     const fileExt = logoFile.name.split('.').pop();
     const fileName = `org_${organizationId}_${Date.now()}.${fileExt}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabase.storage
       .from('organization_logos')
       .upload(fileName, logoFile, {
         cacheControl: '3600',
@@ -73,7 +75,7 @@ export async function POST(
       });
     
     if (uploadError) {
-      console.error('Error uploading logo:', uploadError);
+      logger.error('Error uploading logo:', uploadError);
       return NextResponse.json(
         { error: 'Failed to upload logo' },
         { status: 500 }
@@ -94,7 +96,7 @@ export async function POST(
       .single();
     
     if (updateError) {
-      console.error('Error updating organization:', updateError);
+      logger.error('Error updating organization:', updateError);
       return NextResponse.json(
         { error: 'Failed to update organization with logo URL' },
         { status: 500 }
@@ -108,7 +110,7 @@ export async function POST(
       } 
     });
   } catch (error) {
-    console.error('Error handling logo upload:', error);
+    logger.error('Error handling logo upload:', error);
     return NextResponse.json(
       { error: 'Failed to process logo upload' },
       { status: 500 }

@@ -5,7 +5,6 @@
 
 import { 
   getCensusData, 
-  getCensusGeoData, 
   CensusDataset, 
   CensusGeoType, 
   CensusQueryParams,

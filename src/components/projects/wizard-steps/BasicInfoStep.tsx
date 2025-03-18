@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Project, ProjectCategory, ProjectStatus, ProjectPriority } from '@/types/project';
 import { useProjectWizard } from '@/contexts/ProjectWizardContext';
-import { CalendarIcon, Clock, TagIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

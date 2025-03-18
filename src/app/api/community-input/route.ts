@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/database";
 import CommunityInput from "../models/CommunityInput";
 import { OpenAI } from "openai";
+import logger from '../../../lib/logger';
 
 // Initialize OpenAI client for LLM categorization
 const openai = new OpenAI({
@@ -49,7 +50,7 @@ Only respond with the category name, nothing else.
     // Validate that the category is in our list
     return CATEGORIES.includes(category) ? category : "general";
   } catch (error) {
-    console.error("Error in auto-categorization:", error);
+    logger.error("Error in auto-categorization:", error);
     return "general"; // Default fallback category
   }
 }
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(communityInputs);
   } catch (error) {
-    console.error("Error fetching community inputs:", error);
+    logger.error("Error fetching community inputs:", error);
     return NextResponse.json(
       { error: "Failed to fetch community inputs" },
       { status: 500 }
@@ -146,7 +147,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(communityInput);
   } catch (error) {
-    console.error("Error creating community input:", error);
+    logger.error("Error creating community input:", error);
     return NextResponse.json(
       { error: "Failed to create community input" },
       { status: 500 }
@@ -206,7 +207,7 @@ export async function PATCH(req: NextRequest) {
     
     return NextResponse.json(communityInput);
   } catch (error) {
-    console.error("Error updating community input:", error);
+    logger.error("Error updating community input:", error);
     return NextResponse.json(
       { error: "Failed to update community input" },
       { status: 500 }
@@ -259,7 +260,7 @@ export async function DELETE(req: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting community input:", error);
+    logger.error("Error deleting community input:", error);
     return NextResponse.json(
       { error: "Failed to delete community input" },
       { status: 500 }

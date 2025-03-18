@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../lib/logger';
+
 
 export async function GET(
   req: NextRequest,
@@ -66,7 +68,7 @@ export async function GET(
       .limit(1);
     
     if (resultsError) {
-      console.error('Error fetching scenario results:', resultsError);
+      logger.error('Error fetching scenario results:', resultsError);
       return NextResponse.json(
         { error: 'Failed to fetch scenario results' },
         { status: 500 }
@@ -83,7 +85,7 @@ export async function GET(
     return NextResponse.json(results[0]);
     
   } catch (error) {
-    console.error('Error in getting scenario results:', error);
+    logger.error('Error in getting scenario results:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

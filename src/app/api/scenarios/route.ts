@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  generateScenarios, 
   compareScenarios, 
-  refineScenario,
-  ScenarioGenerationType
+  refineScenario
 } from '@/lib/analysis/scenario-service';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
-import { getScenarios, createScenario } from '@/lib/trend-navigator-service';
 
 /**
  * GET /api/scenarios
  * 
  * Retrieves all scenarios for the authenticated user's organization
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const supabase = createClient();
     
@@ -67,7 +64,7 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json(scenarios || []);
   } catch (error: any) {
-    console.error('Error retrieving scenarios:', error.message);
+    logger.error('Error retrieving scenarios:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to retrieve scenarios' },
@@ -132,7 +129,7 @@ export async function POST(req: NextRequest) {
       .single();
     
     if (error) {
-      console.error('Error creating scenario:', error);
+      logger.error('Error creating scenario:', error);
       return NextResponse.json(
         { error: 'Failed to create scenario' },
         { status: 500 }
@@ -141,7 +138,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(scenario, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating scenario:', error.message);
+    logger.error('Error creating scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to create scenario' },
@@ -189,7 +186,7 @@ export async function PUT(req: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error comparing scenarios:', error);
+    logger.error('Error comparing scenarios:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while comparing scenarios' },
       { status: 500 }
@@ -220,7 +217,8 @@ export async function PATCH(req: NextRequest) {
     }
     
     // Fetch the project from the database
-    const project = await db.project.findUnique({
+
+const project = await db.project.findUnique({
       where: { id: projectId },
     });
     
@@ -236,7 +234,7 @@ export async function PATCH(req: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error refining scenario:', error);
+    logger.error('Error refining scenario:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while refining the scenario' },
       { status: 500 }

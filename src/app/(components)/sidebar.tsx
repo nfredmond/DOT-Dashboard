@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboardIcon,
   MapIcon,
-  MapPinIcon,
   ClipboardListIcon,
-  UsersIcon,
   SettingsIcon,
   HelpCircleIcon,
   LogOutIcon,
@@ -18,7 +16,6 @@ import {
   ShieldIcon,
   BarChartIcon,
   GitBranchIcon,
-  ListChecksIcon,
   MonitorIcon,
 } from "lucide-react";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -52,6 +49,7 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
     { id: "scoring", label: "Project Scoring", icon: BarChartIcon, path: "/project-scoring" },
     { id: "scenarios", label: "Scenarios", icon: GitBranchIcon, path: "/scenarios" },
     { id: "reports", label: "Reports", icon: FileTextIcon, path: "/reports" },
+    { id: "public-records", label: "Public Records", icon: FileTextIcon, path: "/public-records" },
     { id: "analysis", label: "AI Analysis", icon: BrainIcon, path: "/llm-assistant" },
     { id: "screen-share", label: "Screen Share", icon: MonitorIcon, path: "/screen-share" },
     { id: "community", label: "Community", icon: MessageSquareTextIcon, path: "/community" },

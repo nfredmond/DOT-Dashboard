@@ -18,12 +18,9 @@ import {
   AlertCircle,
   Bot,
   FileUp,
-  Plus,
   ArrowRight,
-  BrainCircuit,
   RefreshCw,
   CheckCircle2,
-  CornerDownRight,
   Upload,
   Loader2
 } from "lucide-react";
@@ -51,7 +48,7 @@ export function BatchUpdateDialog({
   const [updateInstruction, setUpdateInstruction] = useState("");
   const [tab, setTab] = useState<string>("instruction");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileContent, setFileContent] = useState<string>("");
+  const [_fileContent, setFileContent] = useState<string>("");
   const [results, setResults] = useState<{ 
     projectId: string, 
     projectName: string, 
@@ -164,7 +161,7 @@ Based on the ${tab === "instruction" ? "instructions" : "uploaded data"} provide
       // setAiAnalysis(data.analysis);
 
     } catch (error) {
-      console.error('Error during batch update:', error);
+      logger.error('Error during batch update:', error);
       toast({
         title: "Update Failed",
         description: "There was an error processing the batch update. Please try again.",
@@ -179,7 +176,8 @@ Based on the ${tab === "instruction" ? "instructions" : "uploaded data"} provide
   const handleApplyUpdates = () => {
     try {
       // In a real implementation, you would apply the actual updates returned from the API
-      // For this mock, we'll just simulate applying the changes
+
+// For this mock, we'll just simulate applying the changes
       
       // Deep clone the selected projects to avoid mutating the original array
       const updatedProjects = JSON.parse(JSON.stringify(selectedProjects)) as Project[];
@@ -207,7 +205,7 @@ Based on the ${tab === "instruction" ? "instructions" : "uploaded data"} provide
       
       onClose();
     } catch (error) {
-      console.error('Error applying updates:', error);
+      logger.error('Error applying updates:', error);
       toast({
         title: "Update Failed",
         description: "There was an error applying the updates. Please try again.",

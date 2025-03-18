@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSesameAvailable, getAvailableSpeakers } from '@/lib/sesame-service';
+import logger from '../../../../lib/logger';
+
 
 /**
  * API endpoint to check if Sesame CSM is available and get available speakers
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const available = isSesameAvailable();
     
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
       speakers
     });
   } catch (error) {
-    console.error('Error checking Sesame availability:', error);
+    logger.error('Error checking Sesame availability:', error);
     
     return NextResponse.json({
       available: false,

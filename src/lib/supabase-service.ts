@@ -163,12 +163,12 @@ export function getOfflineClient(): OfflineClient {
               return this;
             },
             
-            order(column, options = {}) {
+            order(column, _options = {}) {
               // Implement if needed
               return this;
             },
             
-            limit(count) {
+            limit(_count) {
               // Implement if needed
               return this;
             },
@@ -267,7 +267,7 @@ export function getOfflineClient(): OfflineClient {
                     }
                   };
                   
-                  request.onerror = (event) => {
+                  request.onerror = (_event) => {
                     reject({ 
                       data: null, 
                       error: new Error('Failed to insert data to offline database') 
@@ -311,12 +311,12 @@ export function getOfflineClient(): OfflineClient {
               return this;
             },
             
-            order(column, options = {}) {
+            order(column, _options = {}) {
               // Not relevant for update
               return this;
             },
             
-            limit(count) {
+            limit(_count) {
               // Not relevant for update
               return this;
             },
@@ -450,12 +450,12 @@ export function getOfflineClient(): OfflineClient {
               return this;
             },
             
-            order(column, options = {}) {
+            order(column, _options = {}) {
               // Not relevant for delete
               return this;
             },
             
-            limit(count) {
+            limit(_count) {
               // Not relevant for delete
               return this;
             },
@@ -588,7 +588,7 @@ function openDatabase(): Promise<IDBDatabase> {
     }
     
     // Get database configuration
-    const config = loadOfflineDatabaseConfig();
+    const _config = loadOfflineDatabaseConfig();
     
     // Open the database
     const request = window.indexedDB.open('planning_manager_offline_db', DB_VERSION);
@@ -631,7 +631,7 @@ function openDatabase(): Promise<IDBDatabase> {
     };
     
     // Handle errors
-    request.onerror = (event) => {
+    request.onerror = (_event) => {
       reject(new Error('Failed to open offline database'));
     };
   });

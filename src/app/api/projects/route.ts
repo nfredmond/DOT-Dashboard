@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { Project } from '@/types/project';
 
 // Demo projects data
 const demoProjects = [
@@ -190,7 +189,8 @@ export async function GET(request: NextRequest) {
           const allAccessibleOrgIds = Array.from(new Set([...userOrgIds, ...parentOrgIds]));
           
           // Get projects from user's organizations OR public projects
-          query = query.or(`organization_id.in.(${allAccessibleOrgIds.join(',')}),is_public.eq.true`);
+
+query = query.or(`organization_id.in.(${allAccessibleOrgIds.join(',')}),is_public.eq.true`);
         } else {
           // User has no organizations, only show public projects
           query = query.eq('is_public', true);
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    logger.error('Error fetching projects:', error);
     return NextResponse.json(
       { error: 'Failed to fetch projects' },
       { status: 500 }
@@ -356,12 +356,12 @@ export async function POST(request: NextRequest) {
     if (requestData.geospatialFiles && requestData.geospatialFiles.length > 0) {
       // In a real implementation, you would process and store files here
       // This is just a placeholder for the logic
-      console.log('Processing geospatial files:', requestData.geospatialFiles.length);
+      logger.log('Processing geospatial files:', requestData.geospatialFiles.length);
     }
     
     return NextResponse.json({ data: project }, { status: 201 });
   } catch (error) {
-    console.error('Error creating project:', error);
+    logger.error('Error creating project:', error);
     return NextResponse.json(
       { error: 'Failed to create project' },
       { status: 500 }

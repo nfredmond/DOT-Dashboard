@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { cleanupLeafletMaps, resetLeafletGlobalState, cleanupLeafletMapById } from '@/lib/leaflet-cleanup';
 import { debugLeafletLoading, fixLeafletContainers } from './debug';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SupabaseProvider } from '@/contexts/SupabaseContext';
-import { ProjectsProvider, useProjects, type Project } from '@/contexts/ProjectsContext';
+import { ProjectsProvider, type Project } from '@/contexts/ProjectsContext';
 import L from 'leaflet';
 import { syncWithMainMap } from './fallback-map';
 
@@ -35,7 +35,7 @@ const SuspenseLoading = () => (
 );
 
 // Create a truly dynamic import with no SSR and a completely new component each time
-const DynamicProjectMapping = dynamic(
+const _DynamicProjectMapping = dynamic(
   () => import('../project-mapping/page'),
   { ssr: false, loading: () => <SuspenseLoading /> }
 );
@@ -52,7 +52,6 @@ if (typeof window !== 'undefined') {
 }
 
 // Add import for fallback map
-import { initializeDirectMap, cleanupDirectMap, focusProjectMarker, updateProjectsData } from './fallback-map';
 
 // Sample projects data that matches the map markers
 const SAMPLE_PROJECTS: Project[] = [
@@ -159,7 +158,6 @@ const SAMPLE_PROJECTS: Project[] = [
 import { MapBridge } from './components/MapBridge';
 
 // Import the AddProjectForm component
-import { AddProjectForm } from './components/AddProjectForm';
 
 // Import the ProjectMapLegend component
 import ProjectMapLegend from './components/ProjectMapLegend';
@@ -168,7 +166,6 @@ import ProjectMapLegend from './components/ProjectMapLegend';
 import ProjectList from './components/ProjectList';
 
 // Import the MapIntegrationWrapper component
-import MapIntegrationWrapper from './components/MapIntegrationWrapper';
 
 export default function ProjectMappingWrapper() {
   // Keep the map ID in a ref to ensure it's stable
@@ -185,7 +182,7 @@ export default function ProjectMappingWrapper() {
   const [mainMapConfig, setMainMapConfig] = useState<Record<string, any> | null>(null);
   
   // Function to handle updates from the main map
-  const handleMainMapProjectsUpdate = useCallback((projects: any[]) => {
+  const _handleMainMapProjectsUpdate = useCallback((projects: any[]) => {
     console.log('Main map projects updated:', projects.length);
     setMainMapProjects(projects);
     

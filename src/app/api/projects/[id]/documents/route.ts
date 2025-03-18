@@ -35,7 +35,7 @@ export async function GET(
     // Check if user has access to the project
     if (project.visibility !== 'public') {
       // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -66,7 +66,7 @@ export async function GET(
     
     return NextResponse.json({ data: documents });
   } catch (error) {
-    console.error('Error fetching project documents:', error);
+    logger.error('Error fetching project documents:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project documents' },
       { status: 500 }
@@ -133,7 +133,7 @@ export async function POST(
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
     // Upload the file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase
+    const { data: _uploadData, error: uploadError } = await supabase
       .storage
       .from('project-documents')
       .upload(`${projectId}/${fileName}`, file);
@@ -180,7 +180,7 @@ export async function POST(
     
     return NextResponse.json({ data: document }, { status: 201 });
   } catch (error) {
-    console.error('Error uploading project document:', error);
+    logger.error('Error uploading project document:', error);
     return NextResponse.json(
       { error: 'Failed to upload project document' },
       { status: 500 }
@@ -263,11 +263,13 @@ export async function DELETE(
       .remove([document.storage_path]);
     
     if (storageError) {
-      console.error('Error deleting file from storage:', storageError);
+      logger.error('Error deleting file from storage:', storageError);
       // Continue with deleting the database record even if storage deletion fails
     }
     
     // Delete the document record from the database
+import logger from '../../../../../lib/logger';
+
     const { error: deleteError } = await supabase
       .from('project_documents')
       .delete()
@@ -277,7 +279,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting project document:', error);
+    logger.error('Error deleting project document:', error);
     return NextResponse.json(
       { error: 'Failed to delete project document' },
       { status: 500 }

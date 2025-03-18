@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -45,14 +44,11 @@ import {
 import {
   Plus,
   Trash2,
-  Edit,
   Save,
-  Upload,
   Map,
   Layers,
   Globe,
   Users,
-  FileUp,
   Settings,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -581,7 +577,7 @@ export function MapSettingsManager() {
                     value={newMapForm.baseMapProvider || 'default'}
                     onValueChange={(value) => {
                       // When provider changes, set a default map for that provider
-                      const provider = mapProviders.find(p => p.provider === value);
+                      const _provider = mapProviders.find(p => p.provider === value);
                       let defaultMapForProvider = 'osm'; // fallback
                       
                       if (value === 'mapbox') defaultMapForProvider = 'mapboxStreets';

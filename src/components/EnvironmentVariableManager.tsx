@@ -121,7 +121,7 @@ export function EnvironmentVariableManager() {
   ]
 
   // Get icon component for category
-  const getCategoryIcon = (category: string) => {
+  const _getCategoryIcon = (category: string) => {
     const found = categoryOptions.find(opt => opt.value === category);
     return found?.icon || DatabaseIcon;
   }

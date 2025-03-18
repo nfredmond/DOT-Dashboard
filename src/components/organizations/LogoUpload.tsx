@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { Upload, Image as ImageIcon, X } from 'lucide-react';
+import logger from '../../lib/logger';
+
 
 interface LogoUploadProps {
   organizationId: string;
@@ -81,7 +83,7 @@ export function LogoUpload({
 
       onLogoUpdated(result.data.logoUrl);
     } catch (error) {
-      console.error('Error uploading logo:', error);
+      logger.error('Error uploading logo:', error);
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'Failed to upload logo',

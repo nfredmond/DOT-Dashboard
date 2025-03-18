@@ -22,7 +22,6 @@ import { GeneratedScenario } from '@/lib/analysis/scenario-service';
 import { Project } from '@/types/project';
 import { 
   BarChart4, 
-  Check, 
   Clock, 
   DollarSign, 
   Lightbulb, 
@@ -31,6 +30,8 @@ import {
   ThumbsUp 
 } from 'lucide-react';
 import Loading from '@/components/ui/loading';
+import logger from '../../lib/logger';
+
 
 interface ScenarioComparisonProps {
   project: Project;
@@ -95,7 +96,7 @@ export function ScenarioComparison({ project, scenarios, className }: ScenarioCo
       const data = await response.json();
       setResult(data);
     } catch (error) {
-      console.error('Error comparing scenarios:', error);
+      logger.error('Error comparing scenarios:', error);
       toast({
         title: 'Comparison failed',
         description: error instanceof Error ? error.message : 'Failed to compare scenarios',

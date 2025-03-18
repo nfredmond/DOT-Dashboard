@@ -79,7 +79,7 @@ export function patchClusterMarkers() {
         // Replace the icon creation function with our custom one
         // This will affect any MarkerClusterGroup instance
         if (L.MarkerClusterGroup.prototype) {
-          const originalIconCreateFunction = L.MarkerClusterGroup.prototype.options.iconCreateFunction;
+          const _originalIconCreateFunction = L.MarkerClusterGroup.prototype.options.iconCreateFunction;
           L.MarkerClusterGroup.prototype.options.iconCreateFunction = createClusterCustomIcon;
         }
       }

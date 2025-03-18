@@ -63,7 +63,7 @@ const defaultVoiceSettings: VoiceSettings = {
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
 function VoiceProviderContent({ children }: { children: ReactNode }) {
-  const llm = useLLM();
+  const _llm = useLLM();
   const router = useRouter();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');

@@ -1,4 +1,3 @@
-import { getEnvVariable } from "./map-helpers";
 import { TileLayerOptions } from "./map-helpers";
 import { getMapTiles } from "./map-service";
 

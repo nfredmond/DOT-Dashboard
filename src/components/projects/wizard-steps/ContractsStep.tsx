@@ -7,13 +7,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+  FormDescription 
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,7 +23,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -42,14 +35,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { 
   Plus, 
   Edit, 
-  Trash2, 
-  FileText,
-  Upload
+  Trash2
 } from 'lucide-react';
 import { ProjectContract, ContractAmendment } from '@/types/project';
 
@@ -224,13 +214,13 @@ const ContractsStep: React.FC<ContractsStepProps> = ({
     setCurrentAmendment(null);
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
     }
   };
   
-  const handleUploadDocument = (contractIndex: number) => {
+  const _handleUploadDocument = (contractIndex: number) => {
     if (!selectedFile || currentContractIndex === null) return;
     
     // In a real implementation, this would upload to storage

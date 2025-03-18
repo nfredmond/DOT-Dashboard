@@ -6,7 +6,6 @@ import {
   Card, 
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle, 
 } from "@/components/ui/card";
@@ -23,20 +22,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowDown,
-  ArrowUp,
-  CheckCircle,
+import {
   ChevronLeft,
-  ChevronDown,
-  FileStackIcon, 
-  GripVertical,
-  Info,
   PencilIcon,
   PlusCircle,
-  Save,
-  Trash2,
-  XCircle
+  Trash2
 } from "lucide-react";
 import {
   Dialog,
@@ -45,7 +35,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -54,16 +43,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Criterion, 
   ScoringTemplate,

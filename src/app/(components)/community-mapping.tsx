@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -25,7 +25,6 @@ import {
   ZoomOutIcon,
   HomeIcon,
   PlusIcon,
-  MapPinIcon,
   SendIcon,
   FileIcon,
   CheckIcon,
@@ -34,14 +33,12 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Map as LeafletMap } from 'leaflet';
-import { ErrorBoundary } from "react-error-boundary";
 import LeafletErrorBoundary from "@/components/LeafletErrorBoundary";
 import '@/lib/leaflet-preload'; // Preload Leaflet synchronously
 import { useLeaflet } from "@/hooks/useLeaflet";
-import CustomMarkerClusterGroup from '@/app/components/MarkerClusterGroup';
 
 // Type for Leaflet
-type L = typeof import('leaflet');
+type _L = typeof import('leaflet');
 
 // Dynamically import Leaflet components with no SSR
 const MapContainer = dynamic(
@@ -72,7 +69,7 @@ const EditControl = dynamic(
 );
 
 export function CommunityMapping() {
-  const [mapType, setMapType] = useState("cartoPositron");
+  const [mapType, _setMapType] = useState("cartoPositron");
   const [feedbackType, setFeedbackType] = useState("issue");
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -80,8 +77,8 @@ export function CommunityMapping() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Define mapCenter as a tuple to match the required type
-  const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
-  const [zoom, setZoom] = useState(10);
+  const [mapCenter, _setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
+  const [zoom, _setZoom] = useState(10);
   const mapRef = useRef<LeafletMap | null>(null);
   const [drawingMode, setDrawingMode] = useState(false);
   const [markerMode, setMarkerMode] = useState(false);

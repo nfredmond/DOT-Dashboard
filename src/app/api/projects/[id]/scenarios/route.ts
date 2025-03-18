@@ -3,10 +3,11 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { 
-  compareScenarios, 
-  refineScenario,
+  compareScenarios,
   GeneratedScenario
 } from '@/lib/analysis/scenario-service';
+import logger from '../../../../../lib/logger';
+
 
 // Sample demo scenarios data
 const demoScenarios = {
@@ -225,7 +226,7 @@ export async function POST(
     
     return NextResponse.json(scenario);
   } catch (error) {
-    console.error('Error creating scenario:', error);
+    logger.error('Error creating scenario:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while creating the scenario' },
       { status: 500 }
@@ -310,7 +311,7 @@ export async function PUT(
       id: comparisonRecord.id,
     });
   } catch (error) {
-    console.error('Error comparing scenarios:', error);
+    logger.error('Error comparing scenarios:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while comparing scenarios' },
       { status: 500 }

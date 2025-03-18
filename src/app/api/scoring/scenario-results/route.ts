@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { runPrioritizationScenario } from '@/lib/scoring-service';
 
 // Mock scenario results for demo mode
 const demoScenarioResults = {

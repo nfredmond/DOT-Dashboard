@@ -137,7 +137,8 @@ export async function GET(request: NextRequest) {
         measuresQuery = measuresQuery.in('id', measureIds);
       } else if (!organizationId) {
         // No specific org ID requested, show all measures from user's orgs
-        measuresQuery = measuresQuery.in('organization_id', orgIds);
+
+measuresQuery = measuresQuery.in('organization_id', orgIds);
       }
     }
     
@@ -268,7 +269,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ data: formattedMeasures });
   } catch (error: any) {
-    console.error('Error fetching measures:', error);
+    logger.error('Error fetching measures:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch measures' },
       { status: 500 }
@@ -300,7 +301,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if user has admin permissions for the organization
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', userId)
@@ -431,7 +432,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ data: formattedMeasure }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating measure:', error);
+    logger.error('Error creating measure:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create measure' },
       { status: 500 }

@@ -8,6 +8,8 @@ const settingsPath = path.join(process.cwd(), 'data', 'voice-settings.json');
 
 /**
  * Load voice settings from disk
+import logger from '../../../../lib/logger';
+
  * @returns Promise resolving to voice settings
  */
 async function loadSettings(): Promise<VoiceSettings> {
@@ -20,7 +22,7 @@ async function loadSettings(): Promise<VoiceSettings> {
     return JSON.parse(data) as VoiceSettings;
   } catch (error) {
     // If the file doesn't exist or is invalid, return defaults
-    console.log('Using default voice settings');
+    logger.log('Using default voice settings');
     return defaultVoiceSettings;
   }
 }
@@ -51,7 +53,7 @@ async function saveSettings(settings: VoiceSettings): Promise<void> {
 /**
  * GET handler - Retrieve current voice settings
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const settings = await loadSettings();
     
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
       settings
     });
   } catch (error) {
-    console.error('Error loading voice settings:', error);
+    logger.error('Error loading voice settings:', error);
     
     return NextResponse.json(
       { error: 'Failed to load voice settings' },
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
       message: 'Voice settings saved successfully'
     });
   } catch (error) {
-    console.error('Error saving voice settings:', error);
+    logger.error('Error saving voice settings:', error);
     
     return NextResponse.json(
       { error: 'Failed to save voice settings' },

@@ -6,19 +6,11 @@ import {
   CardHeader, 
   CardTitle, 
 } from '@/components/ui/card';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
+
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Select,
   SelectContent,
@@ -26,15 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+
+
 import {
   Dialog,
   DialogContent,
@@ -42,14 +27,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, 
   Edit, 
-  Trash2, 
-  AlertCircle,
+  Trash2,
   Clock,
   DollarSign,
   FileText
@@ -75,7 +58,7 @@ const GrantFundingStep: React.FC<GrantFundingStepProps> = ({
   const [isEditingGrant, setIsEditingGrant] = useState(false);
   const [currentGrant, setCurrentGrant] = useState<GrantFunding | null>(null);
   const [currentGrantIndex, setCurrentGrantIndex] = useState<number | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [_selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Default empty grant
   const emptyGrant: GrantFunding = {
@@ -90,7 +73,7 @@ const GrantFundingStep: React.FC<GrantFundingStepProps> = ({
   };
   
   // Statistics for the grants dashboard
-  const totalGrantAmount = grants.reduce((total, grant) => total + grant.amount, 0);
+  const _totalGrantAmount = grants.reduce((total, grant) => total + grant.amount, 0);
   const totalAwardedAmount = grants
     .filter(grant => grant.status === 'awarded')
     .reduce((total, grant) => total + grant.amount, 0);

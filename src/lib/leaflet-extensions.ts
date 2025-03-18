@@ -6,9 +6,8 @@
  */
 
 import L from 'leaflet';
-import { CensusDataset, CensusGeoType, getCensusData, getCensusGeoData, CENSUS_VARIABLES } from './census-service';
+import { CensusGeoType, getCensusGeoData, CENSUS_VARIABLES } from './census-service';
 import { CollisionQueryParams, CollisionSeverity, getCollisionHeatmapData } from './traffic-service';
-import { getEnvVariable } from './env-service';
 
 // Note: We'll handle the leaflet.heat plugin dynamically to avoid TypeScript errors
 

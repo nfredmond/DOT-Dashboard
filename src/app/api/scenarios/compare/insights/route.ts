@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     const organizationId = userProfile.organization_id;
     
     // Get the scenario IDs from the request body
+import logger from '../../../../../lib/logger';
+
     const body = await req.json();
     const { scenarioIds, baselineScenarioId } = body;
     
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
       .eq('organization_id', organizationId);
     
     if (scenariosError) {
-      console.error('Error verifying scenario ownership:', scenariosError);
+      logger.error('Error verifying scenario ownership:', scenariosError);
       return NextResponse.json(
         { error: 'Failed to verify scenario access' },
         { status: 500 }
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error generating scenario comparison insights:', error);
+    logger.error('Error generating scenario comparison insights:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -174,7 +176,7 @@ export async function GET(req: NextRequest) {
       .limit(1);
     
     if (comparisonError) {
-      console.error('Error fetching comparison results:', comparisonError);
+      logger.error('Error fetching comparison results:', comparisonError);
       return NextResponse.json(
         { error: 'Failed to fetch comparison results' },
         { status: 500 }
@@ -195,7 +197,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error retrieving scenario comparison insights:', error);
+    logger.error('Error retrieving scenario comparison insights:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

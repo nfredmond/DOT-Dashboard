@@ -7,16 +7,8 @@ import {
   CardTitle, 
   CardFooter 
 } from '@/components/ui/card';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+
+
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -35,7 +27,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -48,10 +39,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { 
-  AlertCircle,
+import {
   Check,
   Clock,
   FileText,
@@ -61,7 +50,6 @@ import {
   X,
   FileSearch,
   RefreshCcw,
-  Calendar,
   DollarSign
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';

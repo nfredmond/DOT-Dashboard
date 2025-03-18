@@ -4,7 +4,6 @@
  * These types define the structure of TrendNavigator data and features
  */
 
-import { TransportMode, TripPurpose } from './camp';
 
 /**
  * Time horizons for scenario planning
@@ -460,4 +459,131 @@ export interface TrendNavigatorOptions {
   apiEndpoint?: string;
   apiKey?: string;
   defaultHorizonYears?: TimeHorizon[];
+}
+
+/**
+ * Types for the Trend Navigator module
+ */
+
+/**
+ * Definition of a transportation trend
+ * Includes metadata and impact parameters
+ */
+export interface TrendDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  organization_id: string;
+  created_at?: string;
+  updated_at?: string;
+  impacts: {
+    // Socioeconomic impacts (percentage change)
+    population?: number;
+    employment?: number;
+    tripGeneration?: number;
+
+    // Mode choice impacts (percentage change)
+    modeChoice?: {
+      auto?: number;
+      transit?: number;
+      walk?: number;
+      bike?: number;
+      shared?: number;
+    };
+
+    // Network impacts (percentage change)
+    networkCapacity?: number;
+    networkSpeed?: number;
+  };
+}
+
+/**
+ * Definition of a trend impact
+ * Associates a trend with a specific intensity level
+ */
+export interface TrendImpact {
+  trendId: string;
+  intensity: number; // 0-100%
+}
+
+/**
+ * Trend scenario definition
+ * A collection of trends with specified intensities
+ */
+export interface TrendScenario {
+  id: string;
+  name: string;
+  description?: string;
+  organization_id: string;
+  trendImpacts: TrendImpact[];
+  custom_data?: Record<string, any>;
+  run_status?: 'draft' | 'running' | 'completed' | 'failed';
+  last_run_at?: string;
+  completed_at?: string;
+  result_id?: string;
+  error_message?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Result metrics from a trend scenario run
+ */
+export interface TrendScenarioResult {
+  id: string;
+  scenario_id: string;
+  organization_id: string;
+  metrics: {
+    congestion: {
+      average_vtc: number;
+      congested_lane_miles: number;
+    };
+    emissions: {
+      co2_tonnes: number;
+      nox_tonnes: number;
+      pm25_tonnes: number;
+    };
+    accessibility: {
+      job_accessibility: {
+        overall: number;
+        by_mode: {
+          auto: number;
+          transit: number;
+          walk: number;
+          bike: number;
+        };
+      };
+    };
+    network_metrics: {
+      total_vmt: number;
+      total_vht: number;
+      average_speed: number;
+    };
+    mode_shares: {
+      auto: number;
+      transit: number;
+      walk: number;
+      bike: number;
+      shared?: number;
+    };
+  };
+  created_at: string;
+}
+
+/**
+ * Comparison result between scenarios
+ */
+export interface TrendScenarioComparison {
+  reference: {
+    id: string;
+    name: string;
+    metrics: Record<string, number>;
+  };
+  scenarios: Array<{
+    id: string;
+    name: string;
+    metrics: Record<string, number>;
+    absolute_metrics: Record<string, number>;
+  }>;
 } 

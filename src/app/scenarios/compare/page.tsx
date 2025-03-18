@@ -21,7 +21,7 @@ export default function ScenarioComparisonPage() {
   const [baselineScenarioId, setBaselineScenarioId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+  const _supabase = createClient();
 
   // Parse query params on page load
   useEffect(() => {

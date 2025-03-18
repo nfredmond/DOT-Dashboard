@@ -24,6 +24,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processVoiceCommand } from '@/lib/voice-agent-service';
 import { defaultVoiceSettings, VoiceSettings } from '@/lib/voice-service';
 import { AgentContext } from '@/lib/agent-sdk';
+import logger from '../../../../lib/logger';
+
 
 /**
  * Handle POST requests for processing voice commands
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
       context = JSON.parse(contextStr);
       settings = JSON.parse(settingsStr);
     } catch (e) {
-      console.warn('Failed to parse context or settings JSON:', e);
+      logger.warn('Failed to parse context or settings JSON:', e);
       // Continue with defaults
     }
     
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Return the processing result
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Voice command processing error:', error);
+    logger.error('Voice command processing error:', error);
     return NextResponse.json(
       { 
         processed: false,

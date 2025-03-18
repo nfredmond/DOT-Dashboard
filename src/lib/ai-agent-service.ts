@@ -1,8 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
-import { ScenarioDefinition, ScenarioResults, ScenarioAssumption, PolicyPackage, TrendCategory } from '@/types/trend-navigator';
-import { CAMPModelConfig } from '@/types/camp';
+import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
 
 // Types for AI agent requests
 interface AIAnalysisRequest {
@@ -490,7 +489,7 @@ function generatePromptForRecommendations(
 /**
  * Format AI response for the UI
  */
-function formatAIResponse(response: any, tab: string): AIAnalysisResponse {
+function formatAIResponse(response: any, _tab: string): AIAnalysisResponse {
   // If response is already in the expected format, return it
   if (typeof response === 'object' && response.content && response.summary) {
     return response;
@@ -529,7 +528,7 @@ async function storeAnalysisResult(
   
   try {
     // Check if analysis already exists
-    const { data, error: fetchError } = await supabase
+    const { data, error: _fetchError } = await supabase
       .from('scenario_analyses')
       .select('id')
       .eq('scenario_id', scenarioId)
@@ -581,7 +580,7 @@ async function storeComparisonResult(
     const comparisonKey = scenarioIds.sort().join('-');
     
     // Check if comparison already exists
-    const { data, error: fetchError } = await supabase
+    const { data, error: _fetchError } = await supabase
       .from('scenario_comparisons')
       .select('id')
       .eq('comparison_key', comparisonKey)
@@ -639,7 +638,7 @@ async function callAIService(prompt: string, options: {
 /**
  * Simulate AI response for development
  */
-function simulateAIResponse(prompt: string, options: any): any {
+function simulateAIResponse(prompt: string, _options: any): any {
   // Check the prompt content to generate an appropriate mock response
   const includesEmissions = prompt.toLowerCase().includes('emissions');
   const includesCongestion = prompt.toLowerCase().includes('congestion');
@@ -741,11 +740,11 @@ function simulateAIResponse(prompt: string, options: any): any {
 
 // Helper functions
 
-function formatNumber(value: number): string {
+function _formatNumber(value: number): string {
   return value.toLocaleString();
 }
 
-function formatModeName(mode: string): string {
+function _formatModeName(mode: string): string {
   const modeMap: Record<string, string> = {
     drive_alone: 'Drive Alone',
     shared_ride_2: 'Carpool (2)',

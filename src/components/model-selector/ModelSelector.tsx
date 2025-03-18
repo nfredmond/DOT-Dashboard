@@ -12,23 +12,10 @@ import {
 } from "@/components/ui/select";
 import { useModel } from '@/lib/models/model-context';
 import { ModelBadge } from './ModelBadge';
-import { AIModel } from '@/lib/models/model-types';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { useModelContext } from '@/lib/models/model-context';
+
+
+
+
 import { ModelType, ModelCapabilities } from '@/lib/models/model-types';
 
 /**

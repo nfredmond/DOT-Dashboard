@@ -153,7 +153,7 @@ const SearchPlaceholder = ({ className = '' }: { className?: string }) => (
 );
 
 // Ensure Leaflet is actually loaded in window object and has a container
-const isLeafletLoaded = () => {
+const _isLeafletLoaded = () => {
   return typeof window !== 'undefined' && 
     (window as any).L && 
     document.querySelector('.leaflet-container');

@@ -78,7 +78,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Phase 3 Key Deliverables
 
-- ✅ Chained Activity Modeling Process (CAMP) travel demand forecasting tool integration
+- ✅ GreenChAMP (Green DOT Chained Activity Modelling Process) travel demand forecasting tool integration
 - ✅ TrendNavigator scenario planning module implementation
 - ✅ Multi-tenant architecture enhancements for agency-specific modeling configurations
 - ✅ Advanced reporting capabilities with templates
@@ -91,12 +91,12 @@ The development of Planning Manager follows a phased approach, with each phase b
 - ✅ Community feedback integration with project prioritization
 - ✅ Public Records Request Management system with online submission portal, tracking, and admin interfaces
 - 🔄 External API integrations with transportation data sources (Census, GTFS, DOT)
-- 🔄 Further refinement of the CAMP and TrendNavigator integration
+- 🔄 Further refinement of the GreenChAMP and TrendNavigator integration
 - 🔄 Enhanced AI-powered insights from modeling results
 
 #### Phase 3 Technical Details
 
-- Travel demand modeling using CAMP methodology:
+- Travel demand modeling using GreenChAMP methodology:
   - ✅ Trip generation module based on land use and demographic data
   - ✅ Trip distribution using gravity models
   - ✅ Mode choice modeling with configurable parameters
@@ -144,7 +144,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Comprehensive testing and bug fixes
 - 📅 Security audit and improvements
 - 📅 Community feedback dashboard with analytics
-- 📅 CAMP and TrendNavigator performance optimization
+- 📅 GreenChAMP and TrendNavigator performance optimization
 
 #### Phase 4 Technical Details
 
@@ -170,7 +170,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Enhanced collaboration features
 - 📅 Custom plugin system
 - 📅 AI-driven community sentiment analysis
-- 📅 Advanced equity analysis integration with CAMP modeling
+- 📅 Advanced equity analysis integration with GreenChAMP modeling
 - 📅 Climate impact assessment in TrendNavigator scenarios
 
 #### Phase 5 Technical Details
@@ -190,7 +190,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 ### Objectives
 
-1. Refine CAMP and TrendNavigator integration
+1. Refine GreenChAMP and TrendNavigator integration
 2. Enhance MCP agent capabilities for transportation analysis
 3. Improve performance of modeling operations
 4. Extend API integrations with external data sources
@@ -199,7 +199,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 ### Tasks
 
-- [x] Finalize CAMP model core components implementation
+- [x] Finalize GreenChAMP model core components implementation
 - [x] Implement TrendNavigator scenario configuration interface
 - [x] Create scenario comparison visualization tools
 - [x] Develop AI-powered scenario insights generator
@@ -215,12 +215,12 @@ The development of Planning Manager follows a phased approach, with each phase b
 - [ ] Create comprehensive documentation for modeling features
 - [ ] Implement automated testing for modeling components
 
-## Completed CAMP & TrendNavigator Implementation
+## Completed GreenChAMP & TrendNavigator Implementation
 
 ### Database Schema & Architecture
 
 - [x] Implemented multi-tenant architecture for travel demand modeling
-- [x] Developed database schema for CAMP and TrendNavigator modules
+- [x] Developed database schema for GreenChAMP and TrendNavigator modules
 - [x] Created API specifications for model integration
 - [x] Implemented scenario management UI
 - [x] Designed data isolation strategies using Supabase RLS
@@ -248,30 +248,24 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 ## Upcoming Enhancements
 
-### Sprint 13: Performance & Integration Refinements
+### Next Sprint (Sprint 13)
 
-**Status**: Planned
+- Integration with external transportation data sources (GTFS, Census Transportation Planning Package)
+- Enhanced visualization of model outputs with customizable dashboards
+- Advanced equity analysis features for GreenChAMP outputs
+- Improved performance for large network assignments
+- Automatic calibration tools for travel demand models
+- Extended documentation and user guides
 
-#### Objectives
+### Future Roadmap
 
-1. Optimize modeling performance for larger datasets
-2. Enhance external data source integrations
-3. Improve AI-generated insights quality
-4. Refine user interface for modeling features
-5. Implement additional visualization options
-
-#### Tasks
-
-- [ ] Optimize trip distribution and assignment algorithms for large networks
-- [ ] Implement caching for frequently accessed model results
-- [ ] Create integration endpoints for Census Transportation Planning Package data
-- [ ] Enhance GTFS data integration for transit modeling
-- [ ] Improve AI prompt engineering for scenario insights
-- [ ] Refine UI/UX for scenario management workflows
-- [ ] Add 3D visualization capabilities for scenario results
-- [ ] Implement comparative charts for scenario metrics
-- [ ] Create comprehensive testing suite for modeling components
-- [ ] Develop detailed user documentation for modeling features
+- Advanced activity-based modeling capabilities
+- Integration with regional travel demand models
+- Real-time data feeds from traffic counters and sensors
+- Enhanced machine learning for travel pattern prediction
+- Climate impact modeling and reporting
+- Expanded TrendNavigator trend library for emerging technologies
+- Advanced multi-modal accessibility metrics
 
 ## Deployment Plan
 
@@ -326,7 +320,7 @@ To maintain code quality and prevent accumulation of technical debt, the followi
 - 1 UX/UI designer
 - 1 DevOps engineer
 - 1 Product manager
-- 1 Transportation modeling specialist (for CAMP implementation)
+- 1 Transportation modeling specialist (for GreenChAMP implementation)
 - 1 Data scientist (for TrendNavigator scenario planning)
 
 ### Tools and Services
@@ -357,4 +351,4 @@ The success of the Planning Manager application will be measured by the followin
 
 ## Conclusion
 
-This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. The application has successfully implemented core infrastructure, advanced features, and is currently focused on enhancing the transportation modeling capabilities through CAMP and TrendNavigator integration, as well as MCP integration with AI agents. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management, prioritization, and advanced scenario modeling.
+This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. The application has successfully implemented core infrastructure, advanced features, and is currently focused on enhancing the transportation modeling capabilities through GreenChAMP and TrendNavigator integration, as well as MCP integration with AI agents. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management, prioritization, and advanced scenario modeling.

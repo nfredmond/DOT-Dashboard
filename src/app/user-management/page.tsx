@@ -34,7 +34,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,7 +43,6 @@ import {
   FilterIcon,
   PlusIcon,
   MoreHorizontalIcon,
-  UserPlusIcon,
   ShieldIcon,
   CheckIcon,
   XIcon,
@@ -53,7 +51,6 @@ import {
   BuildingIcon,
   KeyIcon,
   RefreshCwIcon,
-  AlertCircleIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -76,7 +73,7 @@ interface User {
 }
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState("all-users");
+  const [_activeTab, setActiveTab] = useState("all-users");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -201,12 +198,12 @@ export default function UserManagement() {
     setShowEditUserDialog(true);
   };
 
-  const handleResetPassword = (userId: string) => {
+  const handleResetPassword = (_userId: string) => {
     // In a real app, this would trigger a password reset flow
     alert("Password reset email sent");
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = (_userId: string) => {
     // In a real app, this would show a confirmation dialog and then delete the user
     alert("User deleted");
   };

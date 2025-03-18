@@ -3,6 +3,8 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { getProjectGrantAlignment } from '@/lib/scoring-service';
 import { analyzeGrantOpportunity } from '@/lib/llm-service';
+import logger from '../../../../lib/logger';
+
 
 export async function GET(request: Request) {
   try {
@@ -22,14 +24,14 @@ export async function GET(request: Request) {
       
       return NextResponse.json({ success: true, alignments });
     } catch (error) {
-      console.error('Error fetching grant alignments:', error);
+      logger.error('Error fetching grant alignments:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch grant alignments' },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Error in grant alignment API:', error);
+    logger.error('Error in grant alignment API:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
       .single();
       
     if (projectError) {
-      console.error('Error fetching project:', projectError);
+      logger.error('Error fetching project:', projectError);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch project details' },
         { status: 500 }
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
       .single();
       
     if (grantError) {
-      console.error('Error fetching grant:', grantError);
+      logger.error('Error fetching grant:', grantError);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch grant details' },
         { status: 500 }
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
       .eq('project_id', projectId);
       
     if (scoresError) {
-      console.error('Error fetching scores:', scoresError);
+      logger.error('Error fetching scores:', scoresError);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch project scores' },
         { status: 500 }
@@ -141,14 +143,14 @@ export async function POST(request: Request) {
       
       return NextResponse.json({ success: true, analysis });
     } catch (error) {
-      console.error('Error analyzing grant alignment:', error);
+      logger.error('Error analyzing grant alignment:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to analyze grant alignment' },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Error in analyze grant API:', error);
+    logger.error('Error in analyze grant API:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

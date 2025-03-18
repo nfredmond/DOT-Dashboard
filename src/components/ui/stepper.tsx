@@ -19,7 +19,7 @@ export interface StepperProps {
 export const Step: React.FC<StepProps> = ({ 
   label, 
   optional = false, 
-  completed = false, 
+  _completed = false, 
   icon 
 }) => {
   // This component doesn't render anything on its own

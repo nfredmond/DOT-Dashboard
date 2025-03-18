@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { 
-  CAMPModelConfig, 
   CAMPModelParameters, 
   CAMPModelResults,
   CAMPModelRun,
@@ -204,7 +203,7 @@ export async function runCAMPModel(
             };
             
             // Convert CAMP results to Scenario Results
-            const scenarioResults = await convertCAMPResultsToScenarioResults(modelRunId, scenarioId);
+            const _scenarioResults = await convertCAMPResultsToScenarioResults(modelRunId, scenarioId);
             
             // Update model run to COMPLETED
             await supabase
@@ -728,14 +727,14 @@ class CAMPModel {
         let totalAttractivenessWeighted = 0;
         
         // Calculate total weighted attractiveness for normalization
-        for (const [destId, destZone] of this.zones.entries()) {
+        for (const [destId, _destZone] of this.zones.entries()) {
           if (destId === originId) continue; // Skip self
           totalAttractivenessWeighted += attractiveness[destId][purpose] / Math.pow(impedance[originId][destId], this.parameters.distanceSensitivity || 1);
         }
         
         // Distribute trips based on attractiveness and impedance
         if (totalAttractivenessWeighted > 0) {
-          for (const [destId, destZone] of this.zones.entries()) {
+          for (const [destId, _destZone] of this.zones.entries()) {
             if (destId === originId) continue; // Skip self
             
             const destAttractivenessWeighted = attractiveness[destId][purpose] / Math.pow(impedance[originId][destId], this.parameters.distanceSensitivity || 1);
@@ -753,7 +752,7 @@ class CAMPModel {
   /**
    * Calculate impedance (distance/travel time) between zones
    */
-  private calculateImpedance(purpose: TripPurpose): Record<string, Record<string, number>> {
+  private calculateImpedance(_purpose: TripPurpose): Record<string, Record<string, number>> {
     const impedance: Record<string, Record<string, number>> = {};
     
     // Simple Euclidean distance for demonstration
@@ -1002,7 +1001,7 @@ class CAMPModel {
     }
     
     // Calculate congestion index (Volume/Capacity ratio)
-    for (const [linkId, assignment] of Object.entries(networkAssignment)) {
+    for (const [_linkId, assignment] of Object.entries(networkAssignment)) {
       if (assignment.capacity > 0) {
         assignment.congestionIndex = assignment.volume / assignment.capacity;
       }
@@ -1015,7 +1014,7 @@ class CAMPModel {
    * Find links connecting origin and destination
    * This is a very simplified version - a real implementation would use path-finding algorithms
    */
-  private findPathLinks(originId: string, destId: string): string[] {
+  private findPathLinks(_originId: string, _destId: string): string[] {
     // For demonstration, return a random sample of links
     // In a real model, this would use graph algorithms to find the shortest path
     const pathLinks: string[] = [];

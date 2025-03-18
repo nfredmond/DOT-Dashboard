@@ -409,7 +409,7 @@ function determineIfAgentRequired(input: string, capabilities: MCPCapability[]):
 async function callMCPService(
   input: string,
   response?: string,
-  context: Record<string, any> = {},
+  _context: Record<string, any> = {},
   capabilities: MCPCapability[] = [MCPCapability.CHAT]
 ): Promise<MCPResponse> {
   // In a real implementation, this would call an external MCP service

@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     
     // Get the audio file from the form data
-    const audioFile = formData.get('file');
+
+const audioFile = formData.get('file');
     if (!audioFile || !(audioFile instanceof Blob)) {
       return NextResponse.json(
         { error: 'Audio file is required' },
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Return the transcribed text
     return NextResponse.json({ text: transcription });
   } catch (error) {
-    console.error('Transcription error:', error);
+    logger.error('Transcription error:', error);
     return NextResponse.json(
       { error: `Transcription failed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
@@ -85,7 +86,7 @@ async function transcribeWithWhisper(
   try {
     // Check if the model is valid
     if (model !== 'whisper-1') {
-      console.warn(`Unsupported Whisper model: ${model}, using 'whisper-1' instead`);
+      logger.warn(`Unsupported Whisper model: ${model}, using 'whisper-1' instead`);
       model = 'whisper-1';
     }
     
@@ -107,7 +108,7 @@ async function transcribeWithWhisper(
     
     return transcription.text;
   } catch (error) {
-    console.error('Whisper transcription error:', error);
+    logger.error('Whisper transcription error:', error);
     throw new Error(`Whisper transcription failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

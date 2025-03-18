@@ -28,8 +28,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { 
   getSupabaseConfigs, 
@@ -43,7 +41,6 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from 'lucide-react';
-import { initSupabaseClient } from '@/lib/supabase-service';
 import { useToast } from "@/components/ui/use-toast";
 
 export function SupabaseConfigManager() {
@@ -78,7 +75,7 @@ export function SupabaseConfigManager() {
       const tempClient = createClient(config.url, config.anonKey);
       
       // Try to make a simple query
-      const { data, error } = await tempClient.from('_test').select('*').limit(1);
+      const { _data, error } = await tempClient.from('_test').select('*').limit(1);
       
       // Handle the result
       if (error) {
@@ -487,9 +484,9 @@ export function SupabaseConfigManager() {
 // Helper function to create a temporary Supabase client for testing
 function createClient(url: string, key: string) {
   return {
-    from: (table: string) => ({
-      select: (columns: string = '*') => ({
-        limit: (limit: number) => ({
+    from: (_table: string) => ({
+      select: (_columns: string = '*') => ({
+        limit: (_limit: number) => ({
           then: (callback: (response: { data: any[] | null; error: null | Error }) => void) => {
             // Simple connection test
             if (url && key) {

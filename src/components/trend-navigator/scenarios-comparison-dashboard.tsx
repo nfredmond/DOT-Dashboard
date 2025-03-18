@@ -3,16 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, BarChart4, Map, Layers, TrendingUp } from 'lucide-react';
+import { AlertCircle, BarChart4, Map, TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
 import { ScenarioMetricsChart } from '@/components/charts/scenario-metrics-chart';
 import { ScenarioMapView } from '@/components/scenario-map-view';
 import { useToast } from '@/components/ui/use-toast';
+import logger from '../../lib/logger';
+
 
 interface ScenariosComparisonDashboardProps {
   scenarioIds: string[];
@@ -29,7 +29,7 @@ export function ScenariosComparisonDashboard({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const supabase = createClient();
+  const _supabase = createClient();
 
   // Load all scenarios and their results
   useEffect(() => {
@@ -62,7 +62,7 @@ export function ScenariosComparisonDashboard({
         setScenarios(scenariosData);
         setScenarioResults(resultsData);
       } catch (err) {
-        console.error('Error loading scenarios:', err);
+        logger.error('Error loading scenarios:', err);
         setError(err instanceof Error ? err.message : 'Failed to load scenarios');
         toast({
           title: 'Error',

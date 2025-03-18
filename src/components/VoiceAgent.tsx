@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Mic, MicOff, Volume2, VolumeX, Send } from 'lucide-react';
+import { Loader2, Mic, MicOff, Volume2, Send } from 'lucide-react';
 import { 
   startRecording, 
   stopRecording,
@@ -70,7 +70,7 @@ interface VoiceAgentProps {
  *     userId: '123'
  *   }}
  *   onCommandProcessed={(result) => {
- *     console.log('Processed command:', result);
+ *     logger.log('Processed command:', result);
  *   }}
  * />
  * ```
@@ -89,7 +89,7 @@ export default function VoiceAgent({
   
   // Transcription state
   const [transcribedText, setTranscribedText] = useState('');
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [_isTranscribing, _setIsTranscribing] = useState(false);
   
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
@@ -101,7 +101,7 @@ export default function VoiceAgent({
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   
   // Context state
-  const [context, setContext] = useState<AgentContext>(initialContext);
+  const [context, _setContext] = useState<AgentContext>(initialContext);
   
   // Error state
   const [error, setError] = useState<string | null>(null);
@@ -310,7 +310,7 @@ export default function VoiceAgent({
       // Play the audio
       await playAudio(speechBlob);
     } catch (err) {
-      console.error('Speech error:', err);
+      logger.error('Speech error:', err);
     } finally {
       setIsSpeaking(false);
     }
@@ -318,6 +318,8 @@ export default function VoiceAgent({
   
   /**
    * Handles special actions from the voice command result
+import logger from '../lib/logger';
+
    */
   const handleSpecialAction = (action: string | undefined) => {
     if (!action) return;
@@ -325,7 +327,7 @@ export default function VoiceAgent({
     switch (action) {
       case 'take_screenshot':
         // Trigger screenshot capture - could dispatch an event
-        console.log('Screenshot action received');
+        logger.log('Screenshot action received');
         break;
         
       case 'stop_recording':

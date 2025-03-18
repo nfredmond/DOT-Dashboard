@@ -14,9 +14,6 @@ import {
   FolderPlus, 
   GitBranch, 
   BarChart3, 
-  FileText, 
-  Map, 
-  Brain, 
   ArrowRight,
   CheckCircle
 } from 'lucide-react';

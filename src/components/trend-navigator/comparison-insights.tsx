@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import logger from '../../lib/logger';
+
 
 interface ComparisonInsightsProps {
   scenarioIds: string[];
@@ -21,7 +23,7 @@ export function ComparisonInsights({
   className = '',
 }: ComparisonInsightsProps) {
   const [insights, setInsights] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<Record<string, any> | null>(null);
+  const [_metrics, setMetrics] = useState<Record<string, any> | null>(null);
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -61,7 +63,7 @@ export function ComparisonInsights({
         setMetrics(data.metrics);
         setTimestamp(data.timestamp);
       } catch (err) {
-        console.error('Error fetching comparison insights:', err);
+        logger.error('Error fetching comparison insights:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch comparison insights');
       } finally {
         setIsLoading(false);
@@ -104,7 +106,7 @@ export function ComparisonInsights({
         variant: 'default',
       });
     } catch (err) {
-      console.error('Error generating comparison insights:', err);
+      logger.error('Error generating comparison insights:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate comparison insights');
       
       toast({

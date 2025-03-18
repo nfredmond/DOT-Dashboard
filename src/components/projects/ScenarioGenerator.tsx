@@ -35,7 +35,6 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { 
@@ -50,6 +49,8 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import Loading from '@/components/ui/loading';
+import logger from '../../lib/logger';
+
 
 interface ScenarioGeneratorProps {
   project: Project;
@@ -104,7 +105,7 @@ export function ScenarioGenerator({ project, onSaveScenario, className }: Scenar
       setGeneratedScenarios(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred generating scenarios');
-      console.error('Error generating scenarios:', err);
+      logger.error('Error generating scenarios:', err);
     } finally {
       setLoading(false);
     }

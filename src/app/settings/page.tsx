@@ -15,7 +15,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 import { useVoice } from "@/contexts/VoiceContext"
 import { 
-  User2Icon, 
   MailIcon, 
   PhoneIcon, 
   BuildingIcon, 

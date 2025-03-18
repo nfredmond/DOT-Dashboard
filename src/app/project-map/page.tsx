@@ -18,7 +18,7 @@ const ProjectMapping = dynamic(
 );
 
 // Create a stable ID for this page to prevent reinit issues
-const STABLE_MAP_ID = `project-map-${Date.now()}`;
+const _STABLE_MAP_ID = `project-map-${Date.now()}`;
 
 export default function ProjectMapPage() {
   const [ready, setReady] = useState(false);

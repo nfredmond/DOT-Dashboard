@@ -7,10 +7,7 @@ import {
   Brain, 
   Code, 
   Search, 
-  Eye, 
-  Zap,
-  Settings,
-  BookOpen
+  Eye
 } from 'lucide-react';
 
 /**

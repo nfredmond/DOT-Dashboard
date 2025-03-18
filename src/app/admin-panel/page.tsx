@@ -5,30 +5,22 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ShieldIcon,
   UsersIcon,
   BrainIcon,
   DatabaseIcon,
-  SettingsIcon,
   FileTextIcon,
   BarChartIcon,
   GlobeIcon,
   ClockIcon,
-  AlertCircleIcon,
   CheckIcon,
-  XIcon,
-  PlusIcon,
-  KeyIcon,
-  MapIcon,
   Database,
   Users,
   FileStack,
@@ -52,11 +44,11 @@ import { ProjectScoringSettings } from "./components/ProjectScoringSettings";
 import { MapSettingsManager } from "./components/MapSettingsManager";
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [_activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
 
   // Mock data for pending approvals
-  const pendingApprovals = [
+  const _pendingApprovals = [
     {
       id: 1,
       name: "John Smith",
@@ -84,7 +76,7 @@ export default function AdminPanel() {
   ];
 
   // Mock data for recent activities
-  const recentActivities = [
+  const _recentActivities = [
     {
       id: 1,
       user: {
@@ -138,7 +130,7 @@ export default function AdminPanel() {
   ];
 
   // Mock data for system stats
-  const systemStats = [
+  const _systemStats = [
     {
       title: "Total Users",
       value: "127",
@@ -170,7 +162,7 @@ export default function AdminPanel() {
   ];
 
   // Mock data for admin quick links
-  const quickLinks = [
+  const _quickLinks = [
     {
       title: "User Management",
       description: "Manage users, roles, and permissions",

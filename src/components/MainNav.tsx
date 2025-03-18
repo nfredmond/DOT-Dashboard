@@ -3,10 +3,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
-  Settings,
-  User,
-  Users,
-  FileText,
   Mic,
 } from "lucide-react";
 

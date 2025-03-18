@@ -9,7 +9,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
  */
 export default function ProjectMapLegend() {
   const [expanded, setExpanded] = useState(true);
-  const { projects, filteredProjects } = useProjects() || { projects: [], filteredProjects: [] };
+  const { _projects, filteredProjects } = useProjects() || { projects: [], filteredProjects: [] };
   
   // Function to handle project type click
   const handleStatusClick = (status: string) => {

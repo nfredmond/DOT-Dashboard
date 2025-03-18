@@ -92,7 +92,7 @@ export async function POST(
     }
     
     // Check if user has permission to import data for this organization
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', session.user.id)
@@ -330,7 +330,7 @@ export async function POST(
           results.created.push(created);
         }
       } catch (error: any) {
-        console.error('Error processing row:', error, row);
+        logger.error('Error processing row:', error, row);
         results.errors.push({ row, error: error.message || 'Unknown error' });
       }
     }
@@ -343,7 +343,7 @@ export async function POST(
       }
     });
   } catch (error: any) {
-    console.error('Error processing batch import:', error);
+    logger.error('Error processing batch import:', error);
     return NextResponse.json(
       { error: 'Failed to process batch import' },
       { status: 500 }
@@ -391,6 +391,8 @@ async function findMemberAgencyByName(
 }
 
 // Helper function to extract reporting data from a row
+import logger from '../../../../../lib/logger';
+
 function extractReportingData(row: ImportRow, fields: any[]): ReportingUpdate[] {
   const reportingUpdates: ReportingUpdate[] = [];
   

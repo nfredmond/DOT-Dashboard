@@ -9,9 +9,7 @@ import {
   Play, 
   VolumeX, 
   Volume2, 
-  Info, 
-  BarChart4, 
-  MapPin,
+  Info,
   Share2,
   AlertTriangle
 } from 'lucide-react';
@@ -23,15 +21,6 @@ import { getScenario, getScenarioResults, runTrendNavigatorScenario, generateSce
 import ScenarioInsights from '@/components/scenario-insights';
 import { ScenarioMapView } from '@/components/scenario-map-view';
 import { AIAssistant } from '@/components/ai-assistant';
-import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { MetricCard } from '@/components/metric-card';
-import { ScenarioMetricsChart } from '@/components/charts/scenario-metrics-chart';
-import { ScenarioComparison } from '@/components/scenario-comparison';
-import { Modal } from '@/components/ui/modal';
-import { useSupabase } from '@/lib/supabase/client';
-import { runCAMPModel, getModelRun } from '@/lib/camp-runner';
 
 // Create a simple hook for tabs
 const useTabs = (defaultTab: string) => {
@@ -50,7 +39,7 @@ export default function ScenarioDetailPage({ params }: { params: { id: string } 
   const [isLoading, setIsLoading] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [audioExplanation, setAudioExplanation] = useState<string | null>(null);
+  const [_audioExplanation, setAudioExplanation] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [campModels, setCampModels] = useState<CAMPModelConfig[]>([]);
   const [selectedCAMPModelId, setSelectedCAMPModelId] = useState<string | undefined>(undefined);
@@ -213,7 +202,7 @@ export default function ScenarioDetailPage({ params }: { params: { id: string } 
     }
   };
   
-  const toggleAudioPlayback = () => {
+  const _toggleAudioPlayback = () => {
     if (audioRef) {
       if (isPlaying) {
         audioRef.pause();

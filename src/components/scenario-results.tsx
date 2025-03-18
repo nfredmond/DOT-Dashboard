@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
@@ -10,6 +9,8 @@ import { ScenarioMetricsChart } from '@/components/charts/scenario-metrics-chart
 import { createClient } from '@/lib/supabase/client';
 import { Scenario, ScenarioResults } from '@/types/trend-navigator';
 import { RunStatus } from '@/types/camp';
+import logger from '../lib/logger';
+
 
 interface ScenarioResultsProps {
   scenarioId: string;
@@ -59,7 +60,7 @@ export function ScenarioResults({
         .single();
       
       if (runError && runError.code !== 'PGRST116') { // Ignore "no rows returned" error
-        console.warn(`Error fetching model run: ${runError.message}`);
+        logger.warn(`Error fetching model run: ${runError.message}`);
       } else if (runData) {
         setRunStatus(runData.status as RunStatus);
       }
@@ -72,7 +73,7 @@ export function ScenarioResults({
         .single();
       
       if (resultsError && resultsError.code !== 'PGRST116') { // Ignore "no rows returned" error
-        console.warn(`Error fetching scenario results: ${resultsError.message}`);
+        logger.warn(`Error fetching scenario results: ${resultsError.message}`);
       } else if (resultsData) {
         setResults(resultsData as ScenarioResults);
       }
@@ -86,14 +87,14 @@ export function ScenarioResults({
           .single();
         
         if (baselineResultsError && baselineResultsError.code !== 'PGRST116') {
-          console.warn(`Error fetching baseline results: ${baselineResultsError.message}`);
+          logger.warn(`Error fetching baseline results: ${baselineResultsError.message}`);
         } else if (baselineResultsData) {
           setBaselineResults(baselineResultsData as ScenarioResults);
         }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

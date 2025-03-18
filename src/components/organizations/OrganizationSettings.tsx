@@ -8,6 +8,8 @@ import { toast } from '@/components/ui/use-toast';
 import { Organization } from '@/types/organization';
 import { LogoUpload } from './LogoUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import logger from '../../lib/logger';
+
 
 interface OrganizationSettingsProps {
   organizationId: string;
@@ -55,7 +57,7 @@ export function OrganizationSettings({ organizationId }: OrganizationSettingsPro
           primaryContactPhone: data.primaryContactPhone || '',
         });
       } catch (error) {
-        console.error('Error fetching organization:', error);
+        logger.error('Error fetching organization:', error);
         toast({
           title: 'Error',
           description: 'Failed to load organization details',
@@ -107,7 +109,7 @@ export function OrganizationSettings({ organizationId }: OrganizationSettingsPro
         description: 'Organization settings updated successfully',
       });
     } catch (error) {
-      console.error('Error updating organization:', error);
+      logger.error('Error updating organization:', error);
       toast({
         title: 'Error',
         description: 'Failed to update organization settings',

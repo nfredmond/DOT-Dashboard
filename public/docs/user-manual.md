@@ -402,11 +402,11 @@ To use travel demand model outputs in benefit-cost analysis:
 
 This section covers our advanced modeling tools for transportation planning and forecasting.
 
-### CAMP Travel Demand Modeling
+### GreenChAMP Travel Demand Modeling
 
-The Chained Activity Modeling Process (CAMP) provides robust travel demand forecasting capabilities:
+The Green DOT Chained Activity Modelling Process (GreenChAMP) provides robust travel demand forecasting capabilities:
 
-#### Running a CAMP Model
+#### Running a GreenChAMP Model
 
 1. Navigate to "Modeling" > "Travel Demand"
 2. Define your study area by selecting TAZs or drawing a boundary
@@ -414,7 +414,7 @@ The Chained Activity Modeling Process (CAMP) provides robust travel demand forec
 4. Configure transportation networks
 5. Set model parameters and run
 
-#### Analyzing CAMP Results
+#### Analyzing GreenChAMP Results
 
 1. View heat maps of travel demand
 2. Analyze corridor flows
@@ -429,7 +429,7 @@ TrendNavigator allows you to explore how future trends and policies might impact
 
 1. Navigate to "Modeling" > "TrendNavigator"
 2. Click "New Trend Scenario"
-3. Select a baseline model (required CAMP model result)
+3. Select a baseline model (required GreenChAMP model result)
 4. Configure trend variables:
    - Telecommuting rates
    - E-commerce adoption
@@ -470,7 +470,7 @@ TrendNavigator allows you to explore how future trends and policies might impact
 
 1. Navigate to a project details page
 2. Click "Link to Model" button
-3. Select a CAMP or TrendNavigator model result
+3. Select a GreenChAMP or TrendNavigator model result
 4. The project will now display relevant metrics from the model
 5. Project scoring can incorporate model results to improve prioritization
 

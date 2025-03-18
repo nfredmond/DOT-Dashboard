@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -18,36 +18,25 @@ import {
   PrinterIcon,
   ShareIcon,
   PencilIcon,
-  CheckIcon,
-  ClockIcon,
   CalendarIcon,
   MapPinIcon,
   UsersIcon,
   ArrowLeftIcon,
-  ChevronRightIcon,
-  Layers,
-  DollarSign,
   BarChart3,
   FileText,
-  AlertCircle,
   CheckCircle2,
   Clock,
   UserCircle2,
   Plus as PlusIcon,
   ChevronLeft,
-  Edit,
-  Trash,
-  Map,
-  BarChart4,
-  FileSpreadsheet,
   SquareStack
 } from "lucide-react";
 import { Project } from "@/types/project";
 import Loading from "@/components/ui/loading";
+import { ProjectTodoList } from '@/components/ui/Todo';
 
 // Importing a mock database of projects
 // In a real app, this would be replaced with a database call
-import { mockProjects } from "@/lib/mock-data";
 
 // Dynamic import for the map component to avoid SSR issues
 const ProjectLocationMap = dynamic(() => import("@/components/projects/ProjectLocationMap"), {
@@ -90,8 +79,8 @@ export default function ProjectDetail() {
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const { user: _ } = useAuth();
+  const [_activeTab, _setActiveTab] = useState("overview");
   const projectId = params?.id as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -353,17 +342,16 @@ export default function ProjectDetail() {
         </div>
 
         {/* Tabs for different project sections */}
-        <Tabs defaultValue="details" className="mb-6">
+        <Tabs defaultValue="overview" className="mb-6">
           <TabsList className="mb-4">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="funding">Funding</TabsTrigger>
-            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="details">
+          <TabsContent value="overview">
             <Card className="shadow-sm border border-gray-200 dark:border-gray-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Detailed Information</CardTitle>
@@ -438,43 +426,64 @@ export default function ProjectDetail() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="location">
-            <Card className="shadow-sm border border-gray-200 dark:border-gray-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Project Location</CardTitle>
-                <CardDescription>Geographic location and mapping details</CardDescription>
+          <TabsContent value="tasks">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Tasks</CardTitle>
+                <CardDescription>
+                  Track and manage tasks for the {project.name}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
-                {project.coordinates ? (
-                  <div className="h-[400px] rounded-md overflow-hidden">
-                    <ProjectLocationMap 
-                      latitude={project.coordinates.latitude} 
-                      longitude={project.coordinates.longitude}
-                      projectName={project.name}
-                    />
+              <CardContent className="lg:max-w-3xl">
+                <ProjectTodoList projectId={projectId} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Documents</CardTitle>
+                <CardDescription>
+                  View and manage documents for this project
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {project.attachments && project.attachments.length > 0 ? (
+                  <div className="space-y-4">
+                    {project.attachments.map((attachment: any, index: number) => {
+                      const fileExt = attachment.name.split('.').pop().toLowerCase();
+                      const icon = documentIcons[fileExt] || documentIcons.default;
+                      
+                      return (
+                        <div key={index} className="flex items-center p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <div className="mr-3">
+                            {icon}
+                          </div>
+                          <div className="flex-grow">
+                            <div className="font-medium">{attachment.name}</div>
+                            <div className="text-xs text-gray-500">
+                              Uploaded on {new Date(attachment.uploadedAt).toLocaleDateString()}
+                              {attachment.uploadedBy && ` by ${attachment.uploadedBy}`}
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <DownloadIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] bg-gray-100 dark:bg-gray-800 rounded-md">
-                    <MapPinIcon className="h-10 w-10 text-gray-400 mb-2" />
-                    <p className="text-gray-500">No location data available</p>
-                  </div>
+                  <div className="text-gray-500">No documents have been uploaded for this project.</div>
                 )}
                 
-                {project.geojson && (
-                  <div className="mt-4">
-                    <h3 className="font-semibold mb-2">GeoJSON Data Available</h3>
-                    <p className="text-sm text-gray-500">This project has detailed geographic data that can be viewed on the project map.</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => router.push('/project-mapping')}
-                    >
-                      <Layers className="mr-2 h-4 w-4" />
-                      View on Project Map
-                    </Button>
-                  </div>
-                )}
+                <div className="mt-6">
+                  <Button variant="outline">
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Upload New Document
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -483,7 +492,9 @@ export default function ProjectDetail() {
             <Card>
               <CardHeader>
                 <CardTitle>Project Timeline</CardTitle>
-                <CardDescription>Phases, milestones, and deadlines</CardDescription>
+                <CardDescription>
+                  View and manage the project timeline
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Project Phases */}
@@ -565,57 +576,13 @@ export default function ProjectDetail() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Documents</CardTitle>
-                <CardDescription>Supporting documents and attachments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {project.attachments && project.attachments.length > 0 ? (
-                  <div className="space-y-4">
-                    {project.attachments.map((attachment: any, index: number) => {
-                      const fileExt = attachment.name.split('.').pop().toLowerCase();
-                      const icon = documentIcons[fileExt] || documentIcons.default;
-                      
-                      return (
-                        <div key={index} className="flex items-center p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
-                          <div className="mr-3">
-                            {icon}
-                          </div>
-                          <div className="flex-grow">
-                            <div className="font-medium">{attachment.name}</div>
-                            <div className="text-xs text-gray-500">
-                              Uploaded on {new Date(attachment.uploadedAt).toLocaleDateString()}
-                              {attachment.uploadedBy && ` by ${attachment.uploadedBy}`}
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <DownloadIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-gray-500">No documents have been uploaded for this project.</div>
-                )}
-                
-                <div className="mt-6">
-                  <Button variant="outline">
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    Upload New Document
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
           <TabsContent value="funding">
             <Card className="shadow-sm border border-gray-200 dark:border-gray-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Funding Details</CardTitle>
-                <CardDescription>Budget and funding sources</CardDescription>
+                <CardDescription>
+                  View and manage funding sources and allocations
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -691,47 +658,6 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="text-gray-500">No funding sources have been specified for this project.</div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="scenarios">
-            <Card className="shadow-sm border border-gray-200 dark:border-gray-800">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Project Scenarios</CardTitle>
-                <CardDescription>
-                  Potential outcomes and scenarios for this project
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-0">
-                <div className="flex flex-col space-y-4">
-                  <p>Generate and compare alternative scenarios for this project to evaluate different approaches and outcomes.</p>
-                  
-                  {project.scenarios && project.scenarios.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {project.scenarios.slice(0, 4).map((scenario: any, index: number) => (
-                        <div key={index} className="border rounded-md p-4 bg-gray-50 dark:bg-gray-800/50">
-                          <h3 className="font-semibold mb-2">{scenario.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{scenario.description}</p>
-                          <div className="flex justify-between text-sm text-gray-500">
-                            <span>Cost: ${scenario.cost.toLocaleString()}</span>
-                            <span>Timeline: {scenario.timeline}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-8 border border-dashed rounded-md">
-                      <p className="mb-4 text-gray-500">No scenarios have been created for this project yet.</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-center mt-4">
-                    <Button onClick={() => router.push(`/projects/${project.id}/scenarios`)}>
-                      {project.scenarios && project.scenarios.length > 0 ? 'View All Scenarios' : 'Create Scenarios'}
-                    </Button>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

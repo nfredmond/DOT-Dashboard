@@ -46,7 +46,7 @@ export default function ScenariosPage() {
       setLoading(true);
       try {
         // Check if we're in demo mode by looking for demo project ID
-        const isDemoProject = projectId.startsWith('demo');
+        const _isDemoProject = projectId.startsWith('demo');
         
         // Fetch project data
         const projectResponse = await fetch(`/api/projects/${projectId}`);

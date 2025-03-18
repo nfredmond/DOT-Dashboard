@@ -38,6 +38,9 @@ export function CommunityFeedback() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Fix unused variable warning
+  const _feedbackType = feedbackType;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);

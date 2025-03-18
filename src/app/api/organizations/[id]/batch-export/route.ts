@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../lib/logger';
+
 
 interface ProjectData {
   id: string;
@@ -64,7 +66,7 @@ export async function GET(
     const filterCategory = searchParams.get('category');
     
     // Check if user has permission to access this organization
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', session.user.id)
@@ -284,7 +286,7 @@ export async function GET(
       return NextResponse.json({ data: responseData });
     }
   } catch (error: any) {
-    console.error('Error exporting projects:', error);
+    logger.error('Error exporting projects:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to export projects' },
       { status: 500 }

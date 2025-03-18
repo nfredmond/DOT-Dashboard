@@ -42,7 +42,7 @@ export async function GET(
     }
     
     // Check permissions - user must have access to either the project's org or parent org
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', session.user.id)
@@ -65,7 +65,8 @@ export async function GET(
     }
     
     // Get the reporting field definitions from the parent organization
-    let reportingFields = [];
+
+let reportingFields = [];
     if (project.parent_org_id) {
       const { data: parentOrg, error: parentOrgError } = await supabase
         .from('organizations')
@@ -87,7 +88,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('Error fetching project reporting data:', error);
+    logger.error('Error fetching project reporting data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project reporting data' },
       { status: 500 }
@@ -140,7 +141,7 @@ export async function PATCH(
     }
     
     // Check if user has edit permissions for this project
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membership, error: _membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', session.user.id)
@@ -148,7 +149,7 @@ export async function PATCH(
       .single();
     
     // Also check if user is a member of the parent organization
-    const { data: parentMembership, error: parentMembershipError } = await supabase
+    const { data: parentMembership, error: _parentMembershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('user_id', session.user.id)
@@ -225,7 +226,7 @@ export async function PATCH(
     
     return NextResponse.json({ data: updatedProject });
   } catch (error) {
-    console.error('Error updating project reporting data:', error);
+    logger.error('Error updating project reporting data:', error);
     return NextResponse.json(
       { error: 'Failed to update project reporting data' },
       { status: 500 }

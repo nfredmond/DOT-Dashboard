@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
-import { runTrendNavigatorScenario } from '@/lib/trend-navigator-service';
 import { runCAMPModel } from '@/lib/camp-runner';
+import logger from '../../../../../lib/logger';
 
 /**
  * POST /api/scenarios/[id]/run
@@ -57,7 +57,7 @@ export async function POST(
       .single();
     
     if (runError) {
-      console.error('Error creating model run:', runError);
+      logger.error('Error creating model run:', runError);
       return NextResponse.json(
         { error: 'Failed to initiate scenario run' },
         { status: 500 }
@@ -68,7 +68,7 @@ export async function POST(
     // In a production environment, this would be handled by a queue system
     // For simplicity, we're starting it directly here
     startModelRun(modelRun.id, params.id, options).catch(err => {
-      console.error(`Error running model for scenario ${params.id}:`, err);
+      logger.error(`Error running model for scenario ${params.id}:`, err);
       
       // Update the run status to ERROR
       supabase
@@ -80,10 +80,10 @@ export async function POST(
         })
         .eq('id', modelRun.id)
         .then(() => {
-          console.log(`Updated model run ${modelRun.id} status to ERROR`);
+          logger.log(`Updated model run ${modelRun.id} status to ERROR`);
         })
         .catch(updateErr => {
-          console.error(`Failed to update model run ${modelRun.id} status:`, updateErr);
+          logger.error(`Failed to update model run ${modelRun.id} status:`, updateErr);
         });
     });
     
@@ -94,7 +94,7 @@ export async function POST(
       message: 'Scenario run has been queued for processing'
     }, { status: 202 }); // 202 Accepted
   } catch (error: any) {
-    console.error('Error running scenario:', error.message);
+    logger.error('Error running scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to run scenario' },
@@ -133,7 +133,7 @@ export async function GET(
       .limit(1);
     
     if (error) {
-      console.error('Error fetching model runs:', error);
+      logger.error('Error fetching model runs:', error);
       return NextResponse.json(
         { error: 'Failed to retrieve model run status' },
         { status: 500 }
@@ -159,7 +159,7 @@ export async function GET(
       errorMessage: latestRun.error_message
     });
   } catch (error: any) {
-    console.error('Error getting run status:', error.message);
+    logger.error('Error getting run status:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to get run status' },
@@ -232,7 +232,7 @@ async function startModelRun(runId: string, scenarioId: string, options: any) {
     
     return modelRun;
   } catch (error) {
-    console.error(`Error in model run ${runId}:`, error);
+    logger.error(`Error in model run ${runId}:`, error);
     
     // Update the run status to ERROR
     await supabase

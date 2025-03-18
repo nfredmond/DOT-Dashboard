@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processVoiceCommand } from '@/lib/voice-agent-service';
 import { AgentType } from '@/lib/agents-service';
+import logger from '../../../lib/logger';
+
 
 /**
  * API handler for processing voice commands
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error processing voice command:', error);
+    logger.error('Error processing voice command:', error);
     return NextResponse.json(
       { error: 'Failed to process voice command' },
       { status: 500 }

@@ -1,12 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Portal } from '@/components/ui/portal';
 
 interface SearchResult {
   id: string;
@@ -24,7 +22,7 @@ interface SearchControlProps {
 }
 
 // Loading state while dynamic import is in progress
-function SearchControlLoading({ className = '' }: { className?: string }) {
+function _SearchControlLoading({ className = '' }: { className?: string }) {
   return (
     <div className={`relative ${className}`}>
       <div className="flex gap-1">
@@ -50,7 +48,7 @@ function SearchControlLoading({ className = '' }: { className?: string }) {
 // Instead of using dynamic imports, we'll use a Portal approach
 export function SearchControl(props: SearchControlProps) {
   const [mounted, setMounted] = useState(false);
-  const [leafletReady, setLeafletReady] = useState(false);
+  const [_leafletReady, setLeafletReady] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   

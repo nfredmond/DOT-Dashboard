@@ -26,6 +26,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processWithTextCommand } from '@/lib/voice-agent-service';
 import { defaultVoiceSettings, VoiceSettings } from '@/lib/voice-service';
 import { AgentContext } from '@/lib/agent-sdk';
+import logger from '../../../../lib/logger';
+
 
 /**
  * Handle POST requests for processing text commands
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
     // Return the processing result
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Text command processing error:', error);
+    logger.error('Text command processing error:', error);
     return NextResponse.json(
       { 
         processed: false,

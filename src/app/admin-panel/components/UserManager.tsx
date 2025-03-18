@@ -1,15 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { 
-  Card, 
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle, 
-} from '@/components/ui/card';
+
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,8 +25,7 @@ import {
   LinkedinIcon,
   MailIcon,
   BuildingIcon,
-  CheckIcon,
-  XIcon
+  CheckIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -41,8 +34,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Select,

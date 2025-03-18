@@ -1,3 +1,4 @@
+import logger from '../../lib/logger';
 "use client";
 
 /**
@@ -8,38 +9,38 @@
 export function debugLeafletLoading() {
   if (typeof window === 'undefined') return;
   
-  console.log('=============================================');
-  console.log('LEAFLET DEBUG INFORMATION');
-  console.log('=============================================');
+  logger.log('=============================================');
+  logger.log('LEAFLET DEBUG INFORMATION');
+  logger.log('=============================================');
   
   // Check if Leaflet is loaded
-  console.log('Leaflet global:', !!window.L);
+  logger.log('Leaflet global:', !!window.L);
   
   // Check for map instances
-  console.log('Leaflet map instances:', window._leaflet_map_instances?.length || 0);
-  console.log('Current map instance:', !!window.leafletMapInstance);
+  logger.log('Leaflet map instances:', window._leaflet_map_instances?.length || 0);
+  logger.log('Current map instance:', !!window.leafletMapInstance);
   
   // Check for DOM elements
   const leafletElements = document.querySelectorAll('[class^="leaflet-"]');
-  console.log('Leaflet DOM elements:', leafletElements.length);
+  logger.log('Leaflet DOM elements:', leafletElements.length);
   
   // Check for containers
   const containers = document.querySelectorAll('.leaflet-container');
-  console.log('Leaflet containers:', containers.length);
+  logger.log('Leaflet containers:', containers.length);
   
   // Check for CSS
   const leafletCSS = document.querySelector('link[href*="leaflet.css"]');
-  console.log('Leaflet CSS loaded:', !!leafletCSS);
+  logger.log('Leaflet CSS loaded:', !!leafletCSS);
   
   // Check if window has issues
   try {
-    console.log('Window dimensions:', window.innerWidth, window.innerHeight);
-    console.log('Document dimensions:', document.documentElement.clientWidth, document.documentElement.clientHeight);
+    logger.log('Window dimensions:', window.innerWidth, window.innerHeight);
+    logger.log('Document dimensions:', document.documentElement.clientWidth, document.documentElement.clientHeight);
   } catch (e) {
-    console.error('Error checking window dimensions:', e);
+    logger.error('Error checking window dimensions:', e);
   }
   
-  console.log('=============================================');
+  logger.log('=============================================');
 }
 
 export function fixLeafletContainers() {
@@ -48,7 +49,7 @@ export function fixLeafletContainers() {
   try {
     // Find all map containers
     const containers = document.querySelectorAll('.leaflet-container');
-    console.log(`Found ${containers.length} leaflet containers to fix`);
+    logger.log(`Found ${containers.length} leaflet containers to fix`);
     
     containers.forEach((container, index) => {
       try {
@@ -58,15 +59,15 @@ export function fixLeafletContainers() {
         (container as HTMLElement).style.minWidth = '300px';
         (container as HTMLElement).style.minHeight = '300px';
         
-        console.log(`Fixed container ${index+1}`);
+        logger.log(`Fixed container ${index+1}`);
       } catch (e) {
-        console.warn(`Error fixing container ${index+1}:`, e);
+        logger.warn(`Error fixing container ${index+1}:`, e);
       }
     });
     
     // Also check for map wrappers
     const wrappers = document.querySelectorAll('[data-leaflet-container-id]');
-    console.log(`Found ${wrappers.length} map wrappers to fix`);
+    logger.log(`Found ${wrappers.length} map wrappers to fix`);
     
     wrappers.forEach((wrapper, index) => {
       try {
@@ -76,9 +77,9 @@ export function fixLeafletContainers() {
         (wrapper as HTMLElement).style.minWidth = '300px';
         (wrapper as HTMLElement).style.minHeight = '300px';
         
-        console.log(`Fixed wrapper ${index+1}`);
+        logger.log(`Fixed wrapper ${index+1}`);
       } catch (e) {
-        console.warn(`Error fixing wrapper ${index+1}:`, e);
+        logger.warn(`Error fixing wrapper ${index+1}:`, e);
       }
     });
     
@@ -90,10 +91,10 @@ export function fixLeafletContainers() {
       try {
         window.leafletMapInstance.invalidateSize(true);
       } catch (e) {
-        console.warn('Error invalidating map size:', e);
+        logger.warn('Error invalidating map size:', e);
       }
     }
   } catch (e) {
-    console.error('Error in fixLeafletContainers:', e);
+    logger.error('Error in fixLeafletContainers:', e);
   }
 } 

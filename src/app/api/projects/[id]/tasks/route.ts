@@ -35,7 +35,7 @@ export async function GET(
     // Check if user has access to the project
     if (project.visibility !== 'public') {
       // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
+      const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
         .select('role')
         .eq('organization_id', project.organization_id)
@@ -66,7 +66,7 @@ export async function GET(
     
     return NextResponse.json({ data: tasks });
   } catch (error) {
-    console.error('Error fetching project tasks:', error);
+    logger.error('Error fetching project tasks:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project tasks' },
       { status: 500 }
@@ -152,7 +152,7 @@ export async function POST(
     
     return NextResponse.json({ data: task }, { status: 201 });
   } catch (error) {
-    console.error('Error creating project task:', error);
+    logger.error('Error creating project task:', error);
     return NextResponse.json(
       { error: 'Failed to create project task' },
       { status: 500 }
@@ -169,6 +169,8 @@ export async function DELETE(
   const projectId = params.id;
   
   // Get the task ID from the query parameters
+import logger from '../../../../../lib/logger';
+
   const { searchParams } = new URL(request.url);
   const taskId = searchParams.get('taskId');
   
@@ -214,7 +216,7 @@ export async function DELETE(
     }
     
     // Check if the task exists and belongs to the project
-    const { data: task, error: taskError } = await supabase
+    const { data: _task, error: taskError } = await supabase
       .from('project_tasks')
       .select('id')
       .eq('id', taskId)
@@ -238,7 +240,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting project task:', error);
+    logger.error('Error deleting project task:', error);
     return NextResponse.json(
       { error: 'Failed to delete project task' },
       { status: 500 }

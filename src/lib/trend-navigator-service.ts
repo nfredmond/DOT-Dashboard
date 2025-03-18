@@ -15,21 +15,15 @@ import {
   ScenarioAssumption,
   PolicyPackage,
   ScenarioResults,
-  TimeHorizon,
-  ScenarioComparison,
-  ScenarioImpactArea,
   Trend,
   PolicyIntervention,
-  TrendNavigatorRunRequest,
   RunOptions,
-  AggregateMetrics,
   BaselineComparison,
   ComparisonResult
 } from '@/types/trend-navigator';
 import { AgentType, runAgentQuery } from './agents-service';
-import { getCAMPModelConfig, runCAMPModel, convertCAMPResultsToScenarioResults } from '@/lib/camp-runner';
-import { textToSpeech, VoiceSettings } from './voice-service';
-import { CAMPModelConfig, CAMPRunRequest } from '@/types/camp';
+import { runCAMPModel } from '@/lib/camp-runner';
+import { CAMPModelConfig } from '@/types/camp';
 
 /**
  * Get all TrendNavigator configurations for an agency
@@ -370,7 +364,7 @@ export async function runTrendNavigatorScenario(
     }
 
     // Run the CAMP model
-    const modelRun = await runCAMPModel(scenarioId, options);
+    const _modelRun = await runCAMPModel(scenarioId, options);
     
     // Poll for results until the run is complete or failed
     let maxRetries = 30; // Try for 5 minutes (10 seconds × 30)
@@ -723,7 +717,7 @@ async function applyPolicyPackagesToCAMPModel(
 /**
  * Process CAMP model results for scenario metrics
  */
-function processCAMPResultsForScenario(campResults: any): any {
+function _processCAMPResultsForScenario(campResults: any): any {
   // Extract and transform relevant metrics from CAMP results
   return {
     totalTrips: campResults.summary?.totalTrips || 0,
@@ -776,7 +770,7 @@ function calculateAverageCommute(campResults: any): number {
 /**
  * Calculate accessibility index from model results
  */
-function calculateAccessibilityIndex(campResults: any): number {
+function calculateAccessibilityIndex(_campResults: any): number {
   // Placeholder for accessibility calculation
   // In a real implementation, this would consider:
   // - Job accessibility by transit/walking
@@ -788,7 +782,7 @@ function calculateAccessibilityIndex(campResults: any): number {
 /**
  * Calculate equity index from model results
  */
-function calculateEquityIndex(campResults: any): number {
+function calculateEquityIndex(_campResults: any): number {
   // Placeholder for equity calculation
   // In a real implementation, this would consider:
   // - Distribution of benefits across income groups
@@ -800,7 +794,7 @@ function calculateEquityIndex(campResults: any): number {
 /**
  * Calculate comparison to baseline scenario
  */
-function calculateBaselineComparison(results: ScenarioResults): BaselineComparison {
+function _calculateBaselineComparison(_results: ScenarioResults): BaselineComparison {
   // Placeholder for baseline comparison
   // In a real implementation, this would compare to a stored baseline scenario
   
@@ -921,7 +915,7 @@ Format your response as a JSON object with these metrics as keys.`;
 /**
  * Get a trend by ID
  */
-async function getTrend(trendId: string): Promise<Trend | null> {
+async function _getTrend(trendId: string): Promise<Trend | null> {
   const supabase = createClient();
   
   const { data, error } = await supabase
@@ -941,7 +935,7 @@ async function getTrend(trendId: string): Promise<Trend | null> {
 /**
  * Get a policy by ID
  */
-async function getPolicy(policyId: string): Promise<PolicyIntervention | null> {
+async function _getPolicy(policyId: string): Promise<PolicyIntervention | null> {
   const supabase = createClient();
   
   const { data, error } = await supabase
@@ -999,7 +993,7 @@ export async function getPolicyPackages(): Promise<PolicyPackage[]> {
 /**
  * Transform database scenario object to our application type
  */
-function transformScenarioData(data: any): ScenarioDefinition {
+function _transformScenarioData(data: any): ScenarioDefinition {
   return {
     id: data.id,
     name: data.name,

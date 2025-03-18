@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
 import { 
-  generateScenarioInsights, 
-  getScenarioInsights,
+  generateScenarioInsights,
   analyzeScenarioAspect
 } from '@/lib/scenario-insights-service';
+import logger from '../../../../../lib/logger';
+
 
 /**
  * GET /api/scenarios/[id]/insights
@@ -44,7 +45,7 @@ export async function GET(
         });
       }
       
-      console.error('Error fetching scenario insights:', error);
+      logger.error('Error fetching scenario insights:', error);
       return NextResponse.json(
         { error: 'Failed to retrieve scenario insights' },
         { status: 500 }
@@ -58,7 +59,7 @@ export async function GET(
       charts: insights.charts || []
     });
   } catch (error: any) {
-    console.error('Error retrieving scenario insights:', error.message);
+    logger.error('Error retrieving scenario insights:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to retrieve scenario insights' },
@@ -99,7 +100,7 @@ export async function POST(
       .single();
     
     if (scenarioError || !scenario) {
-      console.error('Error fetching scenario:', scenarioError);
+      logger.error('Error fetching scenario:', scenarioError);
       return NextResponse.json(
         { error: 'Scenario not found' },
         { status: 404 }
@@ -129,7 +130,7 @@ export async function POST(
     
     return NextResponse.json(insights);
   } catch (error: any) {
-    console.error('Error generating scenario insights:', error.message);
+    logger.error('Error generating scenario insights:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to generate insights' },
@@ -191,7 +192,7 @@ export async function GET_aspect(
     
     return NextResponse.json({ content });
   } catch (error: any) {
-    console.error(`Error analyzing scenario aspect:`, error.message);
+    logger.error(`Error analyzing scenario aspect:`, error.message);
     
     return NextResponse.json(
       { error: 'Failed to analyze scenario aspect' },

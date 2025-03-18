@@ -9,8 +9,6 @@ import {
   Lightbulb, 
   Loader2, 
   BarChart4Icon,
-  CheckCircle,
-  RefreshCw,
   ThumbsUp
 } from 'lucide-react';
 import { useLLM } from '@/contexts/LLMContext';

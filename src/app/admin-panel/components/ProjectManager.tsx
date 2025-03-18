@@ -4,8 +4,6 @@ import { useState, useRef } from 'react';
 import { 
   Card, 
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle, 
 } from '@/components/ui/card';
@@ -23,25 +21,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { 
-  FileStackIcon, 
   PlusCircleIcon, 
   TrashIcon, 
   EditIcon, 
   SearchIcon,
   MapPinIcon,
-  UploadIcon,
-  FileIcon,
-  FileTextIcon,
   LoaderIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
-  XCircleIcon,
-  CheckIcon,
-  XIcon,
   CalendarIcon,
-  DollarSignIcon,
-  UsersIcon,
-  FolderIcon,
   BrainIcon,
   FilterIcon
 } from 'lucide-react';
@@ -52,8 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -74,13 +58,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Progress } from '@/components/ui/progress';
+
+
 
 // Enhanced project interface with more detailed fields
 interface Project {
@@ -229,18 +208,18 @@ const sampleProjects: Project[] = [
 
 export function ProjectManager() {
   const [projects, setProjects] = useState<Project[]>(sampleProjects);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [_searchTerm, _setSearchTerm] = useState('');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
-  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [_isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [_isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisComplete, setAnalysisComplete] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [_analyzing, setAnalyzing] = useState(false);
+  const [_analysisComplete, setAnalysisComplete] = useState(false);
+  const [_analysisProgress, setAnalysisProgress] = useState(0);
   const [detectedProjects, setDetectedProjects] = useState<Partial<Project>[]>([]);
-  const [selectedProjectIndex, setSelectedProjectIndex] = useState<number>(0);
-  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
-  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+  const [_selectedProjectIndex, setSelectedProjectIndex] = useState<number>(0);
+  const [_isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [_batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -275,7 +254,7 @@ export function ProjectManager() {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   
   // Handle file input change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
       setUploadedFiles(filesArray);
@@ -286,7 +265,7 @@ export function ProjectManager() {
   };
 
   // Simulate LLM analysis of files for multiple projects
-  const analyzeFilesWithLLM = async () => {
+  const _analyzeFilesWithLLM = async () => {
     if (uploadedFiles.length === 0) {
       toast({
         title: "No files to analyze",
@@ -378,7 +357,7 @@ export function ProjectManager() {
     });
   };
 
-  const selectProject = (index: number) => {
+  const _selectProject = (index: number) => {
     if (index >= 0 && index < detectedProjects.length) {
       setSelectedProjectIndex(index);
       setFormData(prev => ({
@@ -388,7 +367,7 @@ export function ProjectManager() {
     }
   };
 
-  const handleAddAllProjects = async () => {
+  const _handleAddAllProjects = async () => {
     if (detectedProjects.length === 0) return;
 
     setIsBatchProcessing(true);
@@ -534,7 +513,7 @@ export function ProjectManager() {
     });
   };
 
-  const handleEditClick = (projectId: string) => {
+  const _handleEditClick = (projectId: string) => {
     const projectToEdit = projects.find(project => project.id === projectId);
     if (projectToEdit) {
       setFormData({
@@ -592,11 +571,11 @@ export function ProjectManager() {
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [wizardMode, setWizardMode] = useState<'create' | 'update'>('create');
-  const [showScoring, setShowScoring] = useState(false);
+  const [_showScoring, _setShowScoring] = useState(false);
   const [showBatchUpdate, setShowBatchUpdate] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [processingAI, setProcessingAI] = useState(false);
-  const [wizardTemplate, setWizardTemplate] = useState('default');
+  const [wizardTemplate, _setWizardTemplate] = useState('default');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   
   // Templates for different project types
@@ -682,7 +661,7 @@ export function ProjectManager() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // This would be replaced with actual AI processing logic
-      const updatedProjects = selectedProjectIds.map(id => {
+      const _updatedProjects = selectedProjectIds.map(id => {
         const project = projects.find(p => p.id === id);
         if (project) {
           // Example of what AI might do - interpret the prompt and make changes
@@ -780,7 +759,7 @@ export function ProjectManager() {
   
   // This would show the wizard interface based on the current step
   const renderWizardStep = () => {
-    const template = wizardTemplates.find(t => t.id === wizardTemplate) ? wizardTemplate : 'default';
+    const _template = wizardTemplates.find(t => t.id === wizardTemplate) ? wizardTemplate : 'default';
     const currentStepData = wizardSteps.default[wizardStep - 1];
     
     return (

@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { VoiceSettings, defaultVoiceSettings, VoiceModelType, TranscriptionModelType } from '@/lib/voice-service';
 import { useToast } from '@/components/ui/use-toast';
-import { isSesameAvailable, getAvailableSpeakers } from '@/lib/sesame-service';
+import logger from '../../lib/logger';
+
 
 interface VoiceModelSettingsProps {
   initialSettings?: VoiceSettings;
@@ -43,7 +43,7 @@ export default function VoiceModelSettings({
           setSpeakerIds(data.speakers || [0, 1, 2, 3, 4, 5, 6, 7]);
         }
       } catch (error) {
-        console.error('Error checking Sesame availability:', error);
+        logger.error('Error checking Sesame availability:', error);
         setSesameAvailable(false);
       }
     };
@@ -65,7 +65,7 @@ export default function VoiceModelSettings({
         description: 'Voice model settings have been updated.',
       });
     } catch (error) {
-      console.error('Error saving voice settings:', error);
+      logger.error('Error saving voice settings:', error);
       
       toast({
         title: 'Error saving settings',

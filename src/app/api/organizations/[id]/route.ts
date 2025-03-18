@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../lib/logger';
+
 
 // GET /api/organizations/[id] - Get a specific organization by ID
 export async function GET(
@@ -52,7 +54,7 @@ export async function GET(
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching organization:', error);
+    logger.error('Error fetching organization:', error);
     return NextResponse.json(
       { error: 'Failed to fetch organization' },
       { status: 500 }
@@ -126,7 +128,7 @@ export async function PATCH(
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error updating organization:', error);
+    logger.error('Error updating organization:', error);
     return NextResponse.json(
       { error: 'Failed to update organization' },
       { status: 500 }
@@ -176,7 +178,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting organization:', error);
+    logger.error('Error deleting organization:', error);
     return NextResponse.json(
       { error: 'Failed to delete organization' },
       { status: 500 }

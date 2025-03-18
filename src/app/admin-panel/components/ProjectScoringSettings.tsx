@@ -5,7 +5,6 @@ import {
   Card, 
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle, 
 } from '@/components/ui/card';
@@ -24,17 +23,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowDown,
-  ArrowUp,
-  CheckCircle,
-  ChevronDown,
-  FileStackIcon, 
+  CheckCircle, 
   GripVertical,
   Info,
   PencilIcon,
   PlusCircle,
   Save,
-  Trash2,
-  XCircle
+  Trash2
 } from 'lucide-react';
 import {
   Dialog,
@@ -43,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,

@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -29,7 +28,7 @@ import {
 } from "lucide-react";
 
 export default function ReportDetail() {
-  const [activeTab, setActiveTab] = useState("preview");
+  const [_activeTab, setActiveTab] = useState("preview");
 
   // Mock report data
   const report = {

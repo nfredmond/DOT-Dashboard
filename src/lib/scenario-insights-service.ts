@@ -1,10 +1,8 @@
 'use client';
 
-import { ScenarioResults, ScenarioDefinition, TimeHorizon } from '@/types/trend-navigator';
-import { CAMPModelConfig } from '@/types/camp';
 import { createClient } from '@/lib/supabase/client';
 import { AgentType, runAgentQuery } from '@/lib/agents-service';
-import { analyzeScenarioResults, compareScenarios, generateRecommendations } from './ai-agent-service';
+import { compareScenarios, generateRecommendations } from './ai-agent-service';
 import { ScenarioInsights } from '@/types/trend-navigator';
 
 export type InsightType = 'summary' | 'highlights' | 'recommendations' | 'comparison';
@@ -99,7 +97,7 @@ export async function getScenarioInsights(scenarioId: string): Promise<ScenarioI
  */
 export async function generateScenarioInsights(
   scenarioId: string,
-  options: Record<string, any> = {}
+  _options: Record<string, any> = {}
 ): Promise<ScenarioInsights | null> {
   try {
     const supabase = createClient();
@@ -379,13 +377,13 @@ export async function analyzeScenarioAspect(
 /**
  * Construct a prompt for scenario analysis
  */
-function constructScenarioAnalysisPrompt(
+function _constructScenarioAnalysisPrompt(
   scenario: any,
   results: any,
   options: InsightOptions
 ): string {
   const horizonYear = results.horizonYears[0];
-  const metrics = results.aggregateMetrics[horizonYear];
+  const _metrics = results.aggregateMetrics[horizonYear];
   
   // Format the basic prompt
   let prompt = `
@@ -445,7 +443,7 @@ function constructScenarioAnalysisPrompt(
 /**
  * Construct a prompt for scenario comparison
  */
-function constructComparisonPrompt(
+function _constructComparisonPrompt(
   scenarios: any[], 
   resultsMap: Record<string, any>,
   options: InsightOptions
@@ -462,7 +460,7 @@ function constructComparisonPrompt(
     if (!results) return;
     
     const horizonYear = results.horizonYears[0];
-    const metrics = results.aggregateMetrics[horizonYear];
+    const _metrics = results.aggregateMetrics[horizonYear];
     
     prompt += `
       SCENARIO: ${scenario.name}

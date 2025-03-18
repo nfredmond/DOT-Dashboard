@@ -1,6 +1,7 @@
 // Project data model types
 import { CAMPModelResults } from './camp';
 import { ScenarioDefinition, ScenarioResults, ScenarioComparison } from './trend-navigator';
+import { BenefitCostAnalysis, BenefitCostAnalysisResult } from './benefit-cost';
 
 // Project status options
 export type ProjectStatus = 
@@ -159,6 +160,9 @@ export interface TransportationMetrics {
   accessibilityImprovement?: number;
   equityScore?: number;
   costBenefitRatio?: number;
+  netPresentValue?: number;
+  internalRateOfReturn?: number;
+  paybackPeriod?: number;
   [key: string]: number | undefined; // For custom metrics
 }
 
@@ -233,6 +237,10 @@ export interface Project {
   scenarioComparisons?: ScenarioComparison[];
   selectedBaselineScenarioId?: string;
   selectedAlternativeScenarioIds?: string[];
+  
+  // Benefit-Cost Analysis integration
+  benefitCostAnalyses?: BenefitCostAnalysis[];
+  selectedBenefitCostAnalysisId?: string;
 }
 
 // Project template for creating new projects
@@ -370,7 +378,8 @@ export enum AnalysisType {
   SAFETY = 'safety',
   EQUITY = 'equity',
   ENVIRONMENTAL = 'environmental',
-  ECONOMIC = 'economic'
+  ECONOMIC = 'economic',
+  BENEFIT_COST = 'benefit_cost'
 }
 
 export interface AnalysisResult {
@@ -432,5 +441,29 @@ export interface TrendScenarioAnalysisResult extends AnalysisResult {
       impactDescription: string;
       magnitude: number;
     }[];
+  };
+}
+
+export interface BenefitCostAnalysisResult extends AnalysisResult {
+  type: AnalysisType.BENEFIT_COST;
+  data: {
+    analysisId: string;
+    baselineAnalysisId?: string;
+    keyMetrics: {
+      netPresentValue: number;
+      benefitCostRatio: number;
+      internalRateOfReturn?: number;
+      paybackPeriod?: number;
+    };
+    benefitBreakdown: Record<string, number>;
+    costBreakdown: Record<string, number>;
+    sensitivityResults?: {
+      criticalVariables: string[];
+      switchingPoints: Record<string, number>;
+    };
+    distributionalResults?: {
+      equityScore: number;
+      demographicImpacts: Record<string, number>;
+    };
   };
 } 

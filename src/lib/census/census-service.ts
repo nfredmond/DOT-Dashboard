@@ -5,7 +5,7 @@
  * Used by AI analysis tools to provide equity analysis
  */
 
-import { DemographicData, AgeDistribution, EthnicityDistribution } from '@/types/project.d';
+import { DemographicData } from '@/types/project.d';
 import { getEnvVariable } from '@/lib/env-service';
 
 /**
@@ -501,7 +501,7 @@ function getStateCodeByName(state: string): string {
  * @returns Sample demographic data
  */
 function getSampleDemographicData(county?: string, state?: string): DemographicData {
-  const countyName = county || 'Sample County';
+  const _countyName = county || 'Sample County';
   const stateName = state || 'California';
   
   // California statewide demographics as default

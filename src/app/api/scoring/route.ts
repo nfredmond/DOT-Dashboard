@@ -61,7 +61,7 @@ const demoCriteria = [
 ];
 
 // Mock project scores for demo mode
-const demoProjectScores = {
+const _demoProjectScores = {
   'demo1': [
     { id: 'score-1', projectId: 'demo1', criterionId: 'criterion-1', score: 85, notes: 'High impact on pedestrian safety' },
     { id: 'score-2', projectId: 'demo1', criterionId: 'criterion-2', score: 78, notes: 'Serves multiple disadvantaged neighborhoods' },
@@ -89,7 +89,7 @@ const demoProjectScores = {
 };
 
 // Mock prioritization scenarios
-const demoPrioritizationScenarios = [
+const _demoPrioritizationScenarios = [
   {
     id: 'scenario-1',
     name: 'Default Scoring',
@@ -140,7 +140,7 @@ const demoPrioritizationScenarios = [
 ];
 
 // GET /api/scoring - Get scoring criteria, for demo this returns mock data
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // Get session
   const supabase = createClient(cookies());
   const { data: { session } } = await supabase.auth.getSession();

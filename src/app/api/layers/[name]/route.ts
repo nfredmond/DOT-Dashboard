@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import togeojson from '@mapbox/togeojson';
-import { DOMParser } from '@xmldom/xmldom';
+import logger from '../../../../lib/logger';
+
 
 // Mock data for development
 const mockLayers = {
@@ -127,7 +127,7 @@ export async function GET(
       { status: 404 }
     );
   } catch (error) {
-    console.error('Error in layers API:', error);
+    logger.error('Error in layers API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

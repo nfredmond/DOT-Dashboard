@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,7 @@ import {
   MessageSquareDashed, 
   Sparkles,
   ThumbsUp,
-  X,
-  XCircle
+  X
 } from 'lucide-react';
 
 interface AiAssistanceProps {
@@ -74,7 +73,7 @@ const AiAssistance: React.FC<AiAssistanceProps> = ({
       setSuggestions(result);
       setAnalysis(null);
     } catch (error) {
-      console.error("Error processing text:", error);
+      logger.error("Error processing text:", error);
       toast({
         title: "Error",
         description: "Failed to process text. Please try again.",
@@ -109,7 +108,7 @@ const AiAssistance: React.FC<AiAssistanceProps> = ({
       setSuggestions(result);
       setAnalysis(null);
     } catch (error) {
-      console.error("Error processing file:", error);
+      logger.error("Error processing file:", error);
       toast({
         title: "Error",
         description: "Failed to process file. Please try again.",
@@ -129,7 +128,7 @@ const AiAssistance: React.FC<AiAssistanceProps> = ({
       setAnalysis(result);
       setSuggestions(null);
     } catch (error) {
-      console.error("Error analyzing project:", error);
+      logger.error("Error analyzing project:", error);
       toast({
         title: "Error",
         description: "Failed to analyze project. Please try again.",
@@ -149,7 +148,7 @@ const AiAssistance: React.FC<AiAssistanceProps> = ({
       const result = await suggestImprovements(projectData, currentStep);
       setImprovements(result);
     } catch (error) {
-      console.error("Error getting improvements:", error);
+      logger.error("Error getting improvements:", error);
       toast({
         title: "Error",
         description: "Failed to get improvement suggestions. Please try again.",
@@ -217,6 +216,8 @@ const AiAssistance: React.FC<AiAssistanceProps> = ({
               />
               <p className="text-xs text-muted-foreground">
                 Paste text from emails, documents, or describe the project in your own words.
+import logger from '../../../lib/logger';
+
               </p>
             </div>
             

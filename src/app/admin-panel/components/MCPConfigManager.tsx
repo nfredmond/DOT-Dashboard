@@ -29,7 +29,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
@@ -224,24 +223,24 @@ export function MCPConfigManager() {
   };
 
   // Check if any capability is available across active servers
-  const hasCapability = (capability: MCPCapability): boolean => {
+  const _hasCapability = (capability: MCPCapability): boolean => {
     return servers.some(server => 
       server.isActive && server.capabilities.includes(capability)
     );
   };
 
   // Count active servers
-  const activeServerCount = (): number => {
+  const _activeServerCount = (): number => {
     return servers.filter(server => server.isActive).length;
   };
 
   // Check if there's any active server
-  const hasAnyActiveServer = (): boolean => {
+  const _hasAnyActiveServer = (): boolean => {
     return servers.some(server => server.isActive);
   };
 
   // Check if OpenAI API key is configured
-  const hasOpenAIKey = (): boolean => {
+  const _hasOpenAIKey = (): boolean => {
     return !!servers.find(server => 
       server.provider === 'openai' && 
       server.isActive && 

@@ -1,18 +1,16 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Project, ProjectScores } from '@/types/project';
-import { useProjectWizard, ScoringCriteria } from '@/contexts/ProjectWizardContext';
+import { useProjectWizard } from '@/contexts/ProjectWizardContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, BarChart3, Info, Lightbulb, RefreshCcw } from 'lucide-react';
+import { BarChart3, Info, Lightbulb, RefreshCcw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartContainer } from "@/components/ui/chart";
 
 interface ScoringStepProps {
   projectData: Partial<Project>;
@@ -20,7 +18,7 @@ interface ScoringStepProps {
   errors: string[];
 }
 
-const ScoringStep: React.FC<ScoringStepProps> = ({ projectData, onSave, errors }) => {
+const ScoringStep: React.FC<ScoringStepProps> = ({ projectData, onSave, _errors }) => {
   const { config } = useProjectWizard();
   
   // Initialize scores from project data or default to 0

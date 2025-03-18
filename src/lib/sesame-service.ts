@@ -4,7 +4,6 @@
  * Integration with Sesame CSM (Conversational Speech Model) for text-to-speech
  */
 
-import { Blob } from 'node:buffer';
 import path from 'path';
 import fs from 'fs/promises';
 import { execSync } from 'child_process';
@@ -26,8 +25,8 @@ interface SesameTTSOptions {
 
 // Constants
 const SESAME_SUPPORTED = process.env.SESAME_CSM_PATH ? true : false;
-const SESAME_MODELS_DIR = process.env.SESAME_MODELS_DIR || './models/sesame';
-const LLAMA_MODEL_PATH = process.env.SESAME_LLAMA_MODEL_PATH || 'sesame/llama-3.2-1b';
+const _SESAME_MODELS_DIR = process.env.SESAME_MODELS_DIR || './models/sesame';
+const _LLAMA_MODEL_PATH = process.env.SESAME_LLAMA_MODEL_PATH || 'sesame/llama-3.2-1b';
 const CSM_MODEL_PATH = process.env.SESAME_CSM_MODEL_PATH || 'sesame/csm-1b';
 
 /**

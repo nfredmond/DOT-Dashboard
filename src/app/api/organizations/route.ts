@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { Organization } from '@/types/organization';
 import { cookies } from 'next/headers';
+import logger from '../../../lib/logger';
+
 
 // GET /api/organizations - Get all organizations or filtered by user access
 export async function GET(request: NextRequest) {
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Error fetching organizations:', error);
+    logger.error('Error fetching organizations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch organizations' },
       { status: 500 }
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ data: organization }, { status: 201 });
   } catch (error) {
-    console.error('Error creating organization:', error);
+    logger.error('Error creating organization:', error);
     return NextResponse.json(
       { error: 'Failed to create organization' },
       { status: 500 }

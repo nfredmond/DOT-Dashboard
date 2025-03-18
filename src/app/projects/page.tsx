@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,10 +14,7 @@ import {
   FilterIcon,
   SearchIcon,
   ArrowUpDown,
-  ChevronDownIcon,
-  DatabaseIcon,
   SparklesIcon,
-  RefreshCwIcon,
   FileTextIcon,
   ArrowLeftIcon,
   FolderPlus,
@@ -26,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +70,7 @@ const priorityColors: Record<string, string> = {
 
 const ProjectsPage = () => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { toast } = useToast();
   
   // Mock projects data - in a real app, this would come from an API

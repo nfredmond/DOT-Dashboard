@@ -203,10 +203,10 @@ export async function getCensusGeoData(params: CensusQueryParams): Promise<Censu
   
   try {
     // Get API key from environment
-    const apiKey = getEnvVariable('CENSUS_API_KEY');
+    const _apiKey = getEnvVariable('CENSUS_API_KEY');
     
     // Build the Tiger/Line URL for geometry
-    const vintage = params.vintage || new Date().getFullYear() - 2;
+    const _vintage = params.vintage || new Date().getFullYear() - 2;
     let tigerUrl = '';
     
     switch (params.geoType) {

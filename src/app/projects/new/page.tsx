@@ -7,17 +7,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, Calendar as CalendarIcon, Map, Building, Users, DollarSign, ArrowLeftCircle, ArrowRightCircle } from 'lucide-react';
+import { CheckCircle2, Map, DollarSign, ArrowLeftCircle, ArrowRightCircle } from 'lucide-react';
 
 const ProjectWizard: React.FC = () => {
   const router = useRouter();
-  const { addProject, projects } = useProjects();
+  const { addProject, _projects } = useProjects();
   const [currentStep, setCurrentStep] = useState(1);
   const [success, setSuccess] = useState(false);
   

@@ -1,20 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart, LineChart, PieChart, ArrowUpRight, ArrowDownRight, History, Zap } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
-import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Lightbulb, TrendingUp, Scale, Target } from 'lucide-react';
+import { CheckCircle, AlertTriangle, RefreshCw, Lightbulb, TrendingUp, Scale, Target } from 'lucide-react';
 
 import { analyzeScenarioResults } from '@/lib/ai-agent-service';
 import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
 import { 
   generateScenarioInsights, 
-  getScenarioInsights, 
   analyzeScenarioAspect 
 } from '@/lib/scenario-insights-service';
 import { useToast } from '@/components/ui/use-toast';
@@ -41,7 +40,7 @@ export default function ScenarioInsights({
   const [insightsTab, setInsightsTab] = useState('overview');
   const [insights, setInsights] = useState<any | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
-  const [keyMetrics, setKeyMetrics] = useState<{
+  const [_keyMetrics, setKeyMetrics] = useState<{
     vmtChange: number;
     ghgChange: number;
     transitShare: number;
@@ -121,7 +120,7 @@ export default function ScenarioInsights({
 
       setInsights(response);
     } catch (error) {
-      console.error(`Error loading insights for ${tab}:`, error);
+      logger.error(`Error loading insights for ${tab}:`, error);
       setInsights(null);
       toast({
         title: 'Error loading insights',
@@ -134,7 +133,7 @@ export default function ScenarioInsights({
   };
 
   // Handle refresh of insights
-  const handleRefreshInsights = () => {
+  const _handleRefreshInsights = () => {
     loadInsightsForTab(insightsTab);
   };
 
@@ -161,7 +160,7 @@ export default function ScenarioInsights({
         throw new Error('Failed to generate insights');
       }
     } catch (error) {
-      console.error('Error generating insights:', error);
+      logger.error('Error generating insights:', error);
       toast({
         title: 'Error generating insights',
         description: 'Could not generate AI insights for this scenario',
@@ -192,7 +191,7 @@ export default function ScenarioInsights({
         [aspect]: analysis
       }));
     } catch (error) {
-      console.error(`Error analyzing ${aspect}:`, error);
+      logger.error(`Error analyzing ${aspect}:`, error);
       toast({
         title: `Analysis Error`,
         description: `Could not analyze ${aspect.replace('_', ' ')} for this scenario`,
@@ -213,7 +212,7 @@ export default function ScenarioInsights({
   };
 
   // Metric card component
-  const MetricCard = ({ 
+  const _MetricCard = ({ 
     title, 
     value, 
     change, 
@@ -269,6 +268,8 @@ export default function ScenarioInsights({
                   : inverseColors ? 'text-green-500' : 'text-destructive'
               }`}>
                 {formattedChange} {change > 0 ? 'increase' : 'decrease'} from baseline
+import logger from '../lib/logger';
+
               </span>
             </div>
           )}

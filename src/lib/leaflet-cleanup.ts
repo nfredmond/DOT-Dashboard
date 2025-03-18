@@ -1,6 +1,5 @@
 "use client";
 
-import L from 'leaflet';
 
 // Track initialized map containers to prevent double initialization
 const initializedContainers = new Set<string>();

@@ -38,7 +38,6 @@
  */
 
 // For server-side processing
-import { openai } from '@/lib/openai-service';
 
 // Types of voice models supported for TTS
 export type VoiceModelType = 'openai' | 'sesame-csm' | 'elevenlabs';
@@ -282,7 +281,7 @@ export async function startRecording(): Promise<MediaRecorder> {
     };
     
     mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const _audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       // Clear the chunks
       audioChunks.length = 0;
     };

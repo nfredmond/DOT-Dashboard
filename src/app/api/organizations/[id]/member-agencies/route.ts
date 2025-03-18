@@ -99,7 +99,7 @@ export async function GET(
     
     return NextResponse.json({ data: memberAgencies });
   } catch (error) {
-    console.error('Error fetching member agencies:', error);
+    logger.error('Error fetching member agencies:', error);
     return NextResponse.json(
       { error: 'Failed to fetch member agencies' },
       { status: 500 }
@@ -175,7 +175,8 @@ export async function POST(
     }
     
     // Get data from request
-    const requestData = await request.json();
+
+const requestData = await request.json();
     
     // Validate input
     if (!requestData.name) {
@@ -255,7 +256,7 @@ export async function POST(
     
     return NextResponse.json({ data: memberAgency }, { status: 201 });
   } catch (error) {
-    console.error('Error creating member agency:', error);
+    logger.error('Error creating member agency:', error);
     return NextResponse.json(
       { error: 'Failed to create member agency' },
       { status: 500 }

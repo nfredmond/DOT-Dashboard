@@ -6,15 +6,8 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
+
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -29,7 +22,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -42,18 +34,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { 
   Plus, 
   Edit, 
   Trash2, 
   FileText,
-  Upload,
   DollarSign,
   Clock,
-  CheckCircle, 
-  AlertCircle
+  CheckCircle
 } from 'lucide-react';
 import { ProjectInvoice } from '@/types/project';
 
@@ -76,7 +65,7 @@ const InvoicesStep: React.FC<InvoicesStepProps> = ({
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<ProjectInvoice | null>(null);
   const [currentInvoiceIndex, setCurrentInvoiceIndex] = useState<number | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [_selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Default empty invoice
   const emptyInvoice: ProjectInvoice = {

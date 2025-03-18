@@ -2,7 +2,6 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { getProjectsData, syncWithMainMap } from './fallback-map';
-import type { MapConfig } from './fallback-map-types';
 import { useProjects } from '@/contexts/ProjectsContext';
 import type { Project } from '@/contexts/ProjectsContext';
 

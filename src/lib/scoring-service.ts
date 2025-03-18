@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/client';
-import { getEnvVariable } from "./env-service";
 import { LLMProvider, ModelType, ResponseFormat, getCompletion } from './llm-service';
 
 // Types
