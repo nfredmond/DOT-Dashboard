@@ -1,57 +1,115 @@
 # Planning Manager Spatial Visualization System
 
-This project implements an interactive spatial visualization system for activity-based travel simulations. It provides tools to generate, visualize, and analyze spatial patterns of activities and travel flows using the GreenChAMP (Green DOT Chained Activity Modelling Process) framework.
+This project implements an interactive spatial visualization system for transportation planning, project management, and travel demand modeling. It provides comprehensive tools for managing transportation projects, analyzing benefits and costs, developing scenarios, and visualizing spatial data using the GreenChAMP (Green DOT Chained Activity Modelling Process) framework and TrendNavigator scenario planning tools.
 
-## Features
+## Core Features
 
-- **GreenChAMP Integration:** Comprehensive travel demand modeling using the Green DOT Chained Activity Modelling Process
+- **Project Management:** Complete transportation project management system with customizable workflows
+- **Spatial Visualization:** Interactive maps for projects, community feedback, and transportation network analysis
+- **Benefit-Cost Analysis:** Comprehensive economic analysis with advanced uncertainty modeling
+- **GreenChAMP Integration:** Advanced travel demand modeling using the Green DOT Chained Activity Modelling Process
 - **TrendNavigator:** Scenario planning tools for modeling future trends and policy impacts
-- **Interactive Map Visualization:** Uses Mapbox GL to render activities and travel patterns on an interactive map
-- **Multiple Visualization Types:**
-  - Activity Heatmap: Shows density of activities across space
-  - Travel Flow Lines: Displays trips between locations with color-coding by mode
-  - Activity Points: Shows individual activities with size based on duration
-- **Advanced Filtering Capabilities:**
-  - Filter by activity type (home, work, education, etc.)
-  - Time-based filtering to show activities and trips at different times of day
-  - Multiple time filter modes (active during, starting at, ending at)
-- **Animation System:**
-  - Animate activities and travel patterns throughout the day
-  - Adjust animation speed (0.5x, 1x, 2x, 4x)
-  - Real-time statistics updates during animation
-- **Data Export Capabilities:**
-  - Export filtered data in CSV format for statistical analysis
-  - Export filtered data in GeoJSON format for GIS applications
-  - Customize exports with selected data types (activities, trips, locations)
-  - Apply current visualization filters to exported data
-- **Interactive Statistics:** Dynamic statistics that update based on applied filters
-- **API Integration:** Backend APIs for managing simulation runs and retrieving spatial data
-- **Responsive Design:** Works on desktop and mobile devices
+- **Public Engagement:** Community feedback collection and analysis tools
+- **AI-Powered Analysis:** LLM integration for project assessment and data analysis
+
+## Detailed Features
+
+### Project Management
+- Project creation and tracking with customizable statuses and workflows
+- Milestone and timeline management
+- Document management and version control
+- Team collaboration tools
+- Custom fields and taxonomies
+- Advanced filtering and reporting
+
+### Spatial Visualization
+- Interactive map visualization using Mapbox GL
+- Multiple visualization types (heatmaps, flow lines, points)
+- Advanced filtering capabilities by type, time, and attributes
+- Animation system for temporal data
+- Real-time statistics updates
+- Export capabilities (CSV, GeoJSON)
+
+### Benefit-Cost Analysis
+- Comprehensive economic analysis framework
+- Configurable monetization parameters for various benefit and cost categories
+- Temporal distribution of benefits and costs
+- Calculation of Net Present Value (NPV), Benefit-Cost Ratio (BCR), and Internal Rate of Return (IRR)
+- Sensitivity analysis for key parameters
+- Monte Carlo simulation with customizable probability distributions
+- Comparison of multiple analyses
+- Template system for consistent analyses
+- Detailed visualization of results with interactive charts
+- Export capabilities for reports and presentations
+
+### GreenChAMP Integration
+- Activity-based travel demand modeling
+- Chained activity simulation for realistic travel patterns
+- Environmental impact assessment (emissions, energy use)
+- Equity analysis capabilities
+- Accessibility metrics calculation
+- Multi-modal transportation system modeling
+- Land use and transportation interaction
+
+### TrendNavigator
+- Future scenario development based on GreenChAMP models
+- Technology adoption modeling (telecommuting, e-commerce, shared mobility, vehicle automation)
+- Transit service and land use pattern scenarios
+- Multiple time horizon options (5, 10, 30 years)
+- Side-by-side comparison of scenarios
+- Comprehensive metrics (VMT, emissions, mode share, congestion, transit ridership, accessibility)
+- AI-assisted trend analysis and recommendations
+
+### Public Engagement
+- Community feedback collection with spatial reference
+- Feedback categorization and sentiment analysis
+- Heat maps of community input
+- Integration with project planning and prioritization
+- AI-powered analysis of community needs
+
+### AI-Powered Analysis
+- LLM integration for project assessment
+- Grant criteria evaluation
+- Document analysis and summarization
+- Data interpretation and insights
+- Natural language interfaces for complex queries
 
 ## Technical Implementation
 
 The system consists of:
 
 1. **React Components:**
-   - `ActivitySpatialVisualization`: Core component for map visualization with filtering, animation, and export capabilities
-   - `ActivitySimulationPage`: Results page with visualization tabs
+   - Project management interfaces
+   - Spatial visualization components
+   - Analysis and modeling tools
+   - User management and administration
    
 2. **API Endpoints:**
-   - `/api/scenarios/[id]/activity-simulations`: Manages simulation runs
-   - `/api/scenarios/[id]/activity-simulations/[simulationId]/activities`: Retrieves activity data 
-   - `/api/scenarios/[id]/activity-simulations/[simulationId]/itineraries`: Retrieves travel itinerary data
-   - `/api/scenarios/[id]/activity-locations`: Retrieves location data
-
+   - Project and data management
+   - Authentication and authorization
+   - Modeling and simulation
+   - Data visualization and export
+   
 3. **Services:**
-   - `ActivitySimulationService`: Orchestrates simulation runs and data storage
-   - `GreenChAMPService`: Handles travel demand modeling using the GreenChAMP framework
-   - `TrendNavigatorService`: Manages scenario planning and trend analysis
+   - Project management services
+   - Benefit-cost analysis engine
+   - GreenChAMP modeling framework
+   - TrendNavigator scenario planning
+   - AI integration services
+
+4. **Database:**
+   - PostgreSQL with PostGIS for spatial data
+   - Supabase for authentication and real-time capabilities
+   - Row-level security for multi-tenant isolation
 
 ## Getting Started
 
 1. Set up environment variables:
    ```
    NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   OPENAI_API_KEY=your_openai_key
    ```
 
 2. Install dependencies:
@@ -66,39 +124,28 @@ The system consists of:
 
 ## Usage
 
-1. Navigate to a scenario detail page
-2. Create a new activity-based simulation or select an existing one
-3. View the simulation results with the spatial visualization tab
-4. Choose visualization types and filters to explore the data
-5. Use the time filter to analyze patterns at different times of day:
-   - Select "Active During" to see activities occurring during a time window
-   - Select "Starting At" to see activities that begin during a time window
-   - Select "Ending At" to see activities that end during a time window
-6. Use the animation controls to visualize how patterns change over time:
-   - Click the play button to start the animation
-   - Adjust the animation speed using the speed selector
-   - The time window automatically moves through the day
-   - Statistics update in real-time as the animation progresses
-7. Export data for further analysis:
-   - Click the Export Data button in the card footer
-   - Choose CSV format for tabular data or GeoJSON for spatial data
-   - Select which data types to include (activities, trips, locations)
-   - Choose whether to apply current filters to the exported data
-   - Download the exported files for use in other analysis tools
+1. Log in to the system with your credentials
+2. Navigate to the Projects section to manage transportation projects
+3. Use the Benefit-Cost section to perform economic analyses
+4. Explore the GreenChAMP and TrendNavigator sections for travel demand modeling and scenario planning
+5. Use the Community Feedback tools to collect and analyze public input
+6. Leverage the AI Assistant for advanced analysis and recommendations
 
-## GreenChAMP Model
+## Documentation
 
-The GreenChAMP (Green DOT Chained Activity Modelling Process) is an integrated activity-based travel demand modeling framework that simulates individual activity patterns and travel behavior. Key features include:
+For detailed documentation, see:
 
-- **Activity-Based Modeling:** Models travel as chains of activities performed by individuals
-- **Policy Analysis:** Evaluate impacts of transportation policies on travel patterns
-- **Environmental Assessment:** Calculate emissions and environmental impacts from transportation
-- **Scenario Planning:** Model different future scenarios with TrendNavigator integration
-
-For detailed documentation on GreenChAMP, see the [GreenChAMP Technical Implementation Guide](docs/GreenChAMP%20Integration%20Technical%20Implementation%20Guide.md).
+- [GreenChAMP Technical Implementation Guide](docs/GreenChAMP%20Integration%20Technical%20Implementation%20Guide.md)
+- [TrendNavigator Integration Guide](docs/greenchamp_trendnavigator_integration_guide.md)
+- [Benefit-Cost Analysis Guide](docs/Integrating_CB_Analyses.md)
+- [System Architecture](SYSTEM_ARCHITECTURE.md)
+- [Deployment Guide](deployment.md)
 
 ## Future Enhancements
 
-- 3D visualization of activity patterns
-- Enhanced filtering by demographic attributes
-- Comparative analysis between multiple simulation runs
+- Enhanced 3D visualization
+- Real-time collaborative editing
+- Mobile application
+- Advanced predictive analytics
+- Enterprise SSO integration
+- External API ecosystem

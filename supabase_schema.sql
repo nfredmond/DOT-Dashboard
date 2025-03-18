@@ -1545,3 +1545,1097 @@ BEGIN
   RETURN COALESCE(result, '{}'::JSONB);
 END;
 $$ LANGUAGE plpgsql;
+
+-- GTFS Transit Data Schema
+-- This schema defines tables for storing GTFS (General Transit Feed Specification) data
+-- and supporting spatial queries on transit data
+
+-- Feed Metadata
+CREATE TABLE gtfs_feeds (
+    id UUID PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    agency_id TEXT NOT NULL,
+    imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_from TIMESTAMPTZ,
+    valid_until TIMESTAMPTZ,
+    version TEXT,
+    status TEXT NOT NULL DEFAULT 'processing' CHECK (status IN ('processing', 'active', 'archived', 'error')),
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_feeds_org ON gtfs_feeds(organization_id);
+CREATE INDEX idx_gtfs_feeds_status ON gtfs_feeds(status);
+
+-- Agency Information
+CREATE TABLE gtfs_agencies (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    agency_id TEXT NOT NULL,
+    agency_name TEXT NOT NULL,
+    agency_url TEXT NOT NULL,
+    agency_timezone TEXT NOT NULL,
+    agency_lang TEXT,
+    agency_phone TEXT,
+    agency_fare_url TEXT,
+    agency_email TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_agencies_feed ON gtfs_agencies(feed_id);
+CREATE INDEX idx_gtfs_agencies_org ON gtfs_agencies(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_agencies_feed_agency ON gtfs_agencies(feed_id, agency_id);
+
+-- Routes
+CREATE TABLE gtfs_routes (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    route_id TEXT NOT NULL,
+    agency_id TEXT,
+    route_short_name TEXT,
+    route_long_name TEXT,
+    route_desc TEXT,
+    route_type INTEGER NOT NULL,
+    route_url TEXT,
+    route_color TEXT,
+    route_text_color TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_routes_feed ON gtfs_routes(feed_id);
+CREATE INDEX idx_gtfs_routes_org ON gtfs_routes(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_routes_feed_route ON gtfs_routes(feed_id, route_id);
+
+-- Stops
+CREATE TABLE gtfs_stops (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    stop_id TEXT NOT NULL,
+    stop_code TEXT,
+    stop_name TEXT NOT NULL,
+    stop_desc TEXT,
+    stop_lat DOUBLE PRECISION NOT NULL,
+    stop_lon DOUBLE PRECISION NOT NULL,
+    zone_id TEXT,
+    stop_url TEXT,
+    location_type INTEGER,
+    parent_station TEXT,
+    stop_timezone TEXT,
+    wheelchair_boarding INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Spatial point for the stop location
+    geom GEOMETRY(POINT, 4326)
+);
+
+CREATE INDEX idx_gtfs_stops_feed ON gtfs_stops(feed_id);
+CREATE INDEX idx_gtfs_stops_org ON gtfs_stops(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_stops_feed_stop ON gtfs_stops(feed_id, stop_id);
+CREATE INDEX idx_gtfs_stops_geom ON gtfs_stops USING GIST(geom);
+
+-- Calendar 
+CREATE TABLE gtfs_calendar (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    service_id TEXT NOT NULL,
+    monday BOOLEAN NOT NULL,
+    tuesday BOOLEAN NOT NULL,
+    wednesday BOOLEAN NOT NULL,
+    thursday BOOLEAN NOT NULL,
+    friday BOOLEAN NOT NULL,
+    saturday BOOLEAN NOT NULL,
+    sunday BOOLEAN NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_calendar_feed ON gtfs_calendar(feed_id);
+CREATE INDEX idx_gtfs_calendar_org ON gtfs_calendar(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_calendar_feed_service ON gtfs_calendar(feed_id, service_id);
+
+-- Calendar Dates (exceptions)
+CREATE TABLE gtfs_calendar_dates (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    service_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    exception_type INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_calendar_dates_feed ON gtfs_calendar_dates(feed_id);
+CREATE INDEX idx_gtfs_calendar_dates_org ON gtfs_calendar_dates(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_calendar_dates_feed_service_date ON gtfs_calendar_dates(feed_id, service_id, date);
+
+-- Trips
+CREATE TABLE gtfs_trips (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    route_id TEXT NOT NULL,
+    service_id TEXT NOT NULL,
+    trip_id TEXT NOT NULL,
+    trip_headsign TEXT,
+    trip_short_name TEXT,
+    direction_id INTEGER,
+    block_id TEXT,
+    shape_id TEXT,
+    wheelchair_accessible INTEGER,
+    bikes_allowed INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_trips_feed ON gtfs_trips(feed_id);
+CREATE INDEX idx_gtfs_trips_org ON gtfs_trips(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_trips_feed_trip ON gtfs_trips(feed_id, trip_id);
+CREATE INDEX idx_gtfs_trips_route ON gtfs_trips(feed_id, route_id);
+CREATE INDEX idx_gtfs_trips_service ON gtfs_trips(feed_id, service_id);
+CREATE INDEX idx_gtfs_trips_shape ON gtfs_trips(feed_id, shape_id);
+
+-- Stop Times
+CREATE TABLE gtfs_stop_times (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    trip_id TEXT NOT NULL,
+    arrival_time TEXT,
+    departure_time TEXT,
+    stop_id TEXT NOT NULL,
+    stop_sequence INTEGER NOT NULL,
+    stop_headsign TEXT,
+    pickup_type INTEGER,
+    drop_off_type INTEGER,
+    shape_dist_traveled DOUBLE PRECISION,
+    timepoint INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_stop_times_feed ON gtfs_stop_times(feed_id);
+CREATE INDEX idx_gtfs_stop_times_org ON gtfs_stop_times(organization_id);
+CREATE INDEX idx_gtfs_stop_times_trip ON gtfs_stop_times(feed_id, trip_id);
+CREATE INDEX idx_gtfs_stop_times_stop ON gtfs_stop_times(feed_id, stop_id);
+
+-- Shapes
+CREATE TABLE gtfs_shapes (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    shape_id TEXT NOT NULL,
+    -- Store the full LineString for each shape (instead of individual points)
+    -- This is more efficient for spatial queries
+    geom GEOMETRY(LINESTRING, 4326),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_shapes_feed ON gtfs_shapes(feed_id);
+CREATE INDEX idx_gtfs_shapes_org ON gtfs_shapes(organization_id);
+CREATE UNIQUE INDEX idx_gtfs_shapes_feed_shape ON gtfs_shapes(feed_id, shape_id);
+CREATE INDEX idx_gtfs_shapes_geom ON gtfs_shapes USING GIST(geom);
+
+-- Frequencies
+CREATE TABLE gtfs_frequencies (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    trip_id TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    headway_secs INTEGER NOT NULL,
+    exact_times INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_frequencies_feed ON gtfs_frequencies(feed_id);
+CREATE INDEX idx_gtfs_frequencies_org ON gtfs_frequencies(organization_id);
+CREATE INDEX idx_gtfs_frequencies_trip ON gtfs_frequencies(feed_id, trip_id);
+
+-- Transfers
+CREATE TABLE gtfs_transfers (
+    id BIGSERIAL PRIMARY KEY,
+    feed_id UUID NOT NULL REFERENCES gtfs_feeds(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    from_stop_id TEXT NOT NULL,
+    to_stop_id TEXT NOT NULL,
+    transfer_type INTEGER NOT NULL,
+    min_transfer_time INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gtfs_transfers_feed ON gtfs_transfers(feed_id);
+CREATE INDEX idx_gtfs_transfers_org ON gtfs_transfers(organization_id);
+CREATE INDEX idx_gtfs_transfers_from_stop ON gtfs_transfers(feed_id, from_stop_id);
+CREATE INDEX idx_gtfs_transfers_to_stop ON gtfs_transfers(feed_id, to_stop_id);
+
+-- ESRI ArcGIS integration schema
+-- This schema defines tables for storing ESRI service configurations and layer information
+
+-- ESRI Services table
+CREATE TABLE esri_services (
+    id UUID PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    service_url TEXT NOT NULL,
+    service_type TEXT NOT NULL CHECK (service_type IN ('FeatureService', 'MapService', 'ImageService', 'GeoprocessingService')),
+    metadata JSONB DEFAULT '{}',
+    credentials JSONB, -- Encrypted credentials for authentication
+    is_public BOOLEAN DEFAULT false,
+    tags TEXT[],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_esri_services_org ON esri_services(organization_id);
+CREATE INDEX idx_esri_services_type ON esri_services(service_type);
+
+-- ESRI Service Layers
+CREATE TABLE esri_service_layers (
+    id BIGSERIAL PRIMARY KEY,
+    service_id UUID NOT NULL REFERENCES esri_services(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    layer_id INTEGER NOT NULL, -- The layer ID from the ESRI service
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    geometry_type TEXT,
+    description TEXT,
+    fields JSONB DEFAULT '[]',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_esri_service_layers_service ON esri_service_layers(service_id);
+CREATE INDEX idx_esri_service_layers_org ON esri_service_layers(organization_id);
+CREATE UNIQUE INDEX idx_esri_service_layers_layer_id ON esri_service_layers(service_id, layer_id);
+
+-- ESRI layer symbolization
+CREATE TABLE esri_layer_symbolization (
+    id BIGSERIAL PRIMARY KEY,
+    layer_id BIGINT NOT NULL REFERENCES esri_service_layers(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    style_name TEXT NOT NULL,
+    style_type TEXT NOT NULL CHECK (style_type IN ('simple', 'categorized', 'graduated', 'heatmap', 'custom')),
+    style_definition JSONB NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_esri_layer_symbolization_layer ON esri_layer_symbolization(layer_id);
+CREATE INDEX idx_esri_layer_symbolization_org ON esri_layer_symbolization(organization_id);
+CREATE INDEX idx_esri_layer_symbolization_default ON esri_layer_symbolization(layer_id, is_default);
+
+-- ESRI feature caching
+CREATE TABLE esri_feature_cache (
+    id BIGSERIAL PRIMARY KEY,
+    layer_id BIGINT NOT NULL REFERENCES esri_service_layers(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    feature_id TEXT NOT NULL,
+    attributes JSONB NOT NULL,
+    geometry GEOMETRY,
+    cached_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    UNIQUE (layer_id, feature_id)
+);
+
+CREATE INDEX idx_esri_feature_cache_layer ON esri_feature_cache(layer_id);
+CREATE INDEX idx_esri_feature_cache_org ON esri_feature_cache(organization_id);
+CREATE INDEX idx_esri_feature_cache_expires ON esri_feature_cache(expires_at);
+CREATE INDEX idx_esri_feature_cache_geom ON esri_feature_cache USING GIST(geometry);
+
+-- ESRI saved queries
+CREATE TABLE esri_saved_queries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    layer_id BIGINT NOT NULL REFERENCES esri_service_layers(id) ON DELETE CASCADE,
+    query_definition JSONB NOT NULL, -- Stores the query parameters
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_esri_saved_queries_org ON esri_saved_queries(organization_id);
+CREATE INDEX idx_esri_saved_queries_user ON esri_saved_queries(user_id);
+CREATE INDEX idx_esri_saved_queries_layer ON esri_saved_queries(layer_id);
+
+-- SWITRS (Statewide Integrated Traffic Records System) Integration Schema
+-- This schema defines tables for storing California collision data from SWITRS/TIMS
+
+-- Main collisions table
+CREATE TABLE switrs_collisions (
+    id BIGSERIAL PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL,
+    collision_date DATE NOT NULL,
+    collision_time TIME,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    location TEXT,
+    primary_road TEXT,
+    secondary_road TEXT,
+    county_code TEXT,
+    city_code TEXT,
+    county_name TEXT,
+    city_name TEXT,
+    weather_condition TEXT,
+    road_surface TEXT,
+    road_condition TEXT,
+    lighting_condition TEXT,
+    pcf_violation TEXT,
+    collision_severity_id INTEGER,
+    severity_description TEXT,
+    party_count INTEGER,
+    injury_count INTEGER,
+    fatality_count INTEGER,
+    pedestrian_involved BOOLEAN DEFAULT FALSE,
+    bicycle_involved BOOLEAN DEFAULT FALSE,
+    motorcycle_involved BOOLEAN DEFAULT FALSE,
+    truck_involved BOOLEAN DEFAULT FALSE,
+    alcohol_involved BOOLEAN DEFAULT FALSE,
+    drug_involved BOOLEAN DEFAULT FALSE,
+    collision_type TEXT,
+    hit_run_status TEXT,
+    process_date DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Spatial point for the collision location
+    geom GEOMETRY(POINT, 4326),
+    UNIQUE(organization_id, case_id)
+);
+
+CREATE INDEX idx_switrs_collisions_org ON switrs_collisions(organization_id);
+CREATE INDEX idx_switrs_collisions_date ON switrs_collisions(collision_date);
+CREATE INDEX idx_switrs_collisions_severity ON switrs_collisions(collision_severity_id);
+CREATE INDEX idx_switrs_collisions_geom ON switrs_collisions USING GIST(geom);
+CREATE INDEX idx_switrs_collisions_county ON switrs_collisions(county_name);
+CREATE INDEX idx_switrs_collisions_city ON switrs_collisions(city_name);
+CREATE INDEX idx_switrs_collisions_pedestrian ON switrs_collisions(pedestrian_involved) WHERE pedestrian_involved = TRUE;
+CREATE INDEX idx_switrs_collisions_bicycle ON switrs_collisions(bicycle_involved) WHERE bicycle_involved = TRUE;
+
+-- Parties involved in collisions
+CREATE TABLE switrs_parties (
+    id BIGSERIAL PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL,
+    party_number INTEGER NOT NULL,
+    party_type TEXT,
+    at_fault BOOLEAN,
+    age INTEGER,
+    sex TEXT,
+    sobriety_type TEXT,
+    sobriety_test TEXT,
+    sobriety_test_result TEXT,
+    move_violation TEXT,
+    cell_phone_in_use BOOLEAN,
+    other_associated_factors TEXT,
+    vehicle_make TEXT,
+    vehicle_year INTEGER,
+    vehicle_type TEXT,
+    direction TEXT,
+    safety_equipment TEXT,
+    ejection TEXT,
+    injury TEXT,
+    injury_severity TEXT,
+    financial_responsibility TEXT,
+    school_bus_related BOOLEAN,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(organization_id, case_id, party_number)
+);
+
+CREATE INDEX idx_switrs_parties_org ON switrs_parties(organization_id);
+CREATE INDEX idx_switrs_parties_case ON switrs_parties(case_id);
+CREATE INDEX idx_switrs_parties_type ON switrs_parties(party_type);
+CREATE INDEX idx_switrs_parties_age ON switrs_parties(age);
+CREATE INDEX idx_switrs_parties_fault ON switrs_parties(at_fault);
+
+-- Victims in collisions
+CREATE TABLE switrs_victims (
+    id BIGSERIAL PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    case_id TEXT NOT NULL,
+    victim_number INTEGER NOT NULL,
+    party_number INTEGER NOT NULL,
+    victim_age INTEGER,
+    victim_sex TEXT,
+    victim_role TEXT,
+    injury_severity TEXT,
+    ejected TEXT,
+    safety_equipment TEXT,
+    seating_position TEXT,
+    transportation TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(organization_id, case_id, victim_number)
+);
+
+CREATE INDEX idx_switrs_victims_org ON switrs_victims(organization_id);
+CREATE INDEX idx_switrs_victims_case ON switrs_victims(case_id);
+CREATE INDEX idx_switrs_victims_party ON switrs_victims(case_id, party_number);
+CREATE INDEX idx_switrs_victims_severity ON switrs_victims(injury_severity);
+
+-- Collision hotspots
+CREATE TABLE switrs_hotspots (
+    id UUID PRIMARY KEY,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    center_lat DOUBLE PRECISION NOT NULL,
+    center_lng DOUBLE PRECISION NOT NULL,
+    radius DOUBLE PRECISION NOT NULL, -- in meters
+    collision_count INTEGER NOT NULL DEFAULT 0,
+    fatality_count INTEGER NOT NULL DEFAULT 0,
+    injury_count INTEGER NOT NULL DEFAULT 0,
+    pedestrian_count INTEGER NOT NULL DEFAULT 0,
+    bicyclist_count INTEGER NOT NULL DEFAULT 0,
+    motorcycle_count INTEGER NOT NULL DEFAULT 0,
+    most_common_violation TEXT,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    geom GEOMETRY(POINT, 4326)
+);
+
+CREATE INDEX idx_switrs_hotspots_org ON switrs_hotspots(organization_id);
+CREATE INDEX idx_switrs_hotspots_geom ON switrs_hotspots USING GIST(geom);
+CREATE INDEX idx_switrs_hotspots_collision_count ON switrs_hotspots(collision_count DESC);
+
+-- SWITRS API credentials
+CREATE TABLE switrs_credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    api_key TEXT,
+    username TEXT,
+    password TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(organization_id)
+);
+
+CREATE INDEX idx_switrs_credentials_org ON switrs_credentials(organization_id);
+
+-- SWITRS saved queries
+CREATE TABLE switrs_saved_queries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    query_parameters JSONB NOT NULL,
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_switrs_saved_queries_org ON switrs_saved_queries(organization_id);
+
+-- Enable Row Level Security for new tables
+ALTER TABLE gtfs_feeds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_agencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_routes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_stops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_calendar_dates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_trips ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_stop_times ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_shapes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_frequencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtfs_transfers ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE esri_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE esri_service_layers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE esri_layer_symbolization ENABLE ROW LEVEL SECURITY;
+ALTER TABLE esri_feature_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE esri_saved_queries ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE switrs_collisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE switrs_parties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE switrs_victims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE switrs_hotspots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE switrs_credentials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE switrs_saved_queries ENABLE ROW LEVEL SECURITY;
+
+-- Create basic RLS policies for all new tables 
+-- (just a basic template, full policies are in the specific schema files)
+CREATE POLICY "Users can view their organization's data" ON gtfs_feeds
+    FOR SELECT USING (
+        organization_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY "Users can view their organization's data" ON esri_services
+    FOR SELECT USING (
+        organization_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY "Users can view their organization's data" ON switrs_collisions
+    FOR SELECT USING (
+        organization_id IN (SELECT agency_id FROM profiles WHERE user_id = auth.uid())
+    );
+
+-- Function to find transit stops within a radius of a point
+CREATE OR REPLACE FUNCTION get_stops_in_radius(
+    p_organization_id UUID,
+    p_lat DOUBLE PRECISION,
+    p_lng DOUBLE PRECISION,
+    p_radius_meters DOUBLE PRECISION
+)
+RETURNS TABLE (
+    stop_id TEXT,
+    stop_code TEXT,
+    stop_name TEXT,
+    stop_desc TEXT,
+    stop_lat DOUBLE PRECISION,
+    stop_lon DOUBLE PRECISION,
+    zone_id TEXT,
+    stop_url TEXT,
+    location_type INTEGER,
+    parent_station TEXT,
+    stop_timezone TEXT,
+    wheelchair_boarding INTEGER,
+    feed_id UUID,
+    distance DOUBLE PRECISION
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.stop_id,
+        s.stop_code,
+        s.stop_name,
+        s.stop_desc,
+        s.stop_lat,
+        s.stop_lon,
+        s.zone_id,
+        s.stop_url,
+        s.location_type,
+        s.parent_station,
+        s.stop_timezone,
+        s.wheelchair_boarding,
+        s.feed_id,
+        ST_Distance(
+            s.geom::geography,
+            ST_SetSRID(ST_MakePoint(p_lon, p_lat), 4326)::geography
+        ) AS distance
+    FROM 
+        gtfs_stops s
+    WHERE 
+        s.organization_id = p_organization_id
+        AND ST_DWithin(
+            s.geom::geography,
+            ST_SetSRID(ST_MakePoint(p_lon, p_lat), 4326)::geography,
+            p_radius_meters
+        )
+    ORDER BY 
+        distance ASC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to identify collision hotspots within an area
+CREATE OR REPLACE FUNCTION identify_collision_hotspots(
+    p_organization_id UUID,
+    p_start_date TEXT,
+    p_end_date TEXT,
+    p_min_lat DOUBLE PRECISION,
+    p_max_lat DOUBLE PRECISION,
+    p_min_lng DOUBLE PRECISION,
+    p_max_lng DOUBLE PRECISION,
+    p_grid_size DOUBLE PRECISION,
+    p_min_collisions INTEGER
+)
+RETURNS TABLE (
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    radius DOUBLE PRECISION,
+    collision_count INTEGER,
+    fatality_count INTEGER,
+    injury_count INTEGER,
+    pedestrian_count INTEGER,
+    bicyclist_count INTEGER,
+    motorcycle_count INTEGER,
+    most_common_violation TEXT
+) AS $$
+DECLARE
+    lat_step DOUBLE PRECISION;
+    lng_step DOUBLE PRECISION;
+    earth_radius DOUBLE PRECISION := 6371000; -- Earth radius in meters
+BEGIN
+    -- Calculate grid step sizes in degrees
+    -- These are rough approximations - at higher latitudes, longitude degrees are shorter
+    lat_step := p_grid_size / (111000); -- 1 degree lat is approx 111km
+    lng_step := p_grid_size / (111000 * COS(RADIANS((p_min_lat + p_max_lat) / 2))); -- Adjust for latitude
+    
+    RETURN QUERY
+    WITH grid_cells AS (
+        -- Create a grid of points covering the area
+        SELECT 
+            p_min_lat + (n_lat * lat_step) + (lat_step/2) AS lat,
+            p_min_lng + (n_lng * lng_step) + (lng_step/2) AS lng,
+            p_grid_size / 2 AS radius_meters -- Radius is half the grid size
+        FROM 
+            generate_series(0, CEILING((p_max_lat - p_min_lat) / lat_step)::INTEGER - 1) AS n_lat,
+            generate_series(0, CEILING((p_max_lng - p_min_lng) / lng_step)::INTEGER - 1) AS n_lng
+    ),
+    cell_counts AS (
+        -- Count collisions in each grid cell
+        SELECT
+            g.lat,
+            g.lng,
+            g.radius_meters AS radius,
+            COUNT(c.id) AS collision_count,
+            SUM(c.fatality_count) AS fatality_count,
+            SUM(c.injury_count) AS injury_count,
+            COUNT(c.id) FILTER (WHERE c.pedestrian_involved = TRUE) AS pedestrian_count,
+            COUNT(c.id) FILTER (WHERE c.bicycle_involved = TRUE) AS bicyclist_count,
+            COUNT(c.id) FILTER (WHERE c.motorcycle_involved = TRUE) AS motorcycle_count,
+            (
+                SELECT pcf_violation
+                FROM switrs_collisions c2
+                WHERE 
+                    c2.organization_id = p_organization_id AND
+                    c2.collision_date BETWEEN p_start_date::DATE AND p_end_date::DATE AND
+                    ST_DWithin(
+                        c2.geom::geography,
+                        ST_SetSRID(ST_MakePoint(g.lng, g.lat), 4326)::geography,
+                        g.radius_meters
+                    )
+                GROUP BY pcf_violation
+                ORDER BY COUNT(*) DESC
+                LIMIT 1
+            ) AS most_common_violation
+        FROM 
+            grid_cells g
+        JOIN 
+            switrs_collisions c ON 
+                c.organization_id = p_organization_id AND
+                c.collision_date BETWEEN p_start_date::DATE AND p_end_date::DATE AND
+                ST_DWithin(
+                    c.geom::geography,
+                    ST_SetSRID(ST_MakePoint(g.lng, g.lat), 4326)::geography,
+                    g.radius_meters
+                )
+        GROUP BY 
+            g.lat, g.lng, g.radius_meters
+        HAVING 
+            COUNT(c.id) >= p_min_collisions
+    )
+    SELECT 
+        lat,
+        lng,
+        radius,
+        collision_count,
+        fatality_count,
+        injury_count,
+        pedestrian_count,
+        bicyclist_count,
+        motorcycle_count,
+        most_common_violation
+    FROM 
+        cell_counts
+    ORDER BY 
+        collision_count DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Benefit Cost Analysis Tables
+CREATE TABLE IF NOT EXISTS benefit_cost_parameters (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,  -- Value of Time, Safety, Environment, etc.
+  value FLOAT NOT NULL,
+  unit TEXT NOT NULL, -- $/hour, $/ton, etc.
+  description TEXT,
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Benefit cost analysis templates
+CREATE TABLE IF NOT EXISTS benefit_cost_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  parameters JSONB NOT NULL,  -- Serialized parameters for the template
+  discount_rate FLOAT NOT NULL DEFAULT 7.0,
+  analysis_period INTEGER NOT NULL DEFAULT 20, -- Years
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_public BOOLEAN DEFAULT FALSE,
+  version INTEGER DEFAULT 1
+);
+
+-- Main benefit cost analyses table
+CREATE TABLE IF NOT EXISTS benefit_cost_analyses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  discount_rate FLOAT NOT NULL DEFAULT 7.0,
+  analysis_period INTEGER NOT NULL DEFAULT 20, -- Years
+  parameters JSONB NOT NULL,  -- Serialized parameters used for this analysis
+  benefits JSONB DEFAULT '[]', -- Array of benefit items with amounts by year
+  costs JSONB DEFAULT '[]', -- Array of cost items with amounts by year
+  results JSONB DEFAULT '{}', -- Calculated results including NPV, BCR, etc.
+  status TEXT NOT NULL DEFAULT 'draft', -- draft, in_progress, completed, archived
+  benefit_cost_ratio FLOAT DEFAULT 0,
+  net_present_value FLOAT DEFAULT 0,
+  internal_rate_of_return FLOAT DEFAULT 0,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  version INTEGER DEFAULT 1,
+  template_id UUID REFERENCES benefit_cost_templates(id) ON DELETE SET NULL,
+  monetized_metrics JSONB DEFAULT '{}'
+);
+
+-- Sensitivity analysis scenarios
+CREATE TABLE IF NOT EXISTS sensitivity_analyses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  analysis_id UUID NOT NULL REFERENCES benefit_cost_analyses(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  variable_name TEXT NOT NULL, -- Parameter being varied
+  variable_values JSONB NOT NULL, -- Array of values to test
+  results JSONB DEFAULT '[]', -- Array of results for each value
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Monte Carlo simulation results
+CREATE TABLE IF NOT EXISTS monte_carlo_simulations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  analysis_id UUID NOT NULL REFERENCES benefit_cost_analyses(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  parameters JSONB NOT NULL, -- Which parameters were varied and their distributions
+  iterations INTEGER NOT NULL DEFAULT 1000, -- Number of simulation runs
+  results JSONB DEFAULT '[]', -- Array of simulation results
+  summary_stats JSONB DEFAULT '{}', -- Statistical summary of results
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS benefit_cost_exports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  analysis_id UUID NOT NULL REFERENCES benefit_cost_analyses(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_type TEXT NOT NULL, -- pdf, excel, csv
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes for benefit-cost tables
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_parameters_organization_id ON benefit_cost_parameters(organization_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_parameters_category ON benefit_cost_parameters(category);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_templates_organization_id ON benefit_cost_templates(organization_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_project_id ON benefit_cost_analyses(project_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_created_by ON benefit_cost_analyses(created_by);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_analyses_status ON benefit_cost_analyses(status);
+CREATE INDEX IF NOT EXISTS idx_sensitivity_analyses_analysis_id ON sensitivity_analyses(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_monte_carlo_simulations_analysis_id ON monte_carlo_simulations(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_cost_exports_analysis_id ON benefit_cost_exports(analysis_id);
+
+-- Benefit cost parameters: organization admins can manage, others can read
+ALTER TABLE benefit_cost_parameters ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_parameters_select ON benefit_cost_parameters
+FOR SELECT TO authenticated
+USING (
+(auth.uid() IN (SELECT user_id FROM organization_members WHERE organization_id = benefit_cost_parameters.organization_id)) OR
+benefit_cost_parameters.organization_id IS NULL
+);
+
+CREATE POLICY benefit_cost_parameters_insert ON benefit_cost_parameters
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_parameters.organization_id
+    AND role = 'admin'
+  )
+);
+
+CREATE POLICY benefit_cost_parameters_update ON benefit_cost_parameters
+FOR UPDATE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_parameters.organization_id
+    AND role = 'admin'
+  )
+);
+
+CREATE POLICY benefit_cost_parameters_delete ON benefit_cost_parameters
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_parameters.organization_id
+    AND role = 'admin'
+  )
+);
+
+-- Benefit cost templates
+ALTER TABLE benefit_cost_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_templates_select ON benefit_cost_templates
+FOR SELECT TO authenticated
+USING (
+(auth.uid() IN (SELECT user_id FROM organization_members WHERE organization_id = benefit_cost_templates.organization_id)) OR
+benefit_cost_templates.organization_id IS NULL OR benefit_cost_templates.is_public = TRUE
+);
+
+CREATE POLICY benefit_cost_templates_insert ON benefit_cost_templates
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_templates.organization_id
+  )
+);
+
+CREATE POLICY benefit_cost_templates_update ON benefit_cost_templates
+FOR UPDATE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_templates.organization_id
+  )
+);
+
+CREATE POLICY benefit_cost_templates_delete ON benefit_cost_templates
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id = benefit_cost_templates.organization_id
+    AND role = 'admin'
+  )
+);
+
+-- Benefit cost analyses
+ALTER TABLE benefit_cost_analyses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_analyses_select ON benefit_cost_analyses
+FOR SELECT TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+    )
+  ) OR 
+  auth.uid() IN (
+    SELECT user_id FROM project_users
+    WHERE project_id = benefit_cost_analyses.project_id
+  )
+);
+
+CREATE POLICY benefit_cost_analyses_insert ON benefit_cost_analyses
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+    )
+  )
+);
+
+CREATE POLICY benefit_cost_analyses_update ON benefit_cost_analyses
+FOR UPDATE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+    )
+  )
+);
+
+CREATE POLICY benefit_cost_analyses_delete ON benefit_cost_analyses
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id = benefit_cost_analyses.project_id
+    )
+    AND (role = 'admin' OR auth.uid() = benefit_cost_analyses.created_by)
+  )
+);
+
+-- Sensitivity analyses
+ALTER TABLE sensitivity_analyses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY sensitivity_analyses_select ON sensitivity_analyses
+FOR SELECT TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = sensitivity_analyses.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY sensitivity_analyses_insert ON sensitivity_analyses
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = sensitivity_analyses.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY sensitivity_analyses_update ON sensitivity_analyses
+FOR UPDATE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = sensitivity_analyses.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY sensitivity_analyses_delete ON sensitivity_analyses
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = sensitivity_analyses.analysis_id
+      )
+    )
+  )
+);
+
+-- Monte Carlo simulations
+ALTER TABLE monte_carlo_simulations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY monte_carlo_simulations_select ON monte_carlo_simulations
+FOR SELECT TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = monte_carlo_simulations.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY monte_carlo_simulations_insert ON monte_carlo_simulations
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = monte_carlo_simulations.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY monte_carlo_simulations_update ON monte_carlo_simulations
+FOR UPDATE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = monte_carlo_simulations.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY monte_carlo_simulations_delete ON monte_carlo_simulations
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = monte_carlo_simulations.analysis_id
+      )
+    )
+  )
+);
+
+-- Benefit cost exports
+ALTER TABLE benefit_cost_exports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY benefit_cost_exports_select ON benefit_cost_exports
+FOR SELECT TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = benefit_cost_exports.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY benefit_cost_exports_insert ON benefit_cost_exports
+FOR INSERT TO authenticated
+WITH CHECK (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = benefit_cost_exports.analysis_id
+      )
+    )
+  )
+);
+
+CREATE POLICY benefit_cost_exports_delete ON benefit_cost_exports
+FOR DELETE TO authenticated
+USING (
+  auth.uid() IN (
+    SELECT user_id FROM organization_members
+    WHERE organization_id IN (
+      SELECT organization_id FROM projects WHERE id IN (
+        SELECT project_id FROM benefit_cost_analyses
+        WHERE id = benefit_cost_exports.analysis_id
+      )
+    )
+  )
+);

@@ -51,7 +51,7 @@ export default function Help() {
     {
       question: "How do I create and use benefit-cost analyses?",
       answer:
-        "To create a benefit-cost analysis, navigate to a project's detail page and click on the 'Benefit-Cost' tab. Click 'New Analysis' and fill in the required information including name, discount rate, and analysis horizon. Configure the monetization parameters in the 'Parameters' tab where you can define values for different categories like Value of Time, Emissions Costs, Safety Costs, Vehicle Operating Costs, and Health Benefits. Add benefits and costs in their respective sections, then view results in the Charts tab. You can also perform sensitivity analysis, Monte Carlo simulations, and compare multiple analyses side by side.",
+        "To create a benefit-cost analysis, navigate to a project's detail page and click on the 'Benefit-Cost' tab. Click 'New Analysis' and fill in the required information including name, discount rate, and analysis horizon. Configure the monetization parameters in the 'Parameters' tab where you can define values for different categories like Value of Time, Emissions Costs, Safety Costs, Vehicle Operating Costs, and Health Benefits. Add benefits and costs in their respective sections, then view results in the Charts tab. You can also perform sensitivity analysis, Monte Carlo simulations, and compare multiple analyses side by side. For detailed instructions, visit the Benefit-Cost Analysis Guide in the User Manual.",
     },
     {
       question: "What is the LLM Assistant?",
@@ -97,6 +97,21 @@ export default function Help() {
       question: "Is my data secure in the app?",
       answer:
         "Yes, all data is stored securely using Supabase with row-level security policies. Each agency's data is isolated, and users can only access data based on their assigned permissions. All connections are encrypted, and the app follows security best practices for authentication and data protection.",
+    },
+    {
+      question: "What is the GreenChAMP model and how do I use it?",
+      answer:
+        "GreenChAMP (Green DOT Chained Activity Modelling Process) is an integrated travel demand modeling framework that simulates activity patterns and travel behavior. To use it, navigate to the Modeling section and select 'GreenChAMP'. Set up your model by defining the study area, configuring transportation zones, and establishing network parameters. You can import existing data or create a new scenario from scratch. After configuring the model, run it to generate comprehensive travel demand forecasts including trip generation, distribution, mode choice, and assignment results. The model outputs include traffic volumes, mode shares, emissions estimates, and accessibility metrics. You can visualize results on maps, export data for further analysis, and use the outputs for project planning and evaluation.",
+    },
+    {
+      question: "How do I use TrendNavigator for scenario planning?",
+      answer:
+        "TrendNavigator is a scenario planning tool that works with GreenChAMP to model future transportation trends. To use it, navigate to 'Modeling' > 'TrendNavigator'. First, select a baseline GreenChAMP model result to build upon. Then, configure trend variables including telecommuting rates, e-commerce adoption, shared mobility usage, vehicle automation levels, transit service changes, and land use patterns. Set a time horizon (5, 10, or 30 years) and click 'Generate Scenario' to compute impacts. To compare scenarios, go to 'TrendNavigator' > 'Comparison', select two or more scenarios, and view side-by-side metrics on VMT, emissions, mode shares, and accessibility. You can also use the AI-assisted trend analysis feature to get insights and recommendations based on your scenarios.",
+    },
+    {
+      question: "How can I use the Monte Carlo simulation for benefit-cost analysis?",
+      answer:
+        "The Monte Carlo simulation feature helps assess risk and uncertainty in benefit-cost analyses. To use it, open an existing benefit-cost analysis and navigate to the 'Monte Carlo' tab. Click 'New Simulation', then select which parameters you want to vary (e.g., construction costs, time savings, discount rate) and define their probability distributions. You can choose from normal, uniform, triangle, and other distributions. Set the number of iterations (typically 1,000 to 10,000) and run the simulation. The results will show the probability distribution of outcomes, confidence intervals for key metrics like BCR and NPV, and the likelihood that your project will have a BCR greater than 1. This helps quantify the uncertainty in your analysis and identify which variables have the biggest impact on outcomes.",
     },
   ];
 

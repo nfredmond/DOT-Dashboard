@@ -497,6 +497,140 @@ export default function UserManual() {
         </>
       ),
     },
+    {
+      id: "benefit-cost-analysis",
+      title: "Benefit-Cost Analysis",
+      content: (
+        <>
+          <h3 className="text-lg font-semibold mb-2">Creating a Benefit-Cost Analysis</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to a project's details page</li>
+            <li>Click on the "Benefit-Cost" tab</li>
+            <li>Click "New Analysis"</li>
+            <li>Fill in the required information:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Name and description</li>
+                <li>Discount rate (default is 7%)</li>
+                <li>Analysis period in years (default is 20)</li>
+                <li>Optionally select a template to use as a starting point</li>
+              </ul>
+            </li>
+            <li>Click "Create Analysis"</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Configuring Parameters</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to the "Parameters" tab of your analysis</li>
+            <li>Define monetization values for various categories:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Value of Time ($/hour)</li>
+                <li>Emissions Costs ($/ton)</li>
+                <li>Safety Costs ($/crash by severity)</li>
+                <li>Vehicle Operating Costs ($/mile)</li>
+                <li>Health Benefits ($/active mile)</li>
+              </ul>
+            </li>
+            <li>Click "Save Parameters" to update your analysis</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Adding Benefits and Costs</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to the "Benefits" or "Costs" tab</li>
+            <li>Click "Add Benefit" or "Add Cost"</li>
+            <li>Define the item:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Name and description</li>
+                <li>Category (e.g., Safety, Time Savings, Construction)</li>
+                <li>Timing (single year or multi-year)</li>
+                <li>Value or formula</li>
+              </ul>
+            </li>
+            <li>For multi-year items, you can specify different values for each year or use a growth rate</li>
+            <li>Click "Add" to save the item</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Viewing Results</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to the "Results" tab</li>
+            <li>View key metrics:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Benefit-Cost Ratio (BCR)</li>
+                <li>Net Present Value (NPV)</li>
+                <li>Internal Rate of Return (IRR)</li>
+                <li>Payback Period</li>
+              </ul>
+            </li>
+            <li>Examine charts showing:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Discounted and undiscounted benefits and costs over time</li>
+                <li>Cumulative net benefits</li>
+                <li>Breakdown of benefits and costs by category</li>
+              </ul>
+            </li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Running Sensitivity Analysis</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to the "Sensitivity" tab</li>
+            <li>Click "New Sensitivity Analysis"</li>
+            <li>Select a parameter to vary (e.g., discount rate, project cost, time savings value)</li>
+            <li>Define the range of values to test</li>
+            <li>Click "Run Analysis"</li>
+            <li>View results showing how the BCR and NPV change across different parameter values</li>
+            <li>Identify threshold values where the project becomes cost-effective (BCR {'>'} 1)</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Monte Carlo Simulation</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>Navigate to the "Monte Carlo" tab</li>
+            <li>Click "New Simulation"</li>
+            <li>Select parameters to vary and define their probability distributions:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Normal distribution (mean and standard deviation)</li>
+                <li>Uniform distribution (min and max)</li>
+                <li>Triangle distribution (min, most likely, max)</li>
+              </ul>
+            </li>
+            <li>Set the number of iterations (default 1000)</li>
+            <li>Click "Run Simulation"</li>
+            <li>View probability distribution of results</li>
+            <li>Examine confidence intervals for BCR and NPV</li>
+            <li>View the probability that the project will have BCR {'>'} 1</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Creating Templates</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>From an existing analysis, click "Save as Template"</li>
+            <li>Provide a name and description for the template</li>
+            <li>Choose whether to make it available to other users in your organization</li>
+            <li>Click "Save Template"</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Comparing Analyses</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>From the project's "Benefit-Cost" tab, click "Compare Analyses"</li>
+            <li>Select two or more analyses to compare</li>
+            <li>View side-by-side comparison of key metrics</li>
+            <li>Examine differential charts showing the relative performance</li>
+          </ol>
+          
+          <h3 className="text-lg font-semibold mb-2">Exporting and Reporting</h3>
+          <ol className="list-decimal pl-6 mb-4">
+            <li>From any analysis, click "Export" in the top-right corner</li>
+            <li>Choose from available formats:
+              <ul className="list-disc pl-6 mt-1 mb-2">
+                <li>Detailed PDF Report</li>
+                <li>Excel Workbook with calculations</li>
+                <li>CSV data export</li>
+                <li>Presentation-ready slides</li>
+              </ul>
+            </li>
+            <li>Customize the content to include in the export</li>
+            <li>Click "Generate" to create and download the export</li>
+          </ol>
+        </>
+      ),
+    },
   ];
 
   return (
