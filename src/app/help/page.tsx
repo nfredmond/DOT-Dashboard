@@ -64,9 +64,9 @@ export default function Help() {
         "To use the Community Input Mapping Tool, go to the Community Feedback page and click on 'Map View'. The interactive map will display all feedback points. You can filter by project, feedback type, or date range. Click on any point to view details or use the 'Add Feedback' button to place a new marker. The 'Analysis' tab provides heat maps of feedback density and engagement metrics. You can export all data in CSV or GeoJSON format for further analysis.",
     },
     {
-      question: "How do I use the CAMP and TrendNavigator modeling tools?",
+      question: "How do I use the GreenChAMP and TrendNavigator modeling tools?",
       answer:
-        "For travel demand modeling with CAMP, go to the Modeling section and select 'Travel Demand'. Set up your model by defining study areas, transportation zones, and networks, then configure parameters and run the model. For TrendNavigator scenario planning, navigate to the TrendNavigator section under Modeling, select a baseline CAMP model, and adjust trend variables like telecommuting rates, e-commerce adoption, and transit service changes. You can set different time horizons (5, 10, or 30 years) and compare scenarios to evaluate their impacts on metrics like VMT, emissions, and congestion.",
+        "For travel demand modeling with GreenChAMP (Green DOT Chained Activity Modelling Process), go to the Modeling section and select 'Travel Demand'. Set up your model by defining study areas, transportation zones, and networks, then configure parameters and run the model. For TrendNavigator scenario planning, navigate to the TrendNavigator section under Modeling, select a baseline GreenChAMP model, and adjust trend variables like telecommuting rates, e-commerce adoption, and transit service changes. You can set different time horizons (5, 10, or 30 years) and compare scenarios to evaluate long-term impacts.",
     },
     {
       question: "How do I generate a report?",
@@ -91,7 +91,7 @@ export default function Help() {
     {
       question: "How does the app integrate with other systems?",
       answer:
-        "The Planning Manager v6 supports integration with CAMP for travel demand modeling, TrendNavigator for scenario planning, and MCP for project management. You can configure these integrations in the Admin panel under 'Integrations'. The app also provides API endpoints for custom integrations with other systems.",
+        "The Planning Manager v6 supports integration with GreenChAMP (Green DOT Chained Activity Modelling Process) for travel demand modeling, TrendNavigator for scenario planning, and MCP for project management. You can configure these integrations in the Admin panel under 'Integrations'. The app also provides API endpoints for custom integrations with other systems.",
     },
     {
       question: "Is my data secure in the app?",
@@ -454,51 +454,51 @@ export default function Help() {
       </Card>
 
       <Accordion type="single" collapsible>
-        <AccordionItem value="camp-trendnavigator">
-          <AccordionTrigger>How do I use the CAMP and TrendNavigator modeling tools?</AccordionTrigger>
+        <AccordionItem value="greenchamp-trendnavigator">
+          <AccordionTrigger>How do I use the GreenChAMP and TrendNavigator modeling tools?</AccordionTrigger>
           <AccordionContent>
-          <div className="space-y-4">
-            <div>
-              <p className="font-semibold">Travel Demand Modeling with CAMP:</p>
-              <ol className="list-decimal pl-6 mb-2">
-                <li>Navigate to the Modeling tab and select "CAMP Travel Demand"</li>
-                <li>Define your study area by selecting TAZs or drawing a boundary</li>
-                <li>Configure model parameters including:
-                  <ul className="list-disc pl-6">
-                    <li>Forecast year</li>
-                    <li>Demographic assumptions</li>
-                    <li>Network changes</li>
-                    <li>Land use scenarios</li>
-                  </ul>
-                </li>
-                <li>Run the model and view results through:
-                  <ul className="list-disc pl-6">
-                    <li>Heat maps showing demand patterns</li>
-                    <li>Flow diagrams for corridor analysis</li>
-                    <li>Detailed metrics tables</li>
-                    <li>Comparative scenario analysis</li>
-                  </ul>
-                </li>
-              </ol>
+            <div className="space-y-4">
+              <div>
+                <p className="font-semibold">Travel Demand Modeling with GreenChAMP (Green DOT Chained Activity Modelling Process):</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Navigate to the Modeling tab and select "GreenChAMP Travel Demand"</li>
+                  <li>Define your study area by selecting TAZs or drawing a boundary</li>
+                  <li>Configure model parameters including:
+                    <ul className="list-disc pl-6">
+                      <li>Forecast year</li>
+                      <li>Demographic assumptions</li>
+                      <li>Network changes</li>
+                      <li>Land use scenarios</li>
+                    </ul>
+                  </li>
+                  <li>Run the model and view results through:
+                    <ul className="list-disc pl-6">
+                      <li>Heat maps showing demand patterns</li>
+                      <li>Flow diagrams for corridor analysis</li>
+                      <li>Detailed metrics tables</li>
+                      <li>Comparative scenario analysis</li>
+                    </ul>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-semibold">TrendNavigator Scenario Planning:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Select "TrendNavigator" from the Modeling tab</li>
+                  <li>Choose a baseline GreenChAMP model to build upon</li>
+                  <li>Adjust trend variables like:
+                    <ul className="list-disc pl-6">
+                      <li>Remote work adoption</li>
+                      <li>Vehicle automation levels</li>
+                      <li>Micromobility growth</li>
+                      <li>Transit service changes</li>
+                    </ul>
+                  </li>
+                  <li>Compare scenarios over different time horizons (5, 10, or 30 years)</li>
+                  <li>Generate reports showing impacts on transportation patterns, emissions, and accessibility</li>
+                </ul>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold">TrendNavigator Scenario Planning:</p>
-              <ol className="list-decimal pl-6">
-                <li>Select "TrendNavigator" from the Modeling tab</li>
-                <li>Choose a baseline CAMP model to build upon</li>
-                <li>Adjust trend variables like:
-                  <ul className="list-disc pl-6">
-                    <li>Remote work adoption</li>
-                    <li>Vehicle automation levels</li>
-                    <li>Micromobility growth</li>
-                    <li>Transit service changes</li>
-                  </ul>
-                </li>
-                <li>Compare scenarios over different time horizons (5, 10, or 30 years)</li>
-                <li>Generate reports showing impacts on transportation patterns, emissions, and accessibility</li>
-              </ol>
-            </div>
-          </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

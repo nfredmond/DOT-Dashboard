@@ -17,7 +17,7 @@
 * Payback period analysis  
 * Sensitivity testing for key variables  
 1. Integration with Existing Systems  
-* Connect with CAMP travel demand forecasting for traffic projections  
+* Connect with GreenChAMP travel demand forecasting for traffic projections  
 * Use TrendNavigator scenarios to compare project alternatives  
 * Link to project scoring system for consistent evaluation
 
@@ -70,7 +70,7 @@
 * Compliance checkers for funding requirements  
 * Custom agency parameters  
 1. Phase 4: Advanced Integration  
-* Full CAMP model integration for traffic benefits  
+* Full GreenChAMP model integration for traffic benefits  
 * TrendNavigator scenario comparison  
 * AI-assisted benefit identification  
 * Automated peer project comparisons

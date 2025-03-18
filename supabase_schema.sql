@@ -1,5 +1,6 @@
 -- Planning Manager v6 - Supabase Schema
 -- Complete schema setup for the Planning Manager application
+-- Including GreenChAMP (Green DOT Chained Activity Modelling Process) integration
 
 -- Drop everything and reinstall from scratch
 -- This will completely remove the current schema and recreate it
@@ -1297,4 +1298,250 @@ USING (bucket_id = 'public_records_documents' AND (
     )
 ));
 
+-- Create tables for activity-based modeling
+
+-- Person agents for activity-based modeling
+CREATE TABLE IF NOT EXISTS person_agents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  home_zone_id TEXT NOT NULL,
+  work_zone_id TEXT,
+  school_zone_id TEXT,
+  age INTEGER NOT NULL,
+  gender TEXT,
+  employment_status TEXT NOT NULL,
+  student_status TEXT NOT NULL,
+  household_id TEXT NOT NULL,
+  household_income_group TEXT NOT NULL,
+  household_size INTEGER NOT NULL,
+  household_vehicles INTEGER NOT NULL,
+  driver_license BOOLEAN NOT NULL DEFAULT TRUE,
+  has_transit_pass BOOLEAN NOT NULL DEFAULT FALSE,
+  has_mobility_limitation BOOLEAN NOT NULL DEFAULT FALSE,
+  simulation_weight FLOAT NOT NULL DEFAULT 1.0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Activity types and parameters
+CREATE TABLE IF NOT EXISTS activity_types (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  description TEXT,
+  priority INTEGER NOT NULL DEFAULT 0,
+  typical_duration_minutes INTEGER,
+  mandatory BOOLEAN NOT NULL DEFAULT FALSE,
+  time_window_start TIME,
+  time_window_end TIME,
+  location_flexibility INTEGER NOT NULL DEFAULT 0,
+  properties JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(name, organization_id)
+);
+
+-- Activities performed by person agents
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  person_agent_id UUID NOT NULL REFERENCES person_agents(id) ON DELETE CASCADE,
+  activity_type_id UUID NOT NULL REFERENCES activity_types(id) ON DELETE CASCADE,
+  location_zone_id TEXT NOT NULL,
+  location_coordinates GEOMETRY(POINT) NOT NULL,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL,
+  planned_duration_minutes INTEGER NOT NULL,
+  actual_duration_minutes INTEGER,
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  flexibility_score INTEGER NOT NULL DEFAULT 0,
+  properties JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Travel itineraries between activities
+CREATE TABLE IF NOT EXISTS travel_itineraries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  person_agent_id UUID NOT NULL REFERENCES person_agents(id) ON DELETE CASCADE,
+  origin_activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+  destination_activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+  origin_zone_id TEXT NOT NULL,
+  destination_zone_id TEXT NOT NULL,
+  departure_time TIMESTAMPTZ NOT NULL,
+  arrival_time TIMESTAMPTZ NOT NULL,
+  travel_mode TEXT NOT NULL,
+  travel_distance_meters FLOAT NOT NULL,
+  travel_time_minutes FLOAT NOT NULL,
+  wait_time_minutes FLOAT NOT NULL DEFAULT 0,
+  transfer_count INTEGER NOT NULL DEFAULT 0,
+  cost FLOAT NOT NULL DEFAULT 0,
+  path_geometry GEOMETRY(LINESTRING),
+  properties JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Activity locations for reference
+CREATE TABLE IF NOT EXISTS activity_locations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  location_name TEXT NOT NULL,
+  location_type TEXT NOT NULL,
+  zone_id TEXT NOT NULL,
+  coordinates GEOMETRY(POINT) NOT NULL,
+  properties JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(location_name, organization_id)
+);
+
+-- Simulation runs for activity-based modeling
+CREATE TABLE IF NOT EXISTS activity_simulation_runs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  end_time TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'queued',
+  configuration JSONB NOT NULL DEFAULT '{}',
+  agent_count INTEGER NOT NULL DEFAULT 0,
+  activity_count INTEGER NOT NULL DEFAULT 0,
+  trip_count INTEGER NOT NULL DEFAULT 0,
+  error_message TEXT,
+  results_summary JSONB,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for activity-based modeling tables
+CREATE INDEX IF NOT EXISTS idx_person_agents_scenario_id ON person_agents(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_person_agents_home_zone_id ON person_agents(home_zone_id);
+CREATE INDEX IF NOT EXISTS idx_person_agents_household_id ON person_agents(household_id);
+
+CREATE INDEX IF NOT EXISTS idx_activity_types_organization_id ON activity_types(organization_id);
+CREATE INDEX IF NOT EXISTS idx_activity_types_name ON activity_types(name);
+CREATE INDEX IF NOT EXISTS idx_activity_types_mandatory ON activity_types(mandatory);
+
+CREATE INDEX IF NOT EXISTS idx_activities_scenario_id ON activities(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_activities_person_agent_id ON activities(person_agent_id);
+CREATE INDEX IF NOT EXISTS idx_activities_activity_type_id ON activities(activity_type_id);
+CREATE INDEX IF NOT EXISTS idx_activities_location_zone_id ON activities(location_zone_id);
+CREATE INDEX IF NOT EXISTS idx_activities_location_coordinates ON activities USING GIST (location_coordinates);
+CREATE INDEX IF NOT EXISTS idx_activities_start_time ON activities(start_time);
+CREATE INDEX IF NOT EXISTS idx_activities_end_time ON activities(end_time);
+
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_scenario_id ON travel_itineraries(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_person_agent_id ON travel_itineraries(person_agent_id);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_origin_activity_id ON travel_itineraries(origin_activity_id);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_destination_activity_id ON travel_itineraries(destination_activity_id);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_travel_mode ON travel_itineraries(travel_mode);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_departure_time ON travel_itineraries(departure_time);
+CREATE INDEX IF NOT EXISTS idx_travel_itineraries_path_geometry ON travel_itineraries USING GIST (path_geometry);
+
+CREATE INDEX IF NOT EXISTS idx_activity_locations_organization_id ON activity_locations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_activity_locations_zone_id ON activity_locations(zone_id);
+CREATE INDEX IF NOT EXISTS idx_activity_locations_location_type ON activity_locations(location_type);
+CREATE INDEX IF NOT EXISTS idx_activity_locations_coordinates ON activity_locations USING GIST (coordinates);
+
+CREATE INDEX IF NOT EXISTS idx_activity_simulation_runs_scenario_id ON activity_simulation_runs(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_activity_simulation_runs_status ON activity_simulation_runs(status);
+CREATE INDEX IF NOT EXISTS idx_activity_simulation_runs_created_by ON activity_simulation_runs(created_by);
+
 -- End of schema definition
+
+-- Include GreenChAMP and TrendNavigator Schema Extensions
+-- This ensures all necessary GreenChAMP tables, types, and functions are created
+
+-- Create types if they don't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'run_status') THEN
+    CREATE TYPE run_status AS ENUM ('queued', 'running', 'completed', 'failed');
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'impact_type') THEN
+    CREATE TYPE impact_type AS ENUM ('positive', 'negative', 'neutral');
+  END IF;
+END $$;
+
+-- Create TrendNavigator Configurations table if it doesn't exist
+CREATE TABLE IF NOT EXISTS trend_navigator_configs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  base_year INTEGER NOT NULL,
+  horizon_years INTEGER[] NOT NULL DEFAULT '{5, 10, 30}',
+  trend_variables JSONB NOT NULL DEFAULT '{}',
+  default_parameters JSONB NOT NULL DEFAULT '{}',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create Trend Variables table if it doesn't exist
+CREATE TABLE IF NOT EXISTS trend_variables (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  default_value FLOAT NOT NULL,
+  min_value FLOAT NOT NULL,
+  max_value FLOAT NOT NULL,
+  step FLOAT NOT NULL DEFAULT 0.01,
+  unit TEXT,
+  impact_description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(organization_id, name)
+);
+
+-- Create Scenario Insights table if it doesn't exist
+CREATE TABLE IF NOT EXISTS scenario_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
+  insight_type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metrics JSONB,
+  impact impact_type NOT NULL DEFAULT 'neutral',
+  confidence FLOAT NOT NULL DEFAULT 0.0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  tags TEXT[] DEFAULT '{}'
+);
+
+-- Create indexes for GreenChAMP and TrendNavigator tables
+CREATE INDEX IF NOT EXISTS idx_trend_navigator_configs_organization_id ON trend_navigator_configs(organization_id);
+CREATE INDEX IF NOT EXISTS idx_trend_variables_organization_id ON trend_variables(organization_id);
+CREATE INDEX IF NOT EXISTS idx_scenario_insights_scenario_id ON scenario_insights(scenario_id);
+
+-- Create functions for GreenChAMP modeling
+
+-- Function to calculate scenario metrics
+CREATE OR REPLACE FUNCTION calculate_scenario_metrics(scenario_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  -- Calculate metrics based on modeling results
+  SELECT 
+    jsonb_build_object(
+      'vehicle_miles_traveled', COALESCE(SUM(sr.metrics->'vehicle_miles_traveled'), 0),
+      'emissions', COALESCE(SUM(sr.metrics->'emissions'), 0),
+      'travel_time_savings', COALESCE(SUM(sr.metrics->'travel_time_savings'), 0),
+      'mode_shares', COALESCE(jsonb_agg(sr.metrics->'mode_shares'), '{}'),
+      'accessibility_score', COALESCE(AVG((sr.metrics->'accessibility_score')::float), 0)
+    )
+  INTO result
+  FROM scenario_results sr
+  WHERE sr.scenario_id = calculate_scenario_metrics.scenario_id;
+
+  RETURN COALESCE(result, '{}'::JSONB);
+END;
+$$ LANGUAGE plpgsql;

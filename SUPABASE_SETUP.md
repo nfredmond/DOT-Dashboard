@@ -52,7 +52,7 @@ You can enable these extensions in the Supabase dashboard under Database > Exten
 10. [AI Model Integration](#ai-model-integration)
 11. [Voice Interface Features](#voice-interface-features)
 12. [Community Feedback System](#community-feedback-system)
-13. [CAMP and TrendNavigator Integration](#camp-and-trendnavigator-integration)
+13. [GreenChAMP and TrendNavigator Integration](#greenchamp-and-trendnavigator-integration)
 14. [MCP Integration](#mcp-integration)
 
 ## Getting Started
@@ -94,7 +94,7 @@ The database schema includes the following main components:
 - **AI Integration**: ai_models for integration with various LLMs
 - **Voice Interface**: voice_settings and voice_command_logs for voice assistant features
 - **Community Feedback**: feedback collection, categorization, and response tracking
-- **Transportation Modeling**: CAMP and TrendNavigator integration tables
+- **Transportation Modeling**: GreenChAMP and TrendNavigator integration tables
 - **Project Management**: Tasks, milestones, and progress tracking
 - **Offline Support**: Sync tables for offline operation
 
@@ -134,7 +134,7 @@ Planning Manager v6 includes a comprehensive community feedback system with the 
 - **community_feedback_categories**: Category management for organizing feedback
 - **community_feedback_settings**: Agency-level settings for the feedback system
 
-### CAMP and TrendNavigator Integration
+### GreenChAMP and TrendNavigator Integration
 
 The following tables support integration with transportation modeling tools:
 
@@ -182,12 +182,12 @@ Planning Manager v6 includes robust support for offline operations. Key componen
 - **sync_status**: Tracks the synchronization status of records
 - **sync_queue**: Queues changes made offline for synchronization when online
 
-## CAMP and TrendNavigator Integration
+## GreenChAMP and TrendNavigator Integration
 
-For transportation modeling integration:
+To set up the transportation modeling modules:
 
-1. Set up the base schema using `supabase_schema.sql`
-2. Apply the CAMP and TrendNavigator extension using `camp_trendnavigator_schema.sql`
+1. Ensure you have the core schema installed
+2. Apply the GreenChAMP and TrendNavigator extension using `greenchamp_trendnavigator_schema.sql`
 
 ## ELI5 Documentation
 
@@ -198,4 +198,4 @@ For a simplified explanation of the Planning Manager system, refer to the [PLANN
 - [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Detailed documentation of each table
 - [API.md](docs/API.md) - API documentation for developers
 - [OFFLINE_DATABASE.md](OFFLINE_DATABASE.md) - Details on offline functionality
-- [CAMP_TrendNavigator_Integration.md](docs/CAMP_TrendNavigator_Integration.md) - Transportation modeling guide
+- [GreenChAMP_TrendNavigator_Integration.md](docs/GreenChAMP_TrendNavigator_Integration.md) - Transportation modeling guide

@@ -230,7 +230,7 @@ export interface Project {
   mapType?: string;
   layers?: string[];
   
-  // CAMP and TrendNavigator integration
+  // GreenChAMP and TrendNavigator integration
   campModelRuns?: CAMPModelResults[];
   trendScenarios?: ScenarioDefinition[];
   trendResults?: ScenarioResults[];
@@ -289,7 +289,7 @@ export interface ScenarioAnalysis {
   createdAt?: string;
   updatedBy?: string;
   
-  // Link to CAMP and TrendNavigator
+  // Link to GreenChAMP and TrendNavigator
   campModelRunId?: string;
   trendScenarioId?: string;
 }

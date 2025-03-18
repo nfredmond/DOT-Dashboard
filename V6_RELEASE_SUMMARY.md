@@ -6,12 +6,14 @@ Planning Manager v6 represents a major leap forward in transportation planning c
 
 ## Key Features
 
-### CAMP and TrendNavigator Integration
+### GreenChAMP and TrendNavigator Integration
 
 Planning Manager v6 now includes full integration with advanced transportation modeling tools:
 
-- **CAMP (Comprehensive Activity-based Mobility Planning)**: Travel demand forecasting with sophisticated trip generation, distribution, mode choice, and assignment modeling
-- **TrendNavigator**: Future trend scenario planning with support for multiple time horizons (5, 10, 30-year projections)
+- **Advanced Modeling Framework**: Integrated scenario planning with travel demand forecasting
+- **GreenChAMP (Green DOT Chained Activity Modelling Process)**: Travel demand forecasting with sophisticated trip generation, distribution, mode choice, and assignment modeling
+- **TrendNavigator**: Scenario development tool for evaluating policies and future trends
+- **AI-powered Insights**: Automated analysis of modeling results with customizable reports
 - **Scenario Comparison**: Compare multiple transportation scenarios with AI-powered analysis of impacts and tradeoffs
 - **GIS Visualization**: Map-based visualization of modeling results with zone and network level impacts
 
@@ -70,10 +72,10 @@ Other significant improvements include:
 
 The database schema has been extended with:
 
-- Tables for CAMP and TrendNavigator integration
-- Support for MCP servers and AI agent configuration
-- Enhanced community feedback data structure
-- Offline synchronization support
+- Row-level security for agency-specific data isolation
+- Enhanced PostgreSQL/PostGIS geospatial capabilities
+- Tables for GreenChAMP and TrendNavigator integration
+- Optimized indexes for improved query performance
 
 ### Architecture
 

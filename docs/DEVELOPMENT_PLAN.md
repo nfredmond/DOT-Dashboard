@@ -90,7 +90,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - ✅ Visualization of community feedback trends and patterns
 - ✅ Community feedback integration with project prioritization
 - ✅ Public Records Request Management system with online submission portal, tracking, and admin interfaces
-- 🔄 External API integrations with transportation data sources (Census, GTFS, DOT)
+- 🔄 External API integrations with transportation data sources (Census, GTFS, DOT, SWITRS, Caltrans, ESRI)
 - 🔄 Further refinement of the GreenChAMP and TrendNavigator integration
 - 🔄 Enhanced AI-powered insights from modeling results
 

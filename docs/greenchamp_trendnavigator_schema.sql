@@ -1,6 +1,6 @@
--- CAMP and TrendNavigator Schema Extension for Planning Manager
+-- GreenChAMP and TrendNavigator Schema Extension for Planning Manager
 -- This file contains SQL statements to extend the Planning Manager database
--- with tables for the CAMP and TrendNavigator modules.
+-- with tables for the GreenChAMP and TrendNavigator modules.
 
 -----------------
 -- Create TYPES --
@@ -45,8 +45,8 @@ CREATE TABLE scenarios (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- CAMP Model Configurations
-CREATE TABLE camp_model_configs (
+-- GreenChAMP Model Configurations
+CREATE TABLE greenchamp_model_configs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -57,15 +57,15 @@ CREATE TABLE camp_model_configs (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- CAMP Model Runs
-CREATE TABLE camp_model_runs (
+-- GreenChAMP Model Runs
+CREATE TABLE greenchamp_model_runs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     scenario_id UUID NOT NULL REFERENCES scenarios(id) ON DELETE CASCADE,
     status run_status NOT NULL DEFAULT 'queued',
     error_message TEXT,
     start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     end_time TIMESTAMPTZ,
-    model_config_id UUID REFERENCES camp_model_configs(id),
+    model_config_id UUID REFERENCES greenchamp_model_configs(id),
     model_version TEXT NOT NULL,
     results_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -79,7 +79,7 @@ CREATE TABLE scenario_results (
     horizon_years INTEGER[] NOT NULL,
     aggregate_metrics JSONB NOT NULL,
     metrics JSONB NOT NULL,
-    model_run_id UUID REFERENCES camp_model_runs(id) ON DELETE SET NULL,
+    model_run_id UUID REFERENCES greenchamp_model_runs(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (scenario_id)
@@ -162,8 +162,8 @@ CREATE TABLE scenario_comparisons (
 -- Enable Row Level Security
 ALTER TABLE trend_navigator_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scenarios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE camp_model_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE camp_model_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE greenchamp_model_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE greenchamp_model_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scenario_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scenario_insights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE zones ENABLE ROW LEVEL SECURITY;
@@ -297,9 +297,9 @@ CREATE INDEX scenarios_baseline_scenario_id_idx ON scenarios (baseline_scenario_
 CREATE INDEX scenario_results_scenario_id_idx ON scenario_results (scenario_id);
 CREATE INDEX scenario_results_model_run_id_idx ON scenario_results (model_run_id);
 
--- Indexes for camp_model_runs
-CREATE INDEX camp_model_runs_scenario_id_idx ON camp_model_runs (scenario_id);
-CREATE INDEX camp_model_runs_status_idx ON camp_model_runs (status);
+-- Indexes for greenchamp_model_runs
+CREATE INDEX greenchamp_model_runs_scenario_id_idx ON greenchamp_model_runs (scenario_id);
+CREATE INDEX greenchamp_model_runs_status_idx ON greenchamp_model_runs (status);
 
 -- Indexes for zones and network_links (with GIS support)
 CREATE INDEX zones_organization_id_idx ON zones (organization_id);
@@ -340,12 +340,12 @@ CREATE TRIGGER update_scenarios_updated_at
 BEFORE UPDATE ON scenarios
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_camp_model_configs_updated_at
-BEFORE UPDATE ON camp_model_configs
+CREATE TRIGGER update_greenchamp_model_configs_updated_at
+BEFORE UPDATE ON greenchamp_model_configs
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_camp_model_runs_updated_at
-BEFORE UPDATE ON camp_model_runs
+CREATE TRIGGER update_greenchamp_model_runs_updated_at
+BEFORE UPDATE ON greenchamp_model_runs
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_scenario_results_updated_at

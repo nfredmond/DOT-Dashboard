@@ -1,0 +1,10 @@
+Reinstall windows to try to get MCPs to work
+
+
+the community input tool is fully integrated with the latest updates, being able to show model results, trend results, etc. if the admin or user selects that function in the community input map.
+
+Did you make sure to re-Brand the CAMP the GreenChAMP in the project (which stands for the Green DOT Chained Activity Modelling Process), with no need to rename files, just documentation, and page descriptions, help, user manual, etc. and ensure to Update all documentation including the supabase_schema.sql file ensuring it wipes the supabase parameters first and then I repasted EVERYTHING in that one file to make the supabase work perfectly with the most up-to-date app changes app-wide. Ensure the development plan, architecture, integration, main readme, and implementation documentation is updated to the most recent changes app-wide was well. Additionally, Are all the new enhancements available from the homepage on the sidebar nav?
+
+should we implement Mapbox GL? Or is that in combo with Leaflet?
+
+

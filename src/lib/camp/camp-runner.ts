@@ -2,12 +2,14 @@ import { supabase } from '../supabase-client';
 import { processZoneData, processNetworkData } from './data-processing';
 import { TripGeneration, TripDistribution, ModeChoice, NetworkAssignment } from './model-components';
 import { CAMPConfig, ModelParameters, ScenarioResult, ModelStatus } from '@/types/camp';
+import { runActivitySimulation, ActivityBasedSimulation } from './activity-model';
 
 /**
  * CAMP Runner Service
  * 
  * Handles the execution of travel demand models based on the CAMP (Comprehensive Activity-based Mobility Planning) methodology.
  * Coordinates the four-step modeling process: trip generation, trip distribution, mode choice, and network assignment.
+ * Also supports activity-based modeling for more detailed individual travel simulations.
  */
 export class CAMPRunner {
   private organizationId: string;
@@ -21,7 +23,8 @@ export class CAMPRunner {
    */
   public async runModel(
     scenarioId: string, 
-    parameters: ModelParameters
+    parameters: ModelParameters,
+    userId?: string
   ): Promise<{ success: boolean; message?: string; resultId?: string }> {
     try {
       // Update model run status to "running"
@@ -48,6 +51,12 @@ export class CAMPRunner {
 
       if (configError || !campConfig) {
         throw new Error(`Failed to fetch CAMP configuration: ${configError?.message || 'Configuration not found'}`);
+      }
+
+      // Check if we should use activity-based modeling approach
+      if (parameters.model_type === 'activity_based' || parameters.activity_based) {
+        console.log('Running activity-based simulation...');
+        return await this.runActivityBasedModel(scenarioId, parameters, userId);
       }
 
       // Process input data
@@ -121,6 +130,207 @@ export class CAMPRunner {
         message: error.message 
       };
     }
+  }
+
+  /**
+   * Run the activity-based modeling approach
+   */
+  private async runActivityBasedModel(
+    scenarioId: string,
+    parameters: ModelParameters,
+    userId?: string
+  ): Promise<{ success: boolean; message?: string; resultId?: string }> {
+    try {
+      // Run the activity-based simulation
+      const simulationResults = await runActivitySimulation(
+        scenarioId,
+        parameters,
+        this.organizationId,
+        userId,
+        `Activity-Based Simulation ${new Date().toISOString().split('T')[0]}`,
+        "Activity-based travel demand simulation results",
+        parameters.activity_based?.configuration
+      );
+
+      // Process results into the standard format expected by the application
+      const results = this.processActivityBasedResults(simulationResults);
+
+      // Store results in database
+      const { data: resultData, error: resultError } = await supabase
+        .from('scenario_results')
+        .insert({
+          scenario_id: scenarioId,
+          results: results,
+          congestion: results.congestion,
+          emissions: results.emissions,
+          accessibility: results.accessibility,
+          safety: results.safety,
+          equity: results.equity,
+          gis_data: results.gis_data,
+          zone_metrics: results.zone_metrics,
+          network_metrics: results.network_metrics,
+          activity_based_results: simulationResults
+        })
+        .select('id')
+        .single();
+
+      if (resultError) {
+        throw new Error(`Failed to store activity-based results: ${resultError.message}`);
+      }
+
+      // Update model run status to "completed"
+      await this.updateModelRunStatus(scenarioId, 'completed', null, new Date());
+
+      return { 
+        success: true, 
+        resultId: resultData.id 
+      };
+    } catch (error: any) {
+      console.error('Activity-based model execution failed:', error);
+      
+      // Update model run status to "failed"
+      await this.updateModelRunStatus(scenarioId, 'failed', error.message);
+      
+      return { 
+        success: false, 
+        message: error.message 
+      };
+    }
+  }
+
+  /**
+   * Process activity-based simulation results into standard model results format
+   */
+  private processActivityBasedResults(simulationResults: any): ScenarioResult {
+    // Extract key metrics from activity-based simulation results
+    const { 
+      aggregateStatistics,
+      zonalStatistics,
+      temporalDistribution,
+      spatialDistribution
+    } = simulationResults;
+
+    // Calculate congestion metrics
+    const congestion = {
+      average_vtc: 0.75, // Placeholder - would calculate from link volumes
+      total_delay: aggregateStatistics.totalTravelTime * 0.3, // Assume 30% of travel time is delay
+      congested_links: Math.floor(Object.keys(zonalStatistics).length * 0.2), // Placeholder
+      vtc_ratios: {},
+      delays: {},
+      travel_times: {}
+    };
+    
+    // Calculate emissions based on travel distance by mode
+    const vktByMode = {};
+    Object.entries(aggregateStatistics.modeSplit).forEach(([mode, share]) => {
+      vktByMode[mode] = aggregateStatistics.totalTravelDistance * share;
+    });
+    
+    // Emission factors by mode (in grams per passenger-km)
+    const co2Factors = {
+      car: 120,
+      transit: 70,
+      rail: 35,
+      walk: 0,
+      bike: 0
+    };
+    
+    // Calculate total emissions
+    let totalCo2 = 0;
+    let totalNox = 0;
+    let totalPm = 0;
+    
+    Object.entries(vktByMode).forEach(([mode, distance]) => {
+      const factor = co2Factors[mode] || co2Factors.car;
+      totalCo2 += (distance * factor) / 1000000; // Convert to tonnes
+      totalNox += (distance * factor * 0.003) / 1000; // Simplified NOx calculation
+      totalPm += (distance * factor * 0.0002) / 1000; // Simplified PM calculation
+    });
+    
+    const emissions = {
+      co2_tonnes: totalCo2,
+      nox_kg: totalNox,
+      pm_kg: totalPm,
+      vkt_by_mode: vktByMode
+    };
+    
+    // Generate accessibility metrics from zonal statistics
+    const accessibility = {
+      job_accessibility: {},
+      healthcare_accessibility: {},
+      education_accessibility: {},
+      retail_accessibility: {}
+    };
+    
+    // Generate safety metrics based on total travel
+    const safety = {
+      total_crashes: aggregateStatistics.totalTravelDistance / 10000000, // Simplified estimate
+      crashes_by_facility_type: {},
+      fatalities: aggregateStatistics.totalTravelDistance / 100000000,
+      injuries: aggregateStatistics.totalTravelDistance / 20000000,
+      pdo_crashes: aggregateStatistics.totalTravelDistance / 5000000
+    };
+    
+    // Generate equity metrics (placeholder)
+    const equity = {
+      avg_accessibility_by_group: {
+        low_income: 0,
+        minority: 0,
+        elderly: 0,
+        zero_car: 0,
+        overall: 0
+      },
+      equity_ratios: {
+        low_income: 1.0,
+        minority: 1.0,
+        elderly: 1.0,
+        zero_car: 1.0
+      }
+    };
+    
+    // Prepare GIS visualization data
+    const gisData = {
+      links: {
+        type: 'FeatureCollection',
+        features: []
+      },
+      zones: {
+        type: 'FeatureCollection',
+        features: Object.entries(zonalStatistics).map(([zoneId, stats]) => ({
+          type: 'Feature',
+          properties: {
+            id: zoneId,
+            trips_produced: stats.tripsProduced,
+            trips_attracted: stats.tripsAttracted,
+            internal_trips: stats.internalTrips,
+            activity_density: stats.activityDensity
+          },
+          geometry: null // Would be populated from zone geometries
+        }))
+      }
+    };
+    
+    // Prepare zone metrics
+    const zoneMetrics = zonalStatistics;
+    
+    // Prepare network metrics
+    const networkMetrics = {
+      total_vmt: aggregateStatistics.totalTravelDistance,
+      total_vht: aggregateStatistics.totalTravelTime,
+      average_speed: aggregateStatistics.totalTravelDistance / Math.max(1, aggregateStatistics.totalTravelTime) * 60 // km/h
+    };
+    
+    return {
+      congestion,
+      emissions,
+      accessibility,
+      safety,
+      equity,
+      gis_data: gisData,
+      zone_metrics: zoneMetrics,
+      network_metrics: networkMetrics,
+      temporal_distribution: temporalDistribution
+    };
   }
 
   /**

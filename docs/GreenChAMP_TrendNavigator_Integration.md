@@ -1,8 +1,8 @@
-# CAMP and TrendNavigator Integration Guide
+# GreenChAMP and TrendNavigator Integration Guide
 
 ## Overview
 
-This document provides technical details on the integration of the CAMP (Comprehensive Activity-based Mobility Planning) and TrendNavigator modules into the Planning Manager application. These modules enhance the application with scenario planning, travel demand modeling, and trend analysis capabilities.
+This document provides technical details on the integration of the GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator modules into the Planning Manager application. These modules enhance the application with scenario planning, travel demand modeling, and trend analysis capabilities.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ The integration follows a modular, service-oriented architecture:
 ### Integration Flow
 
 ```
-User Interface → API Layer → Service Layer → CAMP Model → Database
+User Interface → API Layer → Service Layer → GreenChAMP Model → Database
                                  ↑               ↓
                       TrendNavigator ← Result Processing
                                 ↓
@@ -40,8 +40,8 @@ The integration maintains strict data isolation between organizations:
 Key tables added to the schema:
 
 - `scenarios`: Stores scenario definitions with assumptions and policies
-- `camp_model_configs`: Stores CAMP model configurations
-- `camp_model_runs`: Tracks the status and metadata of model runs
+- `greenchamp_model_configs`: Stores GreenChAMP model configurations
+- `greenchamp_model_runs`: Tracks the status and metadata of model runs
 - `scenario_results`: Stores the results of scenario model runs
 - `scenario_insights`: Stores AI-generated insights from scenario results
 - `trend_navigator_configs`: Stores organization-specific TrendNavigator configurations
@@ -59,7 +59,7 @@ New API endpoints implemented:
 
 Core services implemented:
 
-- `camp-runner.ts`: Handles CAMP model execution and result processing
+- `greenchamp-runner.ts`: Handles GreenChAMP model execution and result processing
 - `trend-navigator-service.ts`: Manages scenario assumptions and policies
 - `scenario-insights-service.ts`: Generates insights from scenario results using AI
 - `agents-service.ts`: Provides AI agent capabilities for various analysis tasks
@@ -114,7 +114,7 @@ OPENAI_API_KEY=your-openai-key (alternative)
 
 ## Getting Started
 
-1. Run the SQL migrations in `docs/camp_trendnavigator_schema.sql`
+1. Run the SQL migrations in `docs/greenchamp_trendnavigator_schema.sql`
 2. Deploy the Supabase Edge Functions from `supabase/functions/`
 3. Build and deploy the Next.js application
 4. Configure TrendNavigator settings for your organization

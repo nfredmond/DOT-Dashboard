@@ -203,12 +203,12 @@ export default function UserManual() {
       title: "Travel Demand Forecasting & Trend Analysis",
       content: (
         <>
-          <h3 className="text-lg font-semibold mb-2">CAMP Travel Demand Modeling</h3>
+          <h3 className="text-lg font-semibold mb-2">GreenChAMP Travel Demand Modeling</h3>
           <p className="mb-4">
-            The Chained Activity Modeling Process (CAMP) provides sophisticated travel demand forecasting capabilities for transportation planning.
+            The Green DOT Chained Activity Modelling Process (GreenChAMP) provides sophisticated travel demand forecasting capabilities for transportation planning.
           </p>
           
-          <h4 className="text-md font-semibold mb-2">Running a CAMP Model</h4>
+          <h4 className="text-md font-semibold mb-2">Running a GreenChAMP Model</h4>
           <ol className="list-decimal pl-6 mb-4">
             <li>Navigate to "Modeling" {'>'}  "Travel Demand"</li>
             <li>Click "New Model Run"</li>
@@ -233,7 +233,7 @@ export default function UserManual() {
             <li>View results when processing is complete</li>
           </ol>
           
-          <h4 className="text-md font-semibold mb-2">Analyzing CAMP Results</h4>
+          <h4 className="text-md font-semibold mb-2">Analyzing GreenChAMP Results</h4>
           <ol className="list-decimal pl-6 mb-4">
             <li>Navigate to "Modeling" {'>'}  "Travel Demand" {'>'}  "Results"</li>
             <li>Select a completed model run</li>
@@ -266,7 +266,7 @@ export default function UserManual() {
           <ol className="list-decimal pl-6 mb-4">
             <li>Navigate to "Modeling" {'>'}  "TrendNavigator"</li>
             <li>Click "New Trend Scenario"</li>
-            <li>Select a baseline model (required CAMP model result)</li>
+            <li>Select a baseline model (required GreenChAMP model result)</li>
             <li>Configure trend variables:
               <ul className="list-disc pl-6 mt-1 mb-2">
                 <li>Telecommuting rates</li>
@@ -319,7 +319,7 @@ export default function UserManual() {
           <ol className="list-decimal pl-6 mb-4">
             <li>Navigate to a project details page</li>
             <li>Click "Link to Model" button</li>
-            <li>Select a CAMP or TrendNavigator model result</li>
+            <li>Select a GreenChAMP or TrendNavigator model result</li>
             <li>The project will now display relevant metrics from the model</li>
             <li>Project scoring can incorporate model results to improve prioritization</li>
           </ol>
@@ -664,7 +664,7 @@ export default function UserManual() {
             <p className="text-sm">AI-powered evaluation of feedback tone (positive, negative, or neutral)</p>
           </div>
           <div className="p-3 border rounded">
-            <h3 className="font-semibold mb-1">CAMP</h3>
+            <h3 className="font-semibold mb-1">GreenChAMP (Green DOT Chained Activity Modelling Process)</h3>
             <p className="text-sm">Chained Activity Modeling Process, a methodology for travel demand forecasting</p>
           </div>
           <div className="p-3 border rounded">

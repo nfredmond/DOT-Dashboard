@@ -11,7 +11,7 @@ api/
 ├── projects/          # Project management endpoints
 │   ├── [id]/          # Single project operations
 │   │   ├── bca/       # Benefit-Cost Analysis endpoints
-│   │   │   └── camp-integration/ # Integration with CAMP model data
+│   │   │   └── camp-integration/ # Integration with GreenChAMP (Green DOT Chained Activity Modelling Process) model data
 │   │   └── batch/         # Batch operations on multiple projects
 ├── scoring/           # Project scoring endpoints
 │   └── criteria/      # Scoring criteria configuration
@@ -246,7 +246,7 @@ Performs Monte Carlo simulation on a benefit-cost analysis.
 
 ### `POST /api/projects/[id]/bca/camp-integration`
 
-Integrates CAMP model data into a benefit-cost analysis.
+Integrates GreenChAMP (Green DOT Chained Activity Modelling Process) model data into a benefit-cost analysis.
 
 **Parameters:**
 - `id` (path parameter): The UUID of the project

@@ -1,7 +1,7 @@
 /**
- * CAMP (Chained Activity Modeling Process) Types
+ * GreenChAMP (Chained Activity Modeling Process) Types
  * 
- * These types define the data structures for the CAMP travel demand forecasting tool.
+ * These types define the data structures for the GreenChAMP travel demand forecasting tool.
  */
 
 import { GeoJSON } from 'geojson';

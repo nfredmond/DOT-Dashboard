@@ -1,8 +1,8 @@
-# CAMP and TrendNavigator Integration Guide
+# GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator Integration Guide
 
 ## Overview
 
-This document provides technical details on the integration of the CAMP (Comprehensive Activity-based Mobility Planning) and TrendNavigator modules into the Planning Manager application. These modules enhance the application with scenario planning, travel demand modeling, and trend analysis capabilities.
+This document provides technical details on the integration of the GreenChAMP (Green DOT Chained Activity Modelling Process) (Comprehensive Activity-based Mobility Planning) and TrendNavigator modules into the Planning Manager application. These modules enhance the application with scenario planning, travel demand modeling, and trend analysis capabilities.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ The integration follows a modular, service-oriented architecture:
 ### Integration Flow
 
 ```
-User Interface → API Layer → Service Layer → CAMP Model → Database
+User Interface → API Layer → Service Layer → GreenChAMP (Green DOT Chained Activity Modelling Process) Model → Database
                                  ↑               ↓
                       TrendNavigator ← Result Processing
                                 ↓
@@ -40,7 +40,7 @@ The integration maintains strict data isolation between organizations:
 Key tables added to the schema:
 
 - `scenarios`: Stores scenario definitions with assumptions and policies
-- `camp_model_configs`: Stores CAMP model configurations
+- `camp_model_configs`: Stores GreenChAMP (Green DOT Chained Activity Modelling Process) model configurations
 - `camp_model_runs`: Tracks the status and metadata of model runs
 - `scenario_results`: Stores the results of scenario model runs
 - `scenario_insights`: Stores AI-generated insights from scenario results
@@ -59,7 +59,7 @@ New API endpoints implemented:
 
 Core services implemented:
 
-- `camp-runner.ts`: Handles CAMP model execution and result processing
+- `camp-runner.ts`: Handles GreenChAMP (Green DOT Chained Activity Modelling Process) model execution and result processing
 - `trend-navigator-service.ts`: Manages scenario assumptions and policies
 - `scenario-insights-service.ts`: Generates insights from scenario results using AI
 - `agents-service.ts`: Provides AI agent capabilities for various analysis tasks
@@ -145,7 +145,7 @@ The following key components have been implemented to provide a rich user experi
 
 2. **Scenario Results Viewer**: Located at `src/components/scenario-results.tsx`, this component visualizes the results of scenario runs, including metrics like congestion levels, emissions, and accessibility.
 
-3. **GIS Visualization**: Located at `src/components/scenario-map-view.tsx`, this component displays the spatial impacts of scenarios through interactive maps, allowing users to visualize zone-based and network-based metrics from the CAMP model.
+3. **GIS Visualization**: Located at `src/components/scenario-map-view.tsx`, this component displays the spatial impacts of scenarios through interactive maps, allowing users to visualize zone-based and network-based metrics from the GreenChAMP (Green DOT Chained Activity Modelling Process) model.
 
 4. **Scenario Insights**: Located at `src/components/scenario-insights.tsx`, this component displays AI-generated insights and analysis for a specific scenario.
 
@@ -157,12 +157,12 @@ These components integrate with the backend services to provide a seamless user 
 
 ### Database Schema
 
-The database schema has been extended to support CAMP and TrendNavigator with the following tables:
+The database schema has been extended to support GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator with the following tables:
 
 1. **trend_navigator_configs**: Stores organization-specific configurations for TrendNavigator
    - Fields: id, organization_id, default_base_year, default_horizon_years, available_trends, created_at, updated_at
 
-2. **camp_configs**: Stores CAMP model configurations
+2. **camp_configs**: Stores GreenChAMP (Green DOT Chained Activity Modelling Process) model configurations
    - Fields: id, organization_id, zone_data, network_data, parameters, calibration_status, created_at, updated_at
 
 3. **scenarios**: Stores scenario definitions
@@ -171,7 +171,7 @@ The database schema has been extended to support CAMP and TrendNavigator with th
 4. **scenario_results**: Stores the results of scenario runs
    - Fields: id, scenario_id, results, congestion, emissions, accessibility, safety, equity, gis_data, zone_metrics, network_metrics, created_at
 
-5. **camp_model_runs**: Stores information about CAMP model runs
+5. **camp_model_runs**: Stores information about GreenChAMP (Green DOT Chained Activity Modelling Process) model runs
    - Fields: id, scenario_id, model_parameters, status, error_message, start_time, end_time, execution_time
 
 6. **scenario_insights**: Stores AI-generated insights for scenarios
@@ -186,7 +186,7 @@ The complete SQL schema can be found in `docs/camp_trendnavigator_schema.sql`.
 
 ### API Routes
 
-The following API routes have been implemented to support the CAMP and TrendNavigator integration:
+The following API routes have been implemented to support the GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator integration:
 
 1. **Scenario Management**:
    - `GET /api/scenarios`: List all scenarios for the authenticated user's organization
@@ -196,7 +196,7 @@ The following API routes have been implemented to support the CAMP and TrendNavi
    - `DELETE /api/scenarios/[id]`: Delete a scenario
 
 2. **Scenario Execution**:
-   - `POST /api/scenarios/[id]/run`: Run a scenario through the CAMP model
+   - `POST /api/scenarios/[id]/run`: Run a scenario through the GreenChAMP (Green DOT Chained Activity Modelling Process) model
    - `GET /api/scenarios/[id]/run`: Get the status of the latest run for a scenario
 
 3. **Scenario Insights**:
@@ -213,9 +213,9 @@ The following API routes have been implemented to support the CAMP and TrendNavi
    - `GET /api/scenarios/[id]/gis/network`: Get network-level GIS data for a scenario
 
 All routes implement appropriate authentication and authorization checks to ensure that users can only access data from their own organization. 
-# **CAMP Integration Technical Implementation Guide**
+# **GreenChAMP (Green DOT Chained Activity Modelling Process) Integration Technical Implementation Guide**
 
-This guide provides a detailed, step-by-step approach to integrating the **Chained Activity Modeling Process (CAMP)** into the Planning Manager web application. Each section below covers a key technical aspect, with instructions, code examples, and best practices for a seamless integration.
+This guide provides a detailed, step-by-step approach to integrating the **Chained Activity Modeling Process (GreenChAMP (Green DOT Chained Activity Modelling Process))** into the Planning Manager web application. Each section below covers a key technical aspect, with instructions, code examples, and best practices for a seamless integration.
 
 ## **1\. Database Schema & Storage (PostgreSQL \+ PostGIS)**
 
@@ -358,7 +358,7 @@ This ensures that any row accessed has a scenario belonging to the user’s orga
 
 ## **2\. API Development (Next.js API Routes & Supabase Integration)**
 
-Develop a set of RESTful API endpoints in the Next.js application (using **Next.js API Routes** or the newer App Router route handlers) to allow the frontend and external clients to interact with CAMP data. We'll integrate Supabase for database access and authentication.
+Develop a set of RESTful API endpoints in the Next.js application (using **Next.js API Routes** or the newer App Router route handlers) to allow the frontend and external clients to interact with GreenChAMP (Green DOT Chained Activity Modelling Process) data. We'll integrate Supabase for database access and authentication.
 
 **API Endpoint Design:** Define endpoints for the following functions:
 
@@ -370,7 +370,7 @@ Develop a set of RESTful API endpoints in the Next.js application (using **Next.
   * `POST /api/scenarios/{id}/trip-gen` to submit custom trip generation results or parameters.  
 * These inputs will be written to the respective tables (`zones`, `trip_generation`, etc.). Alternatively, a single endpoint could accept a JSON payload containing all inputs and then populate multiple tables in one go.
 
-* **Triggering CAMP Simulations:** e.g. `POST /api/scenarios/{id}/run` – Kicks off the process of running the travel demand model for scenario `{id}`. This will likely create a **job** for batch processing (see Section 4 for handling the background computation). The endpoint should validate that all necessary inputs for the scenario exist, then mark the scenario as “in progress” or enqueue a simulation task. It can immediately return a 202 Accepted status with a reference to the job or scenario, while the actual computation happens asynchronously.
+* **Triggering GreenChAMP (Green DOT Chained Activity Modelling Process) Simulations:** e.g. `POST /api/scenarios/{id}/run` – Kicks off the process of running the travel demand model for scenario `{id}`. This will likely create a **job** for batch processing (see Section 4 for handling the background computation). The endpoint should validate that all necessary inputs for the scenario exist, then mark the scenario as “in progress” or enqueue a simulation task. It can immediately return a 202 Accepted status with a reference to the job or scenario, while the actual computation happens asynchronously.
 
 * **Retrieving Scenario Results:** e.g. `GET /api/scenarios/{id}/results` – Retrieves the output data for a completed scenario run. The response can include aggregated results like mode shares and congestion metrics, and/or links to download detailed data (like full OD matrices). For instance, it might return a JSON structure with high-level metrics (total trips, modal split percentages, average network speed, etc.) and possibly URLs or IDs for getting detailed GeoJSON files for maps. Additional endpoints could be created for specific result sets, such as `GET /api/scenarios/{id}/trip-matrix` (returns the full trip matrix or a slice of it) or `GET /api/scenarios/{id}/assignment` (returns network performance results).
 
@@ -499,7 +499,7 @@ Here we insert a record into a `jobs` table (with columns like `id`, `scenario_i
 
 Integrating a GIS map into the Planning Manager enables users to visualize the model inputs and outputs geographically. We use **Leaflet.js** on the frontend for interactive maps, and **PostGIS** on the backend for spatial data queries.
 
-**Interactive Maps with Leaflet:** On the client side, set up a Leaflet map component (e.g. using React-Leaflet if the app is React-based). You can display multiple layers corresponding to different aspects of the CAMP results:
+**Interactive Maps with Leaflet:** On the client side, set up a Leaflet map component (e.g. using React-Leaflet if the app is React-based). You can display multiple layers corresponding to different aspects of the GreenChAMP (Green DOT Chained Activity Modelling Process) results:
 
 * **Zones and Trip Patterns:** Plot zone centroids or polygons with proportional symbols or coloring to represent **trip origins/destinations**. For example, a chloropleth map of zones where color intensity corresponds to number of trips produced in that zone. You can also draw **desire lines** (lines connecting origins to destinations) for selected zones or aggregate flows to show movement patterns.  
 * **Congestion Heatmaps:** Use the network links geometry and assignment results to show congestion. For instance, draw each road link with a color or thickness based on volume or volume-to-capacity ratio. High congestion links might be red and thicker, while free-flow links are green. This effectively creates a heatmap of congestion on the network.  
@@ -622,17 +622,17 @@ CopyEdit
 
 This quickly fetches links within the current map viewport, which you can send as GeoJSON for dynamic loading as the user pans the map.
 
-By combining Leaflet for client-side interactivity and PostGIS for server-side spatial computation, the application can provide rich GIS visualizations of the CAMP model results.
+By combining Leaflet for client-side interactivity and PostGIS for server-side spatial computation, the application can provide rich GIS visualizations of the GreenChAMP (Green DOT Chained Activity Modelling Process) model results.
 
 ## **4\. Model Execution & Computation (Real-time & Batch Processing)**
 
-CAMP model runs can be computationally intensive. We implement a **hybrid execution model** to balance responsiveness and capability:
+GreenChAMP (Green DOT Chained Activity Modelling Process) model runs can be computationally intensive. We implement a **hybrid execution model** to balance responsiveness and capability:
 
 * **Real-time processing (Synchronous):** For small-scale scenarios or quick adjustments, the model (or parts of it) can run in near real-time. This could apply when a user is tweaking a single input (e.g., adjusting trip generation for one zone) and wants to instantly see the localized effect. For example, if the system supports interactive adjustments, you might re-run just the trip generation and distribution steps on a subset of zones on the fly and update a chart or map. These computations can be done directly in the API route (if they complete in a couple of seconds) or in the browser for very lightweight calculations. Real-time mode enhances user experience by providing immediate feedback for minor changes.
 
 * **Batch processing (Asynchronous):** For full scenario simulations or large regions with many zones, run the model asynchronously in the background. Users will initiate the run (as described in the API section) and then be able to continue using the app or come back later for results. Batch mode is essential for scenarios that might take several minutes or more to simulate (for instance, an activity-based model with millions of synthetic individuals, or a four-step model over a large metro area). The application should clearly indicate the run is in progress and provide a way to check the status or get notified when done.
 
-**Handling Asynchronous Jobs:** Use a task queue or serverless background function to execute the CAMP calculations without blocking the main thread:
+**Handling Asynchronous Jobs:** Use a task queue or serverless background function to execute the GreenChAMP (Green DOT Chained Activity Modelling Process) calculations without blocking the main thread:
 
 * **Supabase Edge Functions:** Deploy the modeling logic as an Edge Function (written in TypeScript or JavaScript using Deno). The Next.js API can invoke this function (as shown in Section 2\) and it will run independently. Supabase Edge Functions support background tasks via `EdgeRuntime.waitUntil`, which allows the function to continue working after sending an initial response​  
   [supabase.com](https://supabase.com/docs/guides/functions/background-tasks#:~:text=Edge%20Function%20instances%20can%20process,task%20running%20in%20the%20background)  
@@ -640,13 +640,13 @@ CAMP model runs can be computationally intensive. We implement a **hybrid execut
 * **Dedicated Worker (Server or Container):** Alternatively, run a separate worker process (could be a Node.js script or a Python process) that continuously monitors a job queue. This could be a simple loop or a cron job that checks the `jobs` table for new entries. Supabase recently introduced **pgmq (Postgres message queue)** which can be used to listen for new jobs in a queue table​  
   [supabase.com](https://supabase.com/docs/guides/queues#:~:text=Supabase%20Queues%20is%20a%20Postgres,of%20their%20applications%20and%20services)  
   . Or use the `supabase-js` client to poll for pending jobs.  
-* **Serverless Batch Jobs:** Another approach is to trigger a serverless function or a cloud job (e.g., AWS Lambda, Google Cloud Run) via a webhook from the Next.js API. The job would fetch the scenario data from Supabase, run the CAMP model logic, then write results back.
+* **Serverless Batch Jobs:** Another approach is to trigger a serverless function or a cloud job (e.g., AWS Lambda, Google Cloud Run) via a webhook from the Next.js API. The job would fetch the scenario data from Supabase, run the GreenChAMP (Green DOT Chained Activity Modelling Process) model logic, then write results back.
 
 Regardless of method, ensure the job updates the database when completed (e.g., sets `jobs.status = 'completed'` and maybe stores a summary or link to results).
 
-**Model Computation Implementation:** The actual CAMP model can be implemented in Python (using libraries like pandas, numpy for calculations or even a transportation modeling tool) or in Node.js (if performance is sufficient or using WebAssembly for heavy math). If an existing model engine (like a binary or an R script) exists, the worker can call that as well. The integration point is to feed it the inputs from the database and capture its outputs to store back in the database.
+**Model Computation Implementation:** The actual GreenChAMP (Green DOT Chained Activity Modelling Process) model can be implemented in Python (using libraries like pandas, numpy for calculations or even a transportation modeling tool) or in Node.js (if performance is sufficient or using WebAssembly for heavy math). If an existing model engine (like a binary or an R script) exists, the worker can call that as well. The integration point is to feed it the inputs from the database and capture its outputs to store back in the database.
 
-For example, pseudocode for a **Python** worker that runs CAMP for a pending job:
+For example, pseudocode for a **Python** worker that runs GreenChAMP (Green DOT Chained Activity Modelling Process) for a pending job:
 
 python  
 CopyEdit  
@@ -674,7 +674,7 @@ CopyEdit
     `network = supabase.table("network_links").select("id, capacity, free_flow_time, geom").eq("org_id", job["org_id"]).execute().data`  
     `# ... (fetch other inputs like modal parameters, etc.)`
 
-    `# Run the CAMP model computation (this would be calls to model functions)`  
+    `# Run the GreenChAMP (Green DOT Chained Activity Modelling Process) model computation (this would be calls to model functions)`  
     `trip_matrix = run_trip_distribution(zones, trip_gen)        # custom function to create OD matrix`  
     `mode_matrix = run_mode_choice(trip_matrix)                  # split trips by mode`  
     `assignment_results = run_assignment(mode_matrix, network)   # assign trips to network links`
@@ -696,7 +696,7 @@ CopyEdit
     `supabase.table("jobs").update({"status": "completed", "completed_at": supabase_py.func.now()}).eq("id", job["id"]).execute()`  
     `# Maybe also update scenarios table to mark it as completed or store summary metrics.`
 
-In this pseudo-code, the worker continually looks for new jobs, runs the model (placeholder functions `run_trip_distribution`, etc., represent the actual CAMP logic), and writes results. In a real system, you’d likely **parameterize the worker to run one job and exit** (especially in serverless context) or use a message queue push model instead of polling.
+In this pseudo-code, the worker continually looks for new jobs, runs the model (placeholder functions `run_trip_distribution`, etc., represent the actual GreenChAMP (Green DOT Chained Activity Modelling Process) logic), and writes results. In a real system, you’d likely **parameterize the worker to run one job and exit** (especially in serverless context) or use a message queue push model instead of polling.
 
 For a Node.js example, a similar approach would use the `@supabase/supabase-js` client:
 
@@ -821,7 +821,7 @@ By integrating these AI capabilities, Planning Manager becomes not just a tool f
 
 A core feature of Planning Manager is allowing users (transportation planners) to easily create and adjust scenarios. The UI/UX should be designed for **interactive scenario development** with dynamic input adjustments and comparison tools.
 
-**User Input Interface:** Provide forms and controls for all key assumptions that go into the CAMP model. This might include:
+**User Input Interface:** Provide forms and controls for all key assumptions that go into the GreenChAMP (Green DOT Chained Activity Modelling Process) model. This might include:
 
 * **Land Use and Demographics:** Tables or forms to input population, employment, household info per zone (or allow upload from a CSV/shapefile for large numbers of zones).  
 * **Trip Generation Factors:** Sliders or numeric inputs for trip rates by purpose (e.g., trips per household or per job). If using cross-classification, UI for those categories. If a user wants to test telecommuting, they could adjust a percentage that reduces certain trip purposes.  
@@ -903,7 +903,7 @@ By applying caching, efficient querying, and scaling strategies, the application
 
 ## **8\. Example Output & Reporting**
 
-Delivering results in a clear, accessible format is just as important as computing them. In this section, we outline the format of API outputs and reporting tools to share CAMP insights with users and stakeholders.
+Delivering results in a clear, accessible format is just as important as computing them. In this section, we outline the format of API outputs and reporting tools to share GreenChAMP (Green DOT Chained Activity Modelling Process) insights with users and stakeholders.
 
 **API Response Examples:** The API endpoints for retrieving results should return data in a structured JSON format. Below are examples of what those responses might look like:
 
@@ -1003,7 +1003,7 @@ Finally, incorporate a mechanism to **share or export** these results. Perhaps a
 
 ## **Final Deliverables**
 
-By following this guide, the Planning Manager will be enhanced with CAMP functionality. The key deliverables and artifacts from the implementation include:
+By following this guide, the Planning Manager will be enhanced with GreenChAMP (Green DOT Chained Activity Modelling Process) functionality. The key deliverables and artifacts from the implementation include:
 
 * **Database Migration SQL** – A complete schema (PostgreSQL \+ PostGIS) supporting multi-tenancy, with tables for zones, trip generation, distribution, mode choice, network links, assignment results, etc., and appropriate indexes and constraints (as provided in Section 1).
 
@@ -1011,7 +1011,7 @@ By following this guide, the Planning Manager will be enhanced with CAMP functio
 
 * **GeoJSON Data Structures & Spatial Queries** – Examples of how model results are converted to GeoJSON and served to the frontend, plus sample PostGIS queries (Section 3\) to retrieve spatial data efficiently. This ensures the mapping components can visualize trips and congestion on interactive Leaflet maps.
 
-* **Background Processing Scripts** – A sample worker script (Python/Node.js) or Supabase Edge Function code for executing the CAMP model asynchronously (as illustrated in Section 4). This shows how to trigger computations, update job status, and store outputs in the database.
+* **Background Processing Scripts** – A sample worker script (Python/Node.js) or Supabase Edge Function code for executing the GreenChAMP (Green DOT Chained Activity Modelling Process) model asynchronously (as illustrated in Section 4). This shows how to trigger computations, update job status, and store outputs in the database.
 
 * **AI Integration Blueprint** – Documentation or code for integrating Claude and the OpenAI Agent SDK (Section 5). This includes example prompt templates for scenario suggestions and results summarization, and outlines how external data tools can be connected for AI-driven scenario planning.
 
@@ -1021,7 +1021,7 @@ By following this guide, the Planning Manager will be enhanced with CAMP functio
 
 * **Output Samples & Reporting Tools** – Example JSON API outputs for scenario results and any report templates or generation code (Section 8). This also includes a blueprint for the results dashboard UI and how AI-generated summaries are incorporated, ensuring the final presentation of model outcomes is insightful and professional.
 
-By delivering the above components, the Planning Manager system will be fully equipped to run the Chained Activity Modeling Process within a user-friendly web environment. Planners will be able to define scenarios, leverage AI to enhance them, simulate travel demand with CAMP, and visualize and report the outcomes – all in one integrated platform.
+By delivering the above components, the Planning Manager system will be fully equipped to run the Chained Activity Modeling Process within a user-friendly web environment. Planners will be able to define scenarios, leverage AI to enhance them, simulate travel demand with GreenChAMP (Green DOT Chained Activity Modelling Process), and visualize and report the outcomes – all in one integrated platform.
 
 # Development Plan
 
@@ -1099,7 +1099,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Phase 3 Key Deliverables
 
-- 🔄 Chained Activity Modeling Process (CAMP) travel demand forecasting tool integration
+- 🔄 Chained Activity Modeling Process (GreenChAMP (Green DOT Chained Activity Modelling Process)) travel demand forecasting tool integration
 - 🔄 TrendNavigator scenario planning module implementation
 - 🔄 Multi-tenant architecture enhancements for agency-specific modeling configurations
 - 🔄 External API integrations with transportation data sources (Census, GTFS, DOT)
@@ -1115,7 +1115,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Phase 3 Technical Details
 
-- Advanced travel demand modeling using CAMP methodology:
+- Advanced travel demand modeling using GreenChAMP (Green DOT Chained Activity Modelling Process) methodology:
   - Trip generation module based on land use and demographic data
   - Trip distribution using gravity models or destination choice algorithms
   - Mode choice modeling with configurable parameters
@@ -1152,7 +1152,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Comprehensive testing and bug fixes
 - 📅 Security audit and improvements
 - 📅 Community feedback dashboard with analytics
-- 📅 CAMP and TrendNavigator performance optimization
+- 📅 GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator performance optimization
 
 #### Phase 4 Technical Details
 
@@ -1178,7 +1178,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - 📅 Enhanced collaboration features
 - 📅 Custom plugin system
 - 📅 AI-driven community sentiment analysis
-- 📅 Advanced equity analysis integration with CAMP modeling
+- 📅 Advanced equity analysis integration with GreenChAMP (Green DOT Chained Activity Modelling Process) modeling
 - 📅 Climate impact assessment in TrendNavigator scenarios
 
 #### Phase 5 Technical Details
@@ -1217,7 +1217,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 - [ ] Add mobile responsive design for community input tools
 - [ ] Enhance performance for large feedback datasets
 
-## Upcoming CAMP & TrendNavigator Implementation Plan
+## Upcoming GreenChAMP (Green DOT Chained Activity Modelling Process) & TrendNavigator Implementation Plan
 
 ### Sprint 10: Architecture & Database Design
 
@@ -1226,7 +1226,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 #### Objectives
 
 1. Design multi-tenant architecture for travel demand modeling
-2. Develop database schema for CAMP and TrendNavigator modules
+2. Develop database schema for GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator modules
 3. Create API specifications for model integration
 4. Prototype basic scenario management UI
 
@@ -1245,7 +1245,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Objectives
 
-1. Implement core CAMP modeling components
+1. Implement core GreenChAMP (Green DOT Chained Activity Modelling Process) modeling components
 2. Develop basic TrendNavigator scenario configuration
 3. Create data import pipelines for modeling inputs
 4. Build initial visualization components
@@ -1267,7 +1267,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 #### Objectives
 
 1. Implement advanced TrendNavigator trend modeling
-2. Integrate CAMP with existing project management
+2. Integrate GreenChAMP (Green DOT Chained Activity Modelling Process) with existing project management
 3. Develop scenario comparison tools
 4. Create AI-powered analysis capabilities
 
@@ -1334,7 +1334,7 @@ To maintain code quality and prevent accumulation of technical debt, the followi
 - 1 UX/UI designer
 - 1 DevOps engineer
 - 1 Product manager
-- 1 Transportation modeling specialist (for CAMP implementation)
+- 1 Transportation modeling specialist (for GreenChAMP (Green DOT Chained Activity Modelling Process) implementation)
 - 1 Data scientist (for TrendNavigator scenario planning)
 
 ### Tools and Services
@@ -1365,7 +1365,7 @@ The success of the Planning Manager application will be measured by the followin
 
 ## Conclusion
 
-This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management and prioritization. The addition of CAMP travel demand forecasting and TrendNavigator scenario planning capabilities will transform Planning Manager into a comprehensive transportation planning platform capable of sophisticated modeling and future scenario analysis.
+This development plan outlines a structured approach to building the Planning Manager application with clear phases, deliverables, and timelines. By following this roadmap, we aim to deliver a high-quality, feature-rich application that meets the needs of transportation agencies for project management and prioritization. The addition of GreenChAMP (Green DOT Chained Activity Modelling Process) travel demand forecasting and TrendNavigator scenario planning capabilities will transform Planning Manager into a comprehensive transportation planning platform capable of sophisticated modeling and future scenario analysis.
 # MCP and Agents SDK Integration Summary
 
 ## Overview
@@ -1875,33 +1875,33 @@ This directory contains comprehensive documentation for the Transportation Plann
 ## Documentation Maintenance
 
 All documentation should be kept up-to-date as the application evolves. When making significant changes to the application, please update the relevant documentation to reflect those changes. 
-Planning Manager – CAMP & TrendNavigator Integration Prompt
-You are an AI developer assistant (Claude 3.7 Sonnet) working in Cursor IDE. Your task is to help implement a Chained Activity Modeling Process (CAMP) travel demand forecasting tool and a TrendNavigator scenario planning module into an existing Planning Manager web application. The Planning Manager app is built with Next.js (React) for the front-end and API routes, uses Supabase (PostgreSQL + PostGIS) for its database, integrates GIS mapping (Leaflet.js for interactive maps), and includes AI integrations (OpenAI/Claude via an Agent SDK and Model Context Protocol (MCP)). The system must support multi-tenant architecture so that different agencies and users have isolated data and configurations. Follow the requirements and instructions below to produce a highly detailed, structured implementation plan. The output should include explanations, code snippets, JSON schemas, and configuration examples as needed. Keep the formatting clear with appropriate markdown headings, subheadings, bullet points, and code blocks for readability. Ensure the plan is comprehensive but well-organized, covering all aspects from system design to integration and deployment. Do NOT start coding immediately; first outline the approach in a logical order according to the sections, then provide the necessary details and examples.
+Planning Manager – GreenChAMP (Green DOT Chained Activity Modelling Process) & TrendNavigator Integration Prompt
+You are an AI developer assistant (Claude 3.7 Sonnet) working in Cursor IDE. Your task is to help implement a Chained Activity Modeling Process (GreenChAMP (Green DOT Chained Activity Modelling Process)) travel demand forecasting tool and a TrendNavigator scenario planning module into an existing Planning Manager web application. The Planning Manager app is built with Next.js (React) for the front-end and API routes, uses Supabase (PostgreSQL + PostGIS) for its database, integrates GIS mapping (Leaflet.js for interactive maps), and includes AI integrations (OpenAI/Claude via an Agent SDK and Model Context Protocol (MCP)). The system must support multi-tenant architecture so that different agencies and users have isolated data and configurations. Follow the requirements and instructions below to produce a highly detailed, structured implementation plan. The output should include explanations, code snippets, JSON schemas, and configuration examples as needed. Keep the formatting clear with appropriate markdown headings, subheadings, bullet points, and code blocks for readability. Ensure the plan is comprehensive but well-organized, covering all aspects from system design to integration and deployment. Do NOT start coding immediately; first outline the approach in a logical order according to the sections, then provide the necessary details and examples.
 1. Broad Development Guidelines with Key Details
-Provide an overarching development plan for integrating the CAMP tool and TrendNavigator module. Include important technical details to avoid ambiguity. Ensure the design aligns with the existing architecture (Next.js, React, Supabase, GIS, AI integration). Cover the following points:
-Architecture Overview: Explain how CAMP and TrendNavigator components will fit into the current Next.js/Supabase architecture. Describe any new services or microservices needed (for heavy computations or long-running tasks) and how they interact with the Next.js front-end and API routes.
+Provide an overarching development plan for integrating the GreenChAMP (Green DOT Chained Activity Modelling Process) tool and TrendNavigator module. Include important technical details to avoid ambiguity. Ensure the design aligns with the existing architecture (Next.js, React, Supabase, GIS, AI integration). Cover the following points:
+Architecture Overview: Explain how GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator components will fit into the current Next.js/Supabase architecture. Describe any new services or microservices needed (for heavy computations or long-running tasks) and how they interact with the Next.js front-end and API routes.
 Multi-Tenancy: Describe the multi-tenant approach in detail. How will agencies and users have isolated datasets? Include any required database schema changes (for example, adding an agency_id to relevant tables or using separate schemas per tenant) and how to enforce data separation (row-level security policies in Supabase, etc.). Discuss handling of tenant-specific configurations (e.g., regional parameters, calibration constants) in a flexible way.
 Security & Access Control: Outline how user roles and permissions will be managed. Ensure that administrators, planners, and other roles have appropriate access to features. Mention using Supabase Auth or a custom auth system for role-based access. Ensure that one agency's users cannot access another's data.
 Integration with Existing Modules: Ensure that the new modules integrate seamlessly with current features (e.g., existing project management, data upload, mapping features). Avoid breaking changes by using well-defined interfaces or API routes.
 Important Details: Throughout this section, call out any crucial details (for example, if certain assumptions are made about data format or if external APIs require keys) to avoid ambiguity during implementation.
 2. Conceptual Implementation Strategies
-Develop a conceptual roadmap for how to implement the CAMP travel demand model and the TrendNavigator scenario planning within the Planning Manager. This should outline the theoretical approach and best practices, before diving into specific code. Cover the following:
-CAMP Integration Roadmap: Outline how the Chained Activity Modeling Process (CAMP) will be integrated. Break down the classic travel demand modeling steps and how they will be handled in the system:
+Develop a conceptual roadmap for how to implement the GreenChAMP (Green DOT Chained Activity Modelling Process) travel demand model and the TrendNavigator scenario planning within the Planning Manager. This should outline the theoretical approach and best practices, before diving into specific code. Cover the following:
+GreenChAMP (Green DOT Chained Activity Modelling Process) Integration Roadmap: Outline how the Chained Activity Modeling Process (GreenChAMP (Green DOT Chained Activity Modelling Process)) will be integrated. Break down the classic travel demand modeling steps and how they will be handled in the system:
 Trip Generation: Explain how trips will be generated based on land use and demographic data. Will you use existing data tables (e.g., population, employment by zone) and apply trip generation rates? Mention the use of internal or external data for calibration (like household travel surveys).
 Trip Distribution: Describe how trips are distributed between origins and destinations. For instance, using a gravity model or destination choice model. Note any formulas or whether an external library/tool will be used for this calculation.
 Mode Choice: Describe how the model will split trips among modes (drive, transit, bike, walk, etc.). Include discussion of using logistic regression models or rule-based methods, and where the parameters come from (surveys, national research).
 Network Assignment: Explain how vehicle trips will be assigned to the road network and transit trips to the transit network. Will you incorporate a traffic assignment algorithm (like all-or-nothing or incremental assignment for highway networks) and a transit assignment (rider allocation to transit routes)? Describe how network travel times are calculated and fed back if necessary (iterative feedback loop for congested assignment).
-Activity-Based Model (CAMP specifics): Since CAMP implies an activity-based approach, mention how it might simulate individual travel itineraries or tour-based modeling instead of just aggregate trips. Explain if the system will simulate person agents or use simplified tour chaining rules. (For example, simulate home-work-home tours, home-shop-home, etc., maintaining consistency in activities.)
+Activity-Based Model (GreenChAMP (Green DOT Chained Activity Modelling Process) specifics): Since GreenChAMP (Green DOT Chained Activity Modelling Process) implies an activity-based approach, mention how it might simulate individual travel itineraries or tour-based modeling instead of just aggregate trips. Explain if the system will simulate person agents or use simplified tour chaining rules. (For example, simulate home-work-home tours, home-shop-home, etc., maintaining consistency in activities.)
 TrendNavigator Integration Roadmap: Outline how TrendNavigator scenario planning will be incorporated conceptually:
 Describe what TrendNavigator is (a scenario planning tool focusing on future trends like telecommuting, e-commerce, AVs, etc.) and how it influences travel demand outputs. For example, TrendNavigator might adjust trip generation or mode share based on scenario assumptions (e.g., high telecommuting might reduce work trips by X%).
 List the key trends or variables (e.g., telecommuting rates, delivery service usage, shared mobility adoption, EV adoption, transit service levels, etc.) that the user can adjust in scenarios. Explain conceptually how each of these factors will modify the base travel model outputs. (For instance, increased telecommuting reduces work trips; higher e-commerce increases truck trips; improved transit service increases transit mode share, etc.)
-Explain how the scenario inputs from TrendNavigator will feed into the CAMP model calculations. Possibly, scenario factors act as multipliers or inputs before running the four-step model (e.g., adjusting trip generation rates or mode utilities).
+Explain how the scenario inputs from TrendNavigator will feed into the GreenChAMP (Green DOT Chained Activity Modelling Process) model calculations. Possibly, scenario factors act as multipliers or inputs before running the four-step model (e.g., adjusting trip generation rates or mode utilities).
 Discuss handling multiple time horizons (short-term, medium-term, long-term scenarios, as TrendNavigator suggests 5, 10, 30-year outlooks). How will the system allow setting a future year and use projections (population, employment for that year, plus trend assumptions) to forecast travel demand for that year?
 Best Practices & Calibration: Highlight best practices for ensuring the model's results are reasonable:
 Calibration using real data: e.g., use base year travel survey or traffic count data to calibrate the model steps (trip rates, distribution friction factors, mode choice parameters).
 Validation: mention how to validate the model (comparing results with observed data, using goodness-of-fit measures).
 Keeping the models transparent and adjustable: emphasize modular design so planners can tweak parameters for their region.
-GIS & Visualization Tie-In: Conceptually, describe how results from these models (CAMP and TrendNavigator) will later be visualized on maps or dashboards. (Detailed GIS in Section 6.)
+GIS & Visualization Tie-In: Conceptually, describe how results from these models (GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator) will later be visualized on maps or dashboards. (Detailed GIS in Section 6.)
 Scalability: Discuss how the approach will handle increasing data (more zones, more network links, many scenarios) and many simultaneous users (multi-tenant concerns).
 3. Multi-Format Output Plan
 Describe the output formats and components the implementation will produce or use, to guide development. We want the AI (Claude) to generate content in multiple formats for easier implementation. Instruct how each format will be utilized:
@@ -1935,7 +1935,7 @@ Scenario-Based Modeling Inputs: Explain how the system allows users to input dif
 For example, one scenario might assume 20% telecommuting, another assumes 50%. One might assume a new transit line is built, another not.
 Show how these inputs are provided by the user (through a form UI maybe) and how they are passed to the model engine. This could involve a JSON configuration (as mentioned in section 3).
 Ensure that the design can support adding new variables in the future without major refactoring (maybe store scenario inputs in a flexible JSONB column, or a related table of key/value pairs for scenario assumptions).
-Policy Interventions & Transportation Trends: Acknowledge that scenarios could include policy changes (e.g., congestion pricing, transit fare reductions, bike lane expansions). Describe how such interventions can be modeled in CAMP/TrendNavigator:
+Policy Interventions & Transportation Trends: Acknowledge that scenarios could include policy changes (e.g., congestion pricing, transit fare reductions, bike lane expansions). Describe how such interventions can be modeled in GreenChAMP (Green DOT Chained Activity Modelling Process)/TrendNavigator:
 E.g., congestion pricing might be modeled by increasing travel cost for drive alone trips (affecting mode choice and assignment).
 Bike infrastructure growth could be an input that increases attractiveness of cycling (mode choice).
 If the model can't naturally simulate some intervention directly, describe using scenario post-processing or adjustments (for instance, if modeling a new transit line, perhaps allow the user to upload a modified transit network to use in that scenario's run).
@@ -1951,7 +1951,7 @@ The Agents SDK can define tools/functions that the AI is allowed to use. For exa
 Explain how MCP might be used to maintain context between the Planning Manager app and the AI model. Possibly, MCP could feed the AI model relevant context (like a summary of the current project, or the last results) each time it generates a response, ensuring continuity.
 Emphasize security: the AI should only access data it's permitted to (e.g., only data from the user's agency, no cross-tenant data). This might involve the agent including the user's agency ID in queries, and the backend double-checking permissions.
 Also mention that any external API calls via the AI (like fetching from Census) should be done through secure proxies or with sanitized inputs to prevent misuse.
-Long-Duration Simulation Orchestration: Describe an orchestration mechanism for running long CAMP model simulations:
+Long-Duration Simulation Orchestration: Describe an orchestration mechanism for running long GreenChAMP (Green DOT Chained Activity Modelling Process) model simulations:
 Running a full activity-based model or even a detailed four-step model could take minutes or hours, especially for large regions or many iterations. The system should handle this asynchronously.
 Propose a solution: e.g., when a user starts a model run, the request is handled by a Next.js API route that queues a job (perhaps using a task queue service or Supabase's background functions). That job runs in the background (possibly as a separate Node process, a Python script, or a Supabase Edge Function) so it doesn't block the API.
 The AI (Claude) could be involved in monitoring or updating the user: e.g., sending progress updates like "10% of iterations completed..." via WebSocket or just updating a status field in the database that the front-end polls.
@@ -2027,13 +2027,13 @@ Flexibility & Custom Reports: Note that agencies might want custom reports. The 
 Final Deliverables of the AI's Response
 Instruct Claude to produce a structured, multi-part output that developers can directly use as a blueprint for implementation. The output should include:
 Detailed Implementation Plan: A step-by-step plan covering all the above points (architecture, integration, data flow). It should be organized under the same headings provided here for clarity.
-Next.js API Documentation & Code: Clearly documented API endpoints for managing CAMP and TrendNavigator scenarios (creation, running a model, retrieving results, comparing scenarios). Include function signatures or code blocks for these endpoints in Next.js (Node/TypeScript).
+Next.js API Documentation & Code: Clearly documented API endpoints for managing GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator scenarios (creation, running a model, retrieving results, comparing scenarios). Include function signatures or code blocks for these endpoints in Next.js (Node/TypeScript).
 Supabase Database Schema: Provide SQL DDL statements (CREATE TABLE, etc.) or a structured schema description for new tables and fields needed (scenarios, results, etc.), including any PostGIS usage and RLS policies for multi-tenancy.
 AI Integration Details: Describe how the AI and agent tools are configured within the system (e.g., defining tools for the agent, prompt design for results analysis). This might include pseudo-code or config for setting up the Agent SDK.
 GeoJSON/Mapping Logic: Example of how geographic results are constructed (maybe a snippet of a GeoJSON with properties for results, or an outline of a function that generates map layers from results).
 Configuration Files & Scripts: If relevant, include snippets of configuration (like .env entries for API keys: CENSUS_API_KEY=..., etc.) and any automation scripts (maybe a snippet of a Node script or Supabase Edge Function code that handles a background task).
 Workflow Diagram or Description: Optionally, provide a textual workflow description or diagram of how a scenario moves through the system – from user input, to model run, to storing results, to AI summary and visualization. This helps illustrate the interactions between components.
-The final answer should be well-structured and easy to follow, using clear markdown headings, subheadings, and lists as done in this prompt. It should read like a design document and implementation guide. Make sure each section is addressed with sufficient detail and any example code or schema is correct and relevant. Keep paragraphs concise, and use bullet points or numbered lists to break down complex steps or lists of items. Ensure that developers reading the output can quickly grasp the overall system design and have concrete examples to start implementing the CAMP and TrendNavigator features in the Planning Manager app.
+The final answer should be well-structured and easy to follow, using clear markdown headings, subheadings, and lists as done in this prompt. It should read like a design document and implementation guide. Make sure each section is addressed with sufficient detail and any example code or schema is correct and relevant. Keep paragraphs concise, and use bullet points or numbered lists to break down complex steps or lists of items. Ensure that developers reading the output can quickly grasp the overall system design and have concrete examples to start implementing the GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator features in the Planning Manager app.
 
 
 

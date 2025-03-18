@@ -374,13 +374,13 @@ Monte Carlo simulation helps quantify uncertainty in your benefit-cost analysis:
    * Probability of positive NPV
    * Probability of BCR > 1
 
-### Integrating with CAMP and TrendNavigator
+### Integrating with GreenChAMP (Green DOT Chained Activity Modelling Process) and TrendNavigator
 
 To use travel demand model outputs in benefit-cost analysis:
 
 1. Navigate to the analysis detail page
 2. Click "Import Data"
-3. Select "CAMP Integration" or "TrendNavigator Integration"
+3. Select "GreenChAMP (Green DOT Chained Activity Modelling Process) Integration" or "TrendNavigator Integration"
 4. Select the model run to use
 5. Configure integration options:
    * Travel time data mapping
@@ -402,11 +402,11 @@ To use travel demand model outputs in benefit-cost analysis:
 
 This section covers our advanced modeling tools for transportation planning and forecasting.
 
-### GreenChAMP Travel Demand Modeling
+### GreenChAMP (Green DOT Chained Activity Modelling Process) Travel Demand Modeling
 
-The Green DOT Chained Activity Modelling Process (GreenChAMP) provides robust travel demand forecasting capabilities:
+The Green DOT Chained Activity Modelling Process (GreenChAMP (Green DOT Chained Activity Modelling Process)) provides robust travel demand forecasting capabilities:
 
-#### Running a GreenChAMP Model
+#### Running a GreenChAMP (Green DOT Chained Activity Modelling Process) Model
 
 1. Navigate to "Modeling" > "Travel Demand"
 2. Define your study area by selecting TAZs or drawing a boundary
@@ -414,7 +414,7 @@ The Green DOT Chained Activity Modelling Process (GreenChAMP) provides robust tr
 4. Configure transportation networks
 5. Set model parameters and run
 
-#### Analyzing GreenChAMP Results
+#### Analyzing GreenChAMP (Green DOT Chained Activity Modelling Process) Results
 
 1. View heat maps of travel demand
 2. Analyze corridor flows
@@ -429,7 +429,7 @@ TrendNavigator allows you to explore how future trends and policies might impact
 
 1. Navigate to "Modeling" > "TrendNavigator"
 2. Click "New Trend Scenario"
-3. Select a baseline model (required GreenChAMP model result)
+3. Select a baseline model (required GreenChAMP (Green DOT Chained Activity Modelling Process) model result)
 4. Configure trend variables:
    - Telecommuting rates
    - E-commerce adoption
@@ -470,7 +470,7 @@ TrendNavigator allows you to explore how future trends and policies might impact
 
 1. Navigate to a project details page
 2. Click "Link to Model" button
-3. Select a GreenChAMP or TrendNavigator model result
+3. Select a GreenChAMP (Green DOT Chained Activity Modelling Process) or TrendNavigator model result
 4. The project will now display relevant metrics from the model
 5. Project scoring can incorporate model results to improve prioritization
 
@@ -654,7 +654,7 @@ For additional assistance:
 
 ### C
 
-**CAMP**: Chained Activity Modeling Process, a methodology for travel demand forecasting that models trip chains rather than isolated trips.
+**GreenChAMP (Green DOT Chained Activity Modelling Process)**: Chained Activity Modeling Process, a methodology for travel demand forecasting that models trip chains rather than isolated trips.
 
 **Community Feedback**: Input gathered from the public regarding transportation projects and plans.
 
