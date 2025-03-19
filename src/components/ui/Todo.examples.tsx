@@ -6,6 +6,7 @@
  */
 
 import { TodoList, TodoItem, type TodoItem as TodoItemType } from './Todo';
+import logger from '@/lib/logger';
 
 /**
  * Basic Todo Item example
@@ -25,8 +26,8 @@ export function TodoItemExample() {
   return (
     <TodoItem 
       todo={todo} 
-      onToggle={(id) => console.log(`Toggle todo ${id}`)} 
-      onDelete={(id) => console.log(`Delete todo ${id}`)} 
+      onToggle={(id) => logger.log(`Toggle todo ${id}`)} 
+      onDelete={(id) => logger.log(`Delete todo ${id}`)} 
     />
   );
 }
@@ -67,9 +68,9 @@ export function TodoListExample() {
   return (
     <TodoList 
       todos={todos} 
-      onToggle={(id) => console.log(`Toggle todo ${id}`)}
-      onDelete={(id) => console.log(`Delete todo ${id}`)}
-      onAddTodo={(title) => console.log(`Add new todo: ${title}`)}
+      onToggle={(id) => logger.log(`Toggle todo ${id}`)}
+      onDelete={(id) => logger.log(`Delete todo ${id}`)}
+      onAddTodo={(title) => logger.log(`Add new todo: ${title}`)}
       title="Development Tasks"
       description="Tasks for the current sprint"
     />

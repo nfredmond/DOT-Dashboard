@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { generateComparativeInsights } from '@/lib/scenario-insights-service';
+import logger from '../../../../../lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,8 +35,6 @@ export async function POST(req: NextRequest) {
     const organizationId = userProfile.organization_id;
     
     // Get the scenario IDs from the request body
-import logger from '../../../../../lib/logger';
-
     const body = await req.json();
     const { scenarioIds, baselineScenarioId } = body;
     

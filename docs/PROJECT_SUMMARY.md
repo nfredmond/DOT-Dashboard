@@ -7,24 +7,28 @@ The Planning Manager is a comprehensive application designed to help transportat
 ## Core Features
 
 ### Project Management
-- **Project Dashboard**: Centralized view of all transportation projects 
+
+- **Project Dashboard**: Centralized view of all transportation projects
 - **Project Details**: Comprehensive project information including budget, timeline, location, and status
 - **Progress Tracking**: Monitor project milestones and completion status
 - **Document Management**: Store and organize project-related documents
 
 ### AI-Powered Analysis
+
 - **Project Analysis**: Automated analysis of project viability, impact, and alignment with planning goals
 - **Demographic Impact Assessment**: Analysis of how projects affect different demographic groups
 - **Safety Analysis**: Collision data integration to assess safety improvements
 - **Scoring System**: Objective scoring of projects based on multiple criteria
 
 ### Scenario Development
+
 - **Alternative Scenario Generation**: AI-assisted creation of project alternatives
 - **Scenario Comparison**: Side-by-side comparison of different project scenarios
 - **Benefits and Drawbacks Analysis**: Detailed breakdown of pros and cons for each scenario
 - **Refinement Capabilities**: Interactive refinement of scenarios based on feedback
 
 ### Geospatial Integration
+
 - **Map Visualization**: GeoJSON-based project visualization
 - **Location Analysis**: Spatial queries and analysis
 - **Area Impact Assessment**: Visual representation of project impact areas
@@ -32,6 +36,7 @@ The Planning Manager is a comprehensive application designed to help transportat
 ## Technical Implementation
 
 ### Architecture
+
 - **Frontend**: Next.js (React framework) with TypeScript
 - **Backend**: Next.js API routes with serverless functions
 - **Database**: PostgreSQL with Prisma ORM
@@ -41,18 +46,21 @@ The Planning Manager is a comprehensive application designed to help transportat
 ### Key Components
 
 #### Core Services
+
 - **Project Service**: Manages CRUD operations for projects
-- **Analysis Service**: Coordinates AI-powered project analysis 
+- **Analysis Service**: Coordinates AI-powered project analysis
 - **Scenario Service**: Handles generation and comparison of project scenarios
 - **Agents Service**: Manages AI agent interactions for different tasks
 
 #### User Interface
+
 - **Dashboard Interface**: Project overview with filtering and sorting
 - **Project Detail Views**: Comprehensive project information display
 - **Scenario Generator**: Interactive UI for scenario creation and refinement
 - **Comparison Tool**: Side-by-side analysis of scenarios or projects
 
 #### Data Management
+
 - **Prisma Schema**: Structured database schema for all entities
 - **Migration System**: Database versioning and migrations
 - **Data Validation**: Input validation and sanitization

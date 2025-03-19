@@ -25,9 +25,11 @@ import {
   ChevronRightIcon,
   PlusIcon,
   ClockIcon,
+  ClipboardCheckIcon,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import dynamic from "next/dynamic";
+import LeafletErrorBoundary from "@/components/LeafletErrorBoundary";
 
 // Dynamic import of the CommunityInputMap component
 const CommunityInputMap = dynamic(
@@ -276,16 +278,16 @@ export default function Community() {
             <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between w-full">
               <TabsList className="grid w-full md:w-auto grid-cols-4">
                 <TabsTrigger value="mapping">
-                  Mapping
+                  <MapPinIcon className="mr-2 h-4 w-4" /> Mapping
                 </TabsTrigger>
                 <TabsTrigger value="projects">
-                  Projects
+                  <ChevronRightIcon className="mr-2 h-4 w-4" /> Projects
                 </TabsTrigger>
                 <TabsTrigger value="surveys">
-                  Surveys
+                  <ClipboardCheckIcon className="mr-2 h-4 w-4" /> Surveys
                 </TabsTrigger>
                 <TabsTrigger value="events">
-                  Events
+                  <CalendarIcon className="mr-2 h-4 w-4" /> Events
                 </TabsTrigger>
               </TabsList>
 
@@ -307,6 +309,24 @@ export default function Community() {
                 </Button>
               </div>
             </div>
+
+            <TabsContent value="mapping" className="mt-4 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Community Input Map</CardTitle>
+                  <CardDescription>
+                    Provide location-based feedback on transportation projects and issues in your community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full h-[500px] bg-gray-100 rounded-md overflow-hidden">
+                    <LeafletErrorBoundary fallback={<div className="w-full h-full flex items-center justify-center">Error loading map. Please try again later.</div>}>
+                      <CommunityInputMap />
+                    </LeafletErrorBoundary>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="projects" className="mt-4 space-y-6">
               <div
@@ -758,22 +778,6 @@ export default function Community() {
                   </Card>
                 ))}
               </div>
-            </TabsContent>
-
-            <TabsContent value="mapping" className="mt-4 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Community Input Map</CardTitle>
-                  <CardDescription>
-                    Provide location-based feedback on transportation projects and issues in your community
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 overflow-hidden">
-                  <div className="h-[700px] w-full">
-                    {typeof window !== 'undefined' && <CommunityInputMap />}
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

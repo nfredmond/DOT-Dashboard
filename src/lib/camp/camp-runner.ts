@@ -3,6 +3,7 @@ import { processZoneData, processNetworkData } from './data-processing';
 import { TripGeneration, TripDistribution, ModeChoice, NetworkAssignment } from './model-components';
 import { CAMPConfig, ModelParameters, ScenarioResult, ModelStatus } from '@/types/camp';
 import { runActivitySimulation, ActivityBasedSimulation } from './activity-model';
+import { v4 as uuid } from 'uuid';
 
 /**
  * CAMP Runner Service

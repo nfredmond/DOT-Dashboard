@@ -24,8 +24,12 @@
 
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai-service';
-import logger from '../../../../lib/logger';
 
+// Configure route with App Router format
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds
+export const revalidate = 0; // Don't cache results
 
 /**
  * Handle POST requests to synthesize text to speech
@@ -61,7 +65,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    logger.error('Speech synthesis error:', error);
+    console.error('Speech synthesis error:', error);
     return NextResponse.json(
       { error: `Speech synthesis failed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
@@ -109,7 +113,7 @@ async function synthesizeWithOpenAI(text: string, voice: string, speed: number) 
       },
     });
   } catch (error) {
-    logger.error('OpenAI TTS error:', error);
+    console.error('OpenAI TTS error:', error);
     throw new Error(`OpenAI TTS failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -166,13 +170,4 @@ export async function OPTIONS() {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
-}
-
-/**
- * Configuration for the API route
- */
-export const config = {
-  api: {
-    responseLimit: false,
-  },
-}; 
+} 

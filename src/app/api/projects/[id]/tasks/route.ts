@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../lib/logger';
 
 // GET /api/projects/[id]/tasks - Get all tasks for a project
 export async function GET(
@@ -169,8 +170,6 @@ export async function DELETE(
   const projectId = params.id;
   
   // Get the task ID from the query parameters
-import logger from '../../../../../lib/logger';
-
   const { searchParams } = new URL(request.url);
   const taskId = searchParams.get('taskId');
   

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ScreenShareLLM } from '@/components/ScreenShareLLM';
+import ScreenShareLLM from '@/components/ScreenShareLLM';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';

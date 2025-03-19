@@ -1,3 +1,5 @@
+import logger from '../../lib/logger';
+
 /**
  * Fallback implementation to initialize a Leaflet map directly without React components.
  * This is a last resort if the React-Leaflet components fail to render.
@@ -115,7 +117,7 @@ let SAMPLE_PROJECTS: ProjectMarker[] = [
 export function updateProjectsData(projects: ProjectMarker[]): void {
   if (Array.isArray(projects) && projects.length > 0) {
     SAMPLE_PROJECTS = projects;
-    logger.log(`Updated projects data with ${projects.length} projects`);
+    logger.info(`Updated projects data with ${projects.length} projects`);
     
     // Refresh the map if it's already initialized
     if (typeof window !== 'undefined' && window.leafletMapInstance) {
@@ -542,7 +544,7 @@ function setupSearchControl(map: L.Map): void {
       script.async = true;
       
       script.onload = () => {
-        logger.log('Geocoder script loaded');
+        logger.info('Geocoder script loaded');
         initializeSearchControl(map);
       };
       
@@ -590,7 +592,7 @@ function initializeSearchControl(map: L.Map): void {
     });
     
     // Add custom handler for results
-    controlContainer.on('markgeocode', function(event) {
+    controlContainer.on('markgeocode', function(event: { geocode: any }) {
       const { geocode } = event;
       const latlng = geocode.center;
       const bounds = geocode.bbox;
@@ -662,7 +664,7 @@ function initializeSearchControl(map: L.Map): void {
     
     // Add the control to the map
     controlContainer.addTo(map);
-    logger.log('Added search control to map');
+    logger.info('Added search control to map');
   } catch (error) {
     logger.error('Error initializing search control:', error);
   }
@@ -700,7 +702,7 @@ function setupGeolocation(map: L.Map): void {
       `;
       
       // Handle click events
-      container.onclick = function(e) {
+      container.onclick = function(e: MouseEvent) {
         e.preventDefault();
         e.stopPropagation();
         
@@ -725,7 +727,7 @@ function setupGeolocation(map: L.Map): void {
     };
     
     locateControl.addTo(map);
-    logger.log('Added geolocation control to map');
+    logger.info('Added geolocation control to map');
   } catch (error) {
     logger.error('Error setting up geolocation:', error);
   }
@@ -1067,7 +1069,7 @@ function refreshMapFeatures(): void {
         // Add click handler for all feature types
         feature.on('click', () => {
           // Log the click
-          logger.log(`Feature clicked for project: ${project.name}`);
+          logger.info(`Feature clicked for project: ${project.name}`);
           
           // Highlight the feature
           highlightFeature(feature as LeafletFeature);
@@ -1094,7 +1096,7 @@ function refreshMapFeatures(): void {
       }
     }
     
-    logger.log('Refreshed map features successfully');
+    logger.info('Refreshed map features successfully');
   } catch (error) {
     logger.error('Error refreshing map features:', error);
   }
@@ -1193,7 +1195,7 @@ function getMarkerIcon(project: ProjectMarker): any {
 export function initializeDirectMap(containerId: string, config?: Partial<MapConfig>): void {
   if (typeof window === 'undefined') return;
   
-  logger.log(`Attempting direct map initialization for container ${containerId}`);
+  logger.info(`Attempting direct map initialization for container ${containerId}`);
   
   // Make sure Leaflet is loaded
   if (!window.L) {
@@ -1220,7 +1222,7 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
     // Force layout recalculation
     container.getBoundingClientRect();
     
-    logger.log(`Container dimensions: ${container.clientWidth}x${container.clientHeight}`);
+    logger.info(`Container dimensions: ${container.clientWidth}x${container.clientHeight}`);
     
     // Check if the map is already initialized in this container
     if (container.querySelector('.leaflet-container')) {
@@ -1317,7 +1319,7 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
         // Add click handler for all feature types
         feature.on('click', () => {
           // Log the click
-          logger.log(`Feature clicked for project: ${project.name}`);
+          logger.info(`Feature clicked for project: ${project.name}`);
           
           // Highlight the feature
           highlightFeature(feature as LeafletFeature);
@@ -1350,10 +1352,10 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
     // Force a resize to ensure correct dimensions
     setTimeout(() => {
       map.invalidateSize(true);
-      logger.log('Map size invalidated after creation');
+      logger.info('Map size invalidated after creation');
     }, 500);
     
-    logger.log('Map initialized successfully with direct DOM method');
+    logger.info('Map initialized successfully with direct DOM method');
     
     // Dispatch event to notify that map is ready
     const event = new CustomEvent('leaflet-map-ready');
@@ -1367,13 +1369,13 @@ export function initializeDirectMap(containerId: string, config?: Partial<MapCon
 export function cleanupDirectMap(): void {
   if (typeof window === 'undefined') return;
   
-  logger.log('Cleaning up direct map implementation');
+  logger.info('Cleaning up direct map implementation');
   
   if (window.leafletMapInstance) {
     try {
       window.leafletMapInstance.remove();
       window.leafletMapInstance = null;
-      logger.log('Map instance removed');
+      logger.info('Map instance removed');
     } catch (e) {
       logger.warn('Error removing map instance:', e);
     }
@@ -1401,7 +1403,7 @@ export function cleanupDirectMap(): void {
       window.dismissSearchButton = null;
     }
     
-    logger.log('Removed Leaflet DOM elements');
+    logger.info('Removed Leaflet DOM elements');
   } catch (e) {
     logger.warn('Error cleaning up Leaflet DOM elements:', e);
   }
@@ -1433,8 +1435,6 @@ if (typeof window !== 'undefined') {
   });
   
   // Watch for theme changes from manual toggles (class changes on document)
-import logger from '../../lib/logger';
-
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -1473,7 +1473,7 @@ import logger from '../../lib/logger';
   // Listen for localStorage changes
   document.addEventListener('localStorage', (e: any) => {
     if (e.detail && e.detail.key === 'theme' && window.leafletMapInstance) {
-      logger.log('Theme changed in localStorage:', e.detail.value);
+      logger.info('Theme changed in localStorage:', e.detail.value);
       // Refresh the map features to update popup styles
       setTimeout(refreshMapFeatures, 0);
     }

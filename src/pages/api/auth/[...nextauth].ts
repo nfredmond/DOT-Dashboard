@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { supabase } from '@/lib/supabase-client';
+import logger from '@/lib/logger';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -33,7 +34,7 @@ export const authOptions: NextAuthOptions = {
             name: data.user.email,
           };
         } catch (error) {
-          console.error('Auth error:', error);
+          logger.error('Auth error:', error);
           return null;
         }
       }

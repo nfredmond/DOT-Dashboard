@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import logger from '../../../../lib/logger';
-
 
 // Mock data for development
 const mockLayers = {
@@ -110,11 +109,11 @@ const mockLayers = {
 };
 
 export async function GET(
-  request: Request,
-  { params }: { params: { name: string } }
+  request: NextRequest,
+  context: { params: { name: string } }
 ) {
   try {
-    const layerName = params.name;
+    const layerName = context.params.name;
     
     // Return mock data for development
     if (mockLayers[layerName as keyof typeof mockLayers]) {

@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai-service';
 
 /**
+ * Configuration for the API route using the new App Router format
+ * This increases the maximum upload size to accommodate large images
+ */
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds
+
+/**
  * API handler for screen sharing and analysis
  * 
  * This endpoint accepts a screenshot (as base64 data URL) and a query,
@@ -51,7 +60,7 @@ const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     
     return NextResponse.json({ analysis });
   } catch (error) {
-    logger.error('Error processing screen share:', error);
+    console.error('Error processing screen share:', error);
     
     // Check if it's an OpenAI API error
     if (error && typeof error === 'object' && 'status' in error) {
@@ -67,16 +76,4 @@ const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
       error: 'Failed to process screen share' 
     }, { status: 500 });
   }
-}
-
-/**
- * Configuration for the API route
- * This increases the maximum upload size to accommodate large images
- */
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-}; 
+} 

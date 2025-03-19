@@ -1,6 +1,7 @@
 /**
  * Utility to fix common Leaflet issues in Next.js
  */
+import logger from './logger';
 
 /**
  * Fixes Leaflet's default icon paths which can break in Next.js
@@ -21,12 +22,12 @@ export function fixLeafletIcon() {
           shadowUrl: '/images/marker-shadow.png',
         });
         
-        console.log('Leaflet icon paths fixed');
+        logger.log('Leaflet icon paths fixed');
       }).catch(err => {
-        console.error('Failed to import Leaflet:', err);
+        logger.error('Failed to import Leaflet:', err);
       });
     } catch (error) {
-      console.error('Error fixing Leaflet icons:', error);
+      logger.error('Error fixing Leaflet icons:', error);
     }
   }
 }
@@ -48,7 +49,7 @@ export function ensureLeafletCSS() {
       link.crossOrigin = '';
       
       document.head.appendChild(link);
-      console.log('Leaflet CSS added to document');
+      logger.log('Leaflet CSS added to document');
     }
   }
 } 

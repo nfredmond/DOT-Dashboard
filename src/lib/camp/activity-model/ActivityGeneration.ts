@@ -5,15 +5,19 @@
  * Creates a set of activities based on demographic attributes and time allocations.
  */
 
-import { supabase } from '@/lib/supabase-client';
+import { v4 as uuidv4 } from 'uuid';
+import { Person, Household, Zone, Activity, TravelParameters } from '@/types/camp';
+// import { supabase } from '@/utils/supabase';
+import { WeightedRandom } from '../utils/random';
+import { calculateDistance } from '../utils/geography';
+// import { ActivityType } from '@/types/activity';
+import { baseActivityTimes, personTypes, activityProbabilities } from '../data/activity-data';
+import { logger } from '@/lib/logger';
 import { 
   PersonAgent, 
-  ActivityType, 
-  Activity,
   ModelParameters,
   ActivityLocation
 } from '@/types/camp';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * ActivityGeneration class

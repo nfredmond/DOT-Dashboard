@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../lib/logger';
 
 // Demo projects data (more detailed for single project view)
 const demoProjects = {
@@ -407,8 +408,6 @@ export async function DELETE(
       
       if (storageError) {
         logger.error('Error deleting document files from storage:', storageError);
-import logger from '../../../../lib/logger';
-
         // Continue with deletion even if storage deletion fails
       }
     }

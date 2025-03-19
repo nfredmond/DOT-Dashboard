@@ -2,6 +2,9 @@ import { supabase } from '../supabase-client';
 import { CAMPRunner } from '../camp/camp-runner';
 import { generateInsights } from './scenario-insights-service';
 import { compareScenarios } from './scenario-comparison-service';
+import { ScenarioDefinition } from '@/types/trend-navigator-types';
+import TrendDefinition from '@/types/trend-definition';
+import logger from '../logger';
 
 /**
  * TrendNavigator Service
@@ -92,20 +95,27 @@ export class TrendNavigatorService {
   /**
    * Get a specific scenario by ID
    */
-  public async getScenario(scenarioId: string) {
-    const { data, error } = await supabase
-      .from('scenarios')
-      .select('*, camp_model_runs(*), scenario_results(*), scenario_insights(*)')
-      .eq('id', scenarioId)
-      .eq('organization_id', this.organizationId)
-      .single();
+  public async getScenario(scenarioId: string): Promise<ScenarioDefinition> {
+    try {
+      logger.info(`Fetching scenario ${scenarioId} for org ${this.organizationId}`);
+      
+      const { data, error } = await supabase
+        .from('scenarios')
+        .select('*, camp_model_runs(*), scenario_results(*), scenario_insights(*)')
+        .eq('id', scenarioId)
+        .eq('organization_id', this.organizationId)
+        .single();
 
-    if (error) {
-      console.error(`Error fetching scenario ${scenarioId}:`, error);
-      throw new Error(`Failed to fetch scenario: ${error.message}`);
+      if (error) {
+        console.error(`Error fetching scenario ${scenarioId}:`, error);
+        throw new Error(`Failed to fetch scenario: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      logger.error('Error fetching scenario:', error);
+      throw new Error('Failed to fetch scenario');
     }
-
-    return data;
   }
 
   /**
@@ -405,9 +415,16 @@ export class TrendNavigatorService {
   /**
    * Get available trends for scenario planning
    */
-  public async getAvailableTrends() {
-    const config = await this.getConfig();
-    return config.available_trends || [];
+  public async getAvailableTrends(): Promise<TrendDefinition[]> {
+    try {
+      logger.info(`Fetching available trends for org ${this.organizationId}`);
+      
+      const config = await this.getConfig();
+      return (config.available_trends || []).map((t: any) => t);
+    } catch (error) {
+      logger.error('Error fetching available trends:', error);
+      throw new Error('Failed to fetch available trends');
+    }
   }
 
   /**
@@ -416,7 +433,7 @@ export class TrendNavigatorService {
   public async applyTrend(trendKey: string, scenarioId?: string, parameters?: any) {
     // Get the trend definition from the config
     const config = await this.getConfig();
-    const trend = (config.available_trends || []).find(t => t.key === trendKey);
+    const trend = (config.available_trends || []).find((t: any) => t.key === trendKey);
 
     if (!trend) {
       throw new Error(`Trend not found: ${trendKey}`);
@@ -506,6 +523,33 @@ export class TrendNavigatorService {
     }
 
     this.setNestedValue(obj[currentKey], pathArray.slice(1), value);
+  }
+
+  // Save a scenario
+  async saveScenario(scenarioData: Partial<ScenarioDefinition>): Promise<ScenarioDefinition> {
+    try {
+      logger.info(`Saving scenario for org ${this.organizationId}`);
+      
+      // This would typically be an API call to save the scenario
+      const savedScenario: ScenarioDefinition = {
+        id: scenarioData.id || `scenario-${Date.now()}`,
+        name: scenarioData.name || 'Untitled Scenario',
+        description: scenarioData.description || '',
+        baseYear: scenarioData.baseYear || new Date().getFullYear(),
+        horizonYears: scenarioData.horizonYears || [new Date().getFullYear() + 10],
+        assumptions: scenarioData.assumptions || [],
+        policyPackages: scenarioData.policyPackages || [],
+        tags: scenarioData.tags || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        organizationId: this.organizationId
+      };
+      
+      return savedScenario;
+    } catch (error) {
+      logger.error('Error saving scenario:', error);
+      throw new Error('Failed to save scenario');
+    }
   }
 }
 

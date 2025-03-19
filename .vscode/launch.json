@@ -10,6 +10,76 @@
             "request": "launch",
             "script": "${file}",
             "args": []
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Next.js: Chrome",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "webpack://_N_E/*": "${webRoot}/*",
+                "webpack:///*": "*",
+                "webpack:///./~/*": "${webRoot}/node_modules/*"
+            }
+        },
+        {
+            "type": "firefox",
+            "request": "launch",
+            "name": "Next.js: Firefox",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "pathMappings": [
+                { "url": "webpack://_N_E", "path": "${webRoot}" }
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Next.js: Node",
+            "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+            "args": ["dev"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Current Test File",
+            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+            "args": [
+                "--runInBand",
+                "--config=${workspaceFolder}/jest.config.js",
+                "${fileBasenameNoExtension}"
+            ],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Next.js: Full Stack",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "serverReadyAction": {
+                "pattern": "started server on .+, url: (https?://.+)",
+                "uriFormat": "%s",
+                "action": "debugWithChrome"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Next.js: Attach",
+            "port": 9229,
+            "request": "attach",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node"
         }
     ]
 }

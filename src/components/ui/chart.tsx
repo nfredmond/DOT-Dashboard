@@ -357,26 +357,19 @@ function getPayloadConfigFromPayload(
     : config[key as keyof typeof config]
 }
 
-// Re-export recharts components for use in our application
+// Re-exporting recharts components to fit our UI conventions
 export {
   ResponsiveContainer,
-  LineChart,
-  BarChart,
   ComposedChart,
-  AreaChart,
-  Line,
-  Bar,
-  Area,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
+  Line,
   ReferenceLine,
-  Scatter,
-  ScatterChart,
-  Brush,
-  Cell
+  Bar,
+  BarChart
 } from 'recharts';
 
 export {

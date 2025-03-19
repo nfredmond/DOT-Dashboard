@@ -6,7 +6,6 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { supabaseClient } from './supabase-service';
 import { 
   CAMPModelConfig, 
   CAMPModelParams, 

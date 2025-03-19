@@ -13,18 +13,12 @@ export function cn(...inputs: ClassValue[]) {
  * Formats a date into a localized string
  * Accepts date options for customized formatting
  */
-export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = {}) {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
+export function formatDate(date: Date | string | number): string {
+  return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-  };
-  
-  return dateObj.toLocaleDateString(undefined, { ...defaultOptions, ...options });
+    year: 'numeric',
+  })
 }
 
 /**
@@ -44,15 +38,15 @@ export function formatDateTime(input: string | Date): string {
 /**
  * Formats a currency value
  */
-export function formatCurrency(amount: number, options: Intl.NumberFormatOptions = {}) {
-  const defaultOptions: Intl.NumberFormatOptions = {
+export function formatCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return '$0.00'
+  
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  };
-  
-  return new Intl.NumberFormat(undefined, { ...defaultOptions, ...options }).format(amount);
+  }).format(amount)
 }
 
 /**
@@ -119,15 +113,35 @@ export function formatNumber(value: number, decimals = 0): string {
 /**
  * Format a number as a percentage with optional decimal places
  */
-export function formatPercentage(value: number, decimals = 1): string {
-  if (value === undefined || value === null) return '';
+export function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`
+}
+
+/**
+ * Format a number as a percentage (alias for formatPercent)
+ */
+export function formatPercentage(value: number): string {
+  return formatPercent(value);
+}
+
+/**
+ * Format a time value relative to now (e.g., "2 hours ago")
+ */
+export function formatRelativeTime(date: Date | string | number): string {
+  const now = new Date();
+  const then = new Date(date);
+  const diffMs = now.getTime() - then.getTime();
+  const diffSecs = Math.round(diffMs / 1000);
+  const diffMins = Math.round(diffSecs / 60);
+  const diffHours = Math.round(diffMins / 60);
+  const diffDays = Math.round(diffHours / 24);
+
+  if (diffSecs < 60) return 'just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
   
-  // Format with correct decimal places
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-    style: 'percent'
-  }).format(value);
+  return formatDate(date);
 }
 
 /**

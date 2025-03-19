@@ -5,27 +5,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Alert,
-  AlertDescription,
-  AlertTitle,
 } from '@/components/ui';
 import { 
-  BarChart, 
-  LineChart, 
-  PieChart 
-} from '@/components/charts';
-import { 
   formatNumber, 
-  formatPercentage, 
-  formatDate, 
-  formatDuration, 
-  formatDistance 
+  formatPercentage 
 } from '@/lib/utils';
-import { AlertCircle, Clock, Map, Activity, Car, Users } from 'lucide-react';
 import { 
   ActivitySimulationResults as SimResults,
   ModeSplitItem,
@@ -196,7 +180,7 @@ export function ActivitySimulationResults({ results }: ActivitySimulationResults
 /**
  * Table showing mode split data
  */
-function ModeSplitTable({ modeSplit }: { modeSplit: ModeSplitItem[] }) {
+function _ModeSplitTable({ modeSplit }: { modeSplit: ModeSplitItem[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -231,7 +215,7 @@ function ModeSplitTable({ modeSplit }: { modeSplit: ModeSplitItem[] }) {
 /**
  * Table showing trip purpose data
  */
-function PurposeTable({ tripsByPurpose }: { tripsByPurpose: TripsByPurposeItem[] }) {
+function _PurposeTable({ tripsByPurpose }: { tripsByPurpose: TripsByPurposeItem[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -266,7 +250,7 @@ function PurposeTable({ tripsByPurpose }: { tripsByPurpose: TripsByPurposeItem[]
 /**
  * Bar chart showing temporal distribution
  */
-function TemporalDistributionChart({ data }: { data: TemporalDistributionItem[] }) {
+function _TemporalDistributionChart({ data }: { data: TemporalDistributionItem[] }) {
   // Find the max count to scale the bars
   const maxCount = Math.max(...data.map(item => item.count));
   

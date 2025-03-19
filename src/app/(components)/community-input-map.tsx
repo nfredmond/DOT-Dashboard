@@ -23,9 +23,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  ZoomInIcon,
-  ZoomOutIcon,
-  HomeIcon,
   MapPinIcon,
   SendIcon,
   FileIcon,
@@ -51,10 +48,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
-import LeafletErrorBoundary from "@/components/LeafletErrorBoundary";
 import '@/lib/leaflet-preload'; 
 import { useLeaflet } from "@/hooks/useLeaflet";
 import { useMapEvents } from "react-leaflet";
+import { Switch } from "@/components/ui/switch";
 
 // Rename unused variables
 const _Card = Card;
@@ -96,7 +93,7 @@ const FeatureGroup = dynamic(
   () => import('react-leaflet').then((mod) => mod.FeatureGroup),
   { ssr: false }
 );
-const ZoomControl = dynamic(
+const _ZoomControl = dynamic(
   () => import('react-leaflet').then((mod) => mod.ZoomControl),
   { ssr: false }
 );
@@ -142,12 +139,26 @@ interface CommunityInput {
   timestamp: string;
   status: string; // pending, approved, rejected
   images: string[];
+  agencyId?: string; // Agency that owns this input
+  llmClassification?: string; // Classification provided by LLM
+  moderationNote?: string; // Note from moderator
 }
 
 interface InputCategory {
   id: string;
   name: string;
   color: string;
+}
+
+// Agency interface for customization
+interface Agency {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  primaryColor: string;
+  categories: InputCategory[];
+  requiresApproval: boolean;
+  useLlmModeration: boolean;
 }
 
 // Rename unused variables for linter compliance
@@ -175,14 +186,19 @@ export function CommunityInputMap() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   // Admin state
-  const [isAdmin, setIsAdmin] = useState(true); // Set to true by default for testing
-  const [_showAdminPanel, setShowAdminPanel] = useState(false);
-  const [autoApprove, _setAutoApprove] = useState(false);
+  const [isAdmin, _setIsAdmin] = useState(true); // Set to true by default for testing
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [useLlmModeration, setUseLlmModeration] = useState(true);
+  const [currentAgency, setCurrentAgency] = useState<Agency | null>(null);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [moderationNote, setModerationNote] = useState('');
   
   // Community input data
   const [communityInputs, setCommunityInputs] = useState<CommunityInput[]>([]);
   const [filteredInputs, setFilteredInputs] = useState<CommunityInput[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [categoryFilter, _setCategoryFilter] = useState<string | null>(null);
   const [statusFilter, _setStatusFilter] = useState<string | null>(null);
   
   // Categories for input - in real app, these would be configurable
@@ -193,6 +209,52 @@ export function CommunityInputMap() {
     { id: 'maintenance', name: 'Maintenance', color: '#f59e0b' },
     { id: 'traffic', name: 'Traffic', color: '#8b5cf6' },
   ];
+  
+  // Load agencies (in real app, fetch from API)
+  useEffect(() => {
+    // Mock data for agencies
+    const mockAgencies: Agency[] = [
+      {
+        id: 'dot',
+        name: 'Department of Transportation',
+        primaryColor: '#3b82f6',
+        categories: [
+          { id: 'general', name: 'General', color: '#3b82f6' },
+          { id: 'safety', name: 'Safety', color: '#ef4444' },
+          { id: 'transportation', name: 'Active Transportation', color: '#22c55e' },
+          { id: 'maintenance', name: 'Maintenance', color: '#f59e0b' },
+          { id: 'traffic', name: 'Traffic', color: '#8b5cf6' },
+        ],
+        requiresApproval: true,
+        useLlmModeration: true
+      },
+      {
+        id: 'planning',
+        name: 'City Planning Department',
+        primaryColor: '#22c55e',
+        categories: [
+          { id: 'general', name: 'General', color: '#3b82f6' },
+          { id: 'zoning', name: 'Zoning', color: '#ef4444' },
+          { id: 'housing', name: 'Housing', color: '#22c55e' },
+          { id: 'parks', name: 'Parks & Recreation', color: '#f59e0b' },
+        ],
+        requiresApproval: true,
+        useLlmModeration: false
+      }
+    ];
+    
+    setAgencies(mockAgencies);
+    setCurrentAgency(mockAgencies[0]); // Default to first agency
+  }, []);
+  
+  // Update input categories when agency changes
+  useEffect(() => {
+    if (currentAgency) {
+      // Update auto-approve setting based on agency preferences
+      setAutoApprove(!currentAgency.requiresApproval);
+      setUseLlmModeration(currentAgency.useLlmModeration);
+    }
+  }, [currentAgency]);
   
   // Mock data for community inputs
   useEffect(() => {
@@ -264,19 +326,19 @@ export function CommunityInputMap() {
     mapRef.current = map;
   };
   
-  const handleZoomIn = () => {
+  const _handleZoomIn = () => {
     if (mapRef.current) {
       mapRef.current.setZoom(mapRef.current.getZoom() + 1);
     }
   };
 
-  const handleZoomOut = () => {
+  const _handleZoomOut = () => {
     if (mapRef.current) {
       mapRef.current.setZoom(mapRef.current.getZoom() - 1);
     }
   };
 
-  const handleResetView = () => {
+  const _handleResetView = () => {
     if (mapRef.current) {
       mapRef.current.setView(mapCenter, zoom);
     }
@@ -346,52 +408,104 @@ export function CommunityInputMap() {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
   
-  // Form submission
-  const handleSubmitInput = async () => {
-    if (!selectedGeometry || !currentInput.title) {
-      return; // Don't submit if required fields are missing
+  // Mock LLM service functions locally
+  const mockClassifyText = async (prompt: string): Promise<string> => {
+    console.log('Classification prompt:', prompt);
+    
+    // Extract categories from the prompt
+    const categoriesMatch = prompt.match(/categories: (.*?)\.\\n/i);
+    const categoriesText = categoriesMatch ? categoriesMatch[1] : '';
+    const categories = categoriesText.split(',').map(cat => cat.trim().toLowerCase());
+    
+    // If no categories found, return a default
+    if (categories.length === 0 || !categories[0]) {
+      return 'general';
     }
     
+    // Randomly select a category for demo purposes
+    return categories[Math.floor(Math.random() * categories.length)];
+  };
+  
+  // Use LLM to classify input
+  const classifyInputWithLLM = async (description: string): Promise<string> => {
     try {
-      // In a real app, you would upload files here and get URLs back
-      const newImageUrls = uploadedFiles.map(_ => `/mock-image-${Math.random()}.jpg`);
+      setIsProcessing(true);
+      // If using mock, return a random category
+      if (!currentAgency) {
+        const categories = inputCategories.map(c => c.id);
+        return categories[Math.floor(Math.random() * categories.length)];
+      }
       
+      // In production, call LLM service
+      const categories = currentAgency.categories.map(c => c.name).join(', ');
+      const prompt = `Classify the following community input into one of these categories: ${categories}.\n\nInput: ${description}\n\nCategory:`;
+      
+      // Call mock LLM service 
+      const mockResult = await mockClassifyText(prompt);
+      
+      console.log('LLM classification result:', mockResult);
+      return mockResult;
+    } catch (error) {
+      console.error('Error classifying input with LLM:', error);
+      return 'general'; // Default to general category if classification fails
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Enhanced submit function with LLM classification
+  const handleSubmitInput = async () => {
+    try {
+      if (!selectedGeometry) {
+        alert('Please draw a shape on the map first');
+        return;
+      }
+      
+      if (!currentInput.title || !currentInput.description) {
+        alert('Please provide a title and description');
+        return;
+      }
+      
+      setIsProcessing(true);
+      
+      // If LLM moderation is enabled and no category is selected, classify with LLM
+      let category = currentInput.category || 'general';
+      if (useLlmModeration && category === 'general') {
+        category = await classifyInputWithLLM(currentInput.description || '');
+      }
+      
+      // Process image uploads
+      // In a real app, this would upload to a storage service and return URLs
+      const imageUrls = uploadedFiles.map(file => URL.createObjectURL(file));
+      
+      // Create new input object
       const newInput: CommunityInput = {
         id: Date.now().toString(),
         type: currentInput.type || 'point',
         geometry: selectedGeometry,
         title: currentInput.title || '',
         description: currentInput.description || '',
-        category: currentInput.category || 'general',
-        username: 'current-user', // In real app, get from auth
+        category: category,
+        username: 'current_user', // This would come from auth system
         timestamp: new Date().toISOString(),
         status: autoApprove ? 'approved' : 'pending',
-        images: newImageUrls
+        images: imageUrls,
+        agencyId: currentAgency?.id,
+        llmClassification: category,
       };
       
-      // In a production app, this would be a real API call:
-      // const response = await fetch('/api/community-input', {
+      // In a real app, this would send to an API
+      // await fetch('/api/community-inputs', {
       //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({
-      //     ...newInput,
-      //     organizationId: 'org-123' // In a real app, get from context
-      //   })
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(newInput)
       // });
-      //
-      // if (response.ok) {
-      //   const savedInput = await response.json();
-      //   setCommunityInputs(prev => [...prev, savedInput]);
-      // }
       
-      // For now, just add to local state
+      // For demo, just add to local state
       setCommunityInputs(prev => [...prev, newInput]);
+      setFilteredInputs(prev => [...prev, newInput]);
       
       // Reset form
-      setShowInputForm(false);
-      setSelectedGeometry(null);
       setCurrentInput({
         type: 'point',
         title: '',
@@ -400,68 +514,79 @@ export function CommunityInputMap() {
         status: 'pending',
         images: []
       });
+      setSelectedGeometry(null);
       setUploadedFiles([]);
+      setShowInputForm(false);
+      
+      // Reset map for next input
+      if (mapRef.current) {
+        // Remove temporary drawing layers
+        const map = mapRef.current;
+        // Check if the map has the Leaflet.PM plugin
+        if (map && 'pm' in map) {
+          // Type assertion for the Leaflet.PM plugin
+          const pmMap = map as any;
+          const drawnItems = pmMap.pm.getGeomanDrawLayers();
+          drawnItems.forEach((layer: any) => {
+            map.removeLayer(layer);
+          });
+        }
+      }
+      
+      alert('Your input has been submitted successfully' + (autoApprove ? ' and is now visible on the map.' : ' and is waiting for approval.'));
     } catch (error) {
       console.error('Error submitting input:', error);
+      alert('Error submitting input. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
   };
   
-  // Admin functions
-  const _updateInputStatus = async (id: string, status: string) => {
+  // Enhanced function to update input status with moderation note
+  const updateInputStatus = async (id: string, status: string) => {
     try {
-      // In a production app, this would be a real API call:
-      // const response = await fetch('/api/community-input', {
-      //   method: 'PATCH',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({
-      //     id,
-      //     status
-      //   })
-      // });
-      //
-      // if (response.ok) {
-      //   const updatedInput = await response.json();
-      //   setCommunityInputs(prev => 
-      //     prev.map(input => 
-      //       input.id === updatedInput.id ? updatedInput : input
-      //     )
-      //   );
-      // }
+      setIsProcessing(true);
       
-      // For now, just update local state
-      setCommunityInputs(prev => 
-        prev.map(input => 
-          input.id === id ? { ...input, status } : input
-        )
-      );
-    } catch (error) {
-      console.error('Error updating input status:', error);
-    }
-  };
-  
-  const _deleteInput = async (id: string) => {
-    try {
-      // In a production app, this would be a real API call:
-      // const response = await fetch(`/api/community-input?id=${id}`, {
-      //   method: 'DELETE'
+      // In a real app, this would send to an API
+      // await fetch(`/api/community-inputs/${id}/status`, {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ status, moderationNote })
       // });
-      //
-      // if (response.ok) {
-      //   setCommunityInputs(prev => prev.filter(input => input.id !== id));
-      // }
       
-      // For now, just delete from local state
-      setCommunityInputs(prev => prev.filter(input => input.id !== id));
+      // For demo, just update local state
+      const updatedInputs = communityInputs.map(input => {
+        if (input.id === id) {
+          return {
+            ...input,
+            status,
+            moderationNote: moderationNote || input.moderationNote
+          };
+        }
+        return input;
+      });
+      
+      setCommunityInputs(updatedInputs);
+      
+      // Apply filters
+      let filtered = [...updatedInputs];
+      if (categoryFilter) {
+        filtered = filtered.filter(input => input.category === categoryFilter);
+      }
+      if (statusFilter) {
+        filtered = filtered.filter(input => input.status === statusFilter);
+      }
+      
+      setFilteredInputs(filtered);
+      setModerationNote('');
+      
+      alert(`Input has been ${status === 'approved' ? 'approved' : 'rejected'}.`);
     } catch (error) {
-      console.error('Error deleting input:', error);
+      console.error(`Error updating input status to ${status}:`, error);
+      alert('Error updating input status. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
-  };
-  
-  const getCategoryColor = (categoryId: string): string => {
-    const category = inputCategories.find(cat => cat.id === categoryId);
-    return category?.color || '#3b82f6';
   };
   
   // Render markers and geometries
@@ -615,212 +740,257 @@ export function CommunityInputMap() {
     return null;
   };
   
-  return (
-    <div className="relative h-[700px] w-full">
-      <LeafletErrorBoundary>
-        {leafletLoaded && (
-          <MapContainer
-            center={mapCenter}
-            zoom={zoom}
-            className="h-full w-full"
-            whenCreated={handleSetMap}
-            zoomControl={false}
+  // Render admin panel
+  const renderAdminPanel = () => {
+    if (!isAdmin || !showAdminPanel) return null;
+    
+    // Filter for pending inputs
+    const pendingInputs = communityInputs.filter(input => input.status === 'pending');
+    
+    return (
+      <div className="absolute z-10 right-4 top-4 w-80 bg-white rounded-lg shadow-lg p-4 max-h-[70vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Admin Controls</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdminPanel(false)}
           >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attribution">CARTO</a>'
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="autoApprove">Auto-approve submissions</Label>
+            <Switch
+              id="autoApprove"
+              checked={autoApprove}
+              onCheckedChange={setAutoApprove}
             />
-            
-            {/* Map click handler */}
-            <MapClickHandler />
-            
-            {/* Map controls */}
-            <ZoomControl position="bottomright" />
-            <SearchControl />
-            <GeolocateControl />
-            
-            {/* Drawing layer for lines and polygons */}
-            {(drawingMode === 'line' || drawingMode === 'polygon') && (
-              <FeatureGroup>
-                <EditControl
-                  position="topright"
-                  draw={{
-                    rectangle: false,
-                    circle: false,
-                    circlemarker: false,
-                    marker: false,
-                    polyline: drawingMode === 'line',
-                    polygon: drawingMode === 'polygon'
-                  }}
-                  onCreated={handleDrawingCreated}
-                />
-              </FeatureGroup>
-            )}
-            
-            {/* Render community input geometries */}
-            {renderInputGeometries()}
-          </MapContainer>
-        )}
-      </LeafletErrorBoundary>
-      
-      {/* Map control panel */}
-      <div className="absolute top-4 right-4 bg-white dark:bg-gray-950 shadow-md rounded-md p-2 z-[1000]">
-        <div className="flex flex-col gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={enablePointMode}
-                  className={drawingMode === 'point' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-                >
-                  <MapPin className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add point</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={enableLineMode}
-                  className={drawingMode === 'line' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-                >
-                  <PenLineIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Draw line</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="useLlm">Use LLM for categorization</Label>
+            <Switch
+              id="useLlm"
+              checked={useLlmModeration}
+              onCheckedChange={setUseLlmModeration}
+            />
+          </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={enablePolygonMode}
-                  className={drawingMode === 'polygon' ? 'bg-blue-100 dark:bg-blue-900' : ''}
-                >
-                  <SquareIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Draw area</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleZoomIn}>
-                  <ZoomInIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Zoom in</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleZoomOut}>
-                  <ZoomOutIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Zoom out</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleResetView}>
-                  <HomeIcon className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Reset view</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          {isAdmin && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => setShowAdminPanel(true)}>
-                    <CogIcon className="h-4 w-4" />
+          <div className="mt-2">
+            <Label htmlFor="agencySelect">Current Agency</Label>
+            <Select
+              value={currentAgency?.id || ''}
+              onValueChange={(value) => {
+                const agency = agencies.find(a => a.id === value);
+                if (agency) setCurrentAgency(agency);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select agency" />
+              </SelectTrigger>
+              <SelectContent>
+                {agencies.map(agency => (
+                  <SelectItem key={agency.id} value={agency.id}>
+                    {agency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <h4 className="font-medium mb-2">Pending Inputs ({pendingInputs.length})</h4>
+        {pendingInputs.length === 0 ? (
+          <p className="text-sm text-gray-500">No pending inputs</p>
+        ) : (
+          <div className="space-y-3">
+            {pendingInputs.map(input => (
+              <Card key={input.id} className="p-3">
+                <h5 className="font-medium">{input.title}</h5>
+                <p className="text-sm text-gray-700 line-clamp-2 mb-2">{input.description}</p>
+                <div className="flex gap-1 mb-2">
+                  <Badge variant="outline">
+                    {input.type}
+                  </Badge>
+                  <Badge
+                    style={{ backgroundColor: getCategoryColor(input.category) }}
+                    className="text-white"
+                  >
+                    {input.category}
+                  </Badge>
+                </div>
+                
+                <div className="mb-2">
+                  <Label htmlFor={`note-${input.id}`} className="text-xs">Moderation Note</Label>
+                  <Textarea
+                    id={`note-${input.id}`}
+                    placeholder="Add a note (optional)"
+                    className="h-16 text-sm"
+                    value={moderationNote}
+                    onChange={(e) => setModerationNote(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => updateInputStatus(input.id, 'rejected')}
+                    disabled={isProcessing}
+                  >
+                    Reject
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Admin settings</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
-          <div className="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
-          
-          {/* Toggle admin mode for testing */}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => updateInputStatus(input.id, 'approved')}
+                    disabled={isProcessing}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  const getCategoryColor = (categoryId: string): string => {
+    const category = inputCategories.find(cat => cat.id === categoryId);
+    return category?.color || '#3b82f6';
+  };
+  
+  // Render the map with controls
+  return (
+    <div className="relative w-full h-full">
+      {leafletLoaded && (
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant={isAdmin ? "default" : "outline"} 
-                  size="icon" 
-                  onClick={() => setIsAdmin(!isAdmin)}
+                <Button
+                  onClick={enablePointMode}
+                  size="icon"
+                  variant={drawingMode === 'point' ? 'default' : 'outline'}
+                  className="h-10 w-10 rounded-full bg-white shadow-md"
                 >
-                  <UserIcon className="h-4 w-4" />
+                  <MapPin className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{isAdmin ? "Exit admin mode" : "Enter admin mode"}</p>
+                <p>Add Point</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={enableLineMode}
+                  size="icon"
+                  variant={drawingMode === 'line' ? 'default' : 'outline'}
+                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                >
+                  <PenLineIcon className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Draw Line</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={enablePolygonMode}
+                  size="icon"
+                  variant={drawingMode === 'polygon' ? 'default' : 'outline'}
+                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                >
+                  <SquareIcon className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Draw Area</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-      </div>
+      )}
       
-      {/* Category filter */}
-      <div className="absolute top-4 left-4 z-[1000] bg-white dark:bg-gray-950 shadow-md rounded-md p-2">
-        <Select
-          value={categoryFilter || ""}
-          onValueChange={(value) => setCategoryFilter(value === "" ? null : value)}
+      {isAdmin && (
+        <div className="absolute top-4 right-4 z-10">
+          <Button 
+            variant="default"
+            size="sm"
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className="shadow-md"
+          >
+            <CogIcon className="h-4 w-4 mr-2" />
+            Admin Controls
+          </Button>
+        </div>
+      )}
+      
+      {renderAdminPanel()}
+      
+      {leafletLoaded && (
+        <MapContainer
+          center={mapCenter}
+          zoom={zoom}
+          className="w-full h-full"
+          whenCreated={handleSetMap}
         >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All categories</SelectItem>
-            {inputCategories.map(category => (
-              <SelectItem key={category.id} value={category.id}>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: category.color }}
-                  ></div>
-                  <span>{category.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {/* Map controls */}
+          <div className="leaflet-top leaflet-right">
+            <div className="leaflet-control leaflet-bar">
+              <GeolocateControl />
+              <SearchControl />
+            </div>
+          </div>
+          
+          {/* User inputs on map */}
+          {renderInputGeometries()}
+          
+          {/* Drawing controls */}
+          <FeatureGroup>
+            <EditControl
+              position="topleft"
+              onCreated={handleDrawingCreated}
+              draw={{
+                rectangle: false,
+                circle: false,
+                circlemarker: false,
+                marker: drawingMode === 'point',
+                polyline: drawingMode === 'line',
+                polygon: drawingMode === 'polygon',
+              }}
+              edit={{
+                edit: false,
+                remove: false,
+              }}
+            />
+          </FeatureGroup>
+          
+          {/* Map click handler */}
+          <MapClickHandler />
+        </MapContainer>
+      )}
       
       {/* Input form dialog */}
       <Dialog open={showInputForm} onOpenChange={setShowInputForm}>
@@ -828,110 +998,113 @@ export function CommunityInputMap() {
           <DialogHeader>
             <DialogTitle>Add Community Input</DialogTitle>
             <DialogDescription>
-              Provide your feedback about this location or area.
+              Provide details about the location you've selected
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                Title
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                value={currentInput.title}
-                onChange={(e) => setCurrentInput(prev => ({ ...prev, title: e.target.value }))}
-                className="col-span-3"
                 placeholder="Brief title for your input"
+                value={currentInput.title}
+                onChange={(e) => setCurrentInput({...currentInput, title: e.target.value})}
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                Category
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe the issue or suggestion in detail"
+                className="min-h-[100px]"
+                value={currentInput.description}
+                onChange={(e) => setCurrentInput({...currentInput, description: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
               <Select
                 value={currentInput.category}
-                onValueChange={(value) => setCurrentInput(prev => ({ ...prev, category: value }))}
+                onValueChange={(value) => setCurrentInput({...currentInput, category: value})}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger id="category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {inputCategories.map(category => (
+                  {(currentAgency?.categories || inputCategories).map((category) => (
                     <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: category.color }}
-                        ></div>
-                        <span>{category.name}</span>
-                      </div>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {useLlmModeration && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave as "General" for automatic categorization
+                </p>
+              )}
             </div>
             
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={currentInput.description}
-                onChange={(e) => setCurrentInput(prev => ({ ...prev, description: e.target.value }))}
-                className="col-span-3"
-                placeholder="Describe your feedback in detail"
-                rows={4}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right">
-                Images
-              </Label>
-              <div className="col-span-3">
-                <div className="mb-2">
-                  <Label htmlFor="images" className="cursor-pointer">
-                    <div className="flex items-center gap-2 p-2 border border-dashed rounded-md hover:bg-gray-50 dark:hover:bg-gray-900">
-                      <ImageIcon className="h-4 w-4" />
-                      <span>Upload images</span>
-                    </div>
-                    <Input
-                      id="images"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleFileUpload}
-                    />
-                  </Label>
-                </div>
-                
-                {uploadedFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {uploadedFiles.map((file, index) => (
-                      <div 
-                        key={index}
-                        className="relative w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden"
-                      >
-                        <img 
-                          src={URL.createObjectURL(file)} 
-                          alt={`Upload ${index}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <div className="grid gap-2">
+              <Label htmlFor="images">Upload Images (optional)</Label>
+              <div className="flex items-center gap-2">
+                <Label 
+                  htmlFor="image-upload" 
+                  className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium cursor-pointer"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Choose Files
+                </Label>
+                <Input
+                  id="image-upload"
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                />
+                <span className="text-sm text-gray-500">
+                  {uploadedFiles.length} file(s) selected
+                </span>
               </div>
+              
+              {uploadedFiles.length > 0 && (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="relative h-16 w-16 rounded overflow-hidden">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt={`Preview ${index}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-0 right-0 h-5 w-5 rounded-full p-0"
+                        onClick={() => {
+                          const newFiles = [...uploadedFiles];
+                          newFiles.splice(index, 1);
+                          setUploadedFiles(newFiles);
+                        }}
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           
           <DialogFooter>
-            <Button type="submit" onClick={handleSubmitInput}>
-              Add Input
+            <Button variant="outline" onClick={() => setShowInputForm(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitInput} disabled={isProcessing}>
+              {isProcessing ? 'Processing...' : 'Submit'}
             </Button>
           </DialogFooter>
         </DialogContent>

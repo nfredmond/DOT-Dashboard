@@ -75,7 +75,7 @@ export function SupabaseConfigManager() {
       const tempClient = createClient(config.url, config.anonKey);
       
       // Try to make a simple query
-      const { _data, error } = await tempClient.from('_test').select('*').limit(1);
+      const { data, error } = await tempClient.from('_test').select('*').limit(1);
       
       // Handle the result
       if (error) {

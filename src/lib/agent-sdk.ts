@@ -3,6 +3,7 @@
  * 
  * Interface for communication with agent systems in the application
  */
+import logger from '@/lib/logger';
 
 // Types for agent interactions
 export interface AgentContext {
@@ -87,7 +88,7 @@ export class AgentSDK {
       // Process with appropriate agent based on type and intent
       return await this.processWithAgent(message, selectedAgentType, intent);
     } catch (error) {
-      console.error('Error processing message with agent:', error);
+      logger.error('Error processing message with agent:', error);
       
       return {
         content: `Sorry, I encountered an error while processing your request: ${error instanceof Error ? error.message : String(error)}`,
@@ -221,7 +222,7 @@ export class AgentSDK {
     // For now, we'll simulate the response
     
     if (this.config.enableLogging) {
-      console.log(`Processing with agent: ${agentType}, intent: ${intent}`);
+      logger.log(`Processing with agent: ${agentType}, intent: ${intent}`);
     }
     
     // For voice agent, optimize the response for speech

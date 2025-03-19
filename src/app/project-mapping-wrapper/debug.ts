@@ -1,5 +1,5 @@
-import logger from '../../lib/logger';
 "use client";
+import logger from '../../lib/logger';
 
 /**
  * Debug utility to diagnose Leaflet map loading issues
@@ -9,38 +9,38 @@ import logger from '../../lib/logger';
 export function debugLeafletLoading() {
   if (typeof window === 'undefined') return;
   
-  logger.log('=============================================');
-  logger.log('LEAFLET DEBUG INFORMATION');
-  logger.log('=============================================');
+  logger.info('=============================================');
+  logger.info('LEAFLET DEBUG INFORMATION');
+  logger.info('=============================================');
   
   // Check if Leaflet is loaded
-  logger.log('Leaflet global:', !!window.L);
+  logger.info('Leaflet global:', !!window.L);
   
   // Check for map instances
-  logger.log('Leaflet map instances:', window._leaflet_map_instances?.length || 0);
-  logger.log('Current map instance:', !!window.leafletMapInstance);
+  logger.info('Leaflet map instances:', window._leaflet_map_instances?.length || 0);
+  logger.info('Current map instance:', !!window.leafletMapInstance);
   
   // Check for DOM elements
   const leafletElements = document.querySelectorAll('[class^="leaflet-"]');
-  logger.log('Leaflet DOM elements:', leafletElements.length);
+  logger.info('Leaflet DOM elements:', leafletElements.length);
   
   // Check for containers
   const containers = document.querySelectorAll('.leaflet-container');
-  logger.log('Leaflet containers:', containers.length);
+  logger.info('Leaflet containers:', containers.length);
   
   // Check for CSS
   const leafletCSS = document.querySelector('link[href*="leaflet.css"]');
-  logger.log('Leaflet CSS loaded:', !!leafletCSS);
+  logger.info('Leaflet CSS loaded:', !!leafletCSS);
   
   // Check if window has issues
   try {
-    logger.log('Window dimensions:', window.innerWidth, window.innerHeight);
-    logger.log('Document dimensions:', document.documentElement.clientWidth, document.documentElement.clientHeight);
+    logger.info('Window dimensions:', window.innerWidth, window.innerHeight);
+    logger.info('Document dimensions:', document.documentElement.clientWidth, document.documentElement.clientHeight);
   } catch (e) {
     logger.error('Error checking window dimensions:', e);
   }
   
-  logger.log('=============================================');
+  logger.info('=============================================');
 }
 
 export function fixLeafletContainers() {
@@ -49,7 +49,7 @@ export function fixLeafletContainers() {
   try {
     // Find all map containers
     const containers = document.querySelectorAll('.leaflet-container');
-    logger.log(`Found ${containers.length} leaflet containers to fix`);
+    logger.info(`Found ${containers.length} leaflet containers to fix`);
     
     containers.forEach((container, index) => {
       try {
@@ -59,7 +59,7 @@ export function fixLeafletContainers() {
         (container as HTMLElement).style.minWidth = '300px';
         (container as HTMLElement).style.minHeight = '300px';
         
-        logger.log(`Fixed container ${index+1}`);
+        logger.info(`Fixed container ${index+1}`);
       } catch (e) {
         logger.warn(`Error fixing container ${index+1}:`, e);
       }
@@ -67,7 +67,7 @@ export function fixLeafletContainers() {
     
     // Also check for map wrappers
     const wrappers = document.querySelectorAll('[data-leaflet-container-id]');
-    logger.log(`Found ${wrappers.length} map wrappers to fix`);
+    logger.info(`Found ${wrappers.length} map wrappers to fix`);
     
     wrappers.forEach((wrapper, index) => {
       try {
@@ -77,7 +77,7 @@ export function fixLeafletContainers() {
         (wrapper as HTMLElement).style.minWidth = '300px';
         (wrapper as HTMLElement).style.minHeight = '300px';
         
-        logger.log(`Fixed wrapper ${index+1}`);
+        logger.info(`Fixed wrapper ${index+1}`);
       } catch (e) {
         logger.warn(`Error fixing wrapper ${index+1}:`, e);
       }

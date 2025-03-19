@@ -23,13 +23,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai-service';
 
-// Configure the maximum upload size (16MB)
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: '16mb',
-  },
-};
+// Configure route with App Router format
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds
+export const revalidate = 0; // Don't cache results
 
 /**
  * Handle POST requests for audio transcription
@@ -62,7 +60,7 @@ const audioFile = formData.get('file');
     // Return the transcribed text
     return NextResponse.json({ text: transcription });
   } catch (error) {
-    logger.error('Transcription error:', error);
+    console.error('Transcription error:', error);
     return NextResponse.json(
       { error: `Transcription failed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
@@ -86,7 +84,7 @@ async function transcribeWithWhisper(
   try {
     // Check if the model is valid
     if (model !== 'whisper-1') {
-      logger.warn(`Unsupported Whisper model: ${model}, using 'whisper-1' instead`);
+      console.warn(`Unsupported Whisper model: ${model}, using 'whisper-1' instead`);
       model = 'whisper-1';
     }
     
@@ -108,7 +106,7 @@ async function transcribeWithWhisper(
     
     return transcription.text;
   } catch (error) {
-    logger.error('Whisper transcription error:', error);
+    console.error('Whisper transcription error:', error);
     throw new Error(`Whisper transcription failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

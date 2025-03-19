@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '@/lib/logger';
 
 // Demo projects data
 const demoProjects = [
@@ -64,16 +65,22 @@ export async function GET(request: NextRequest) {
   const isDemo = !session && demoCookie?.value === 'true';
   
   if (!session && !isDemo) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
   
   // If in demo mode, return mock data
   if (isDemo) {
-    return NextResponse.json(demoProjects);
+    return new NextResponse(JSON.stringify(demoProjects), { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
   
   // Regular flow for authenticated users
-  const userId = session.user.id;
+  const userId = session!.user.id;
   const url = new URL(request.url);
   const organizationId = url.searchParams.get('organizationId');
   const status = url.searchParams.get('status');
@@ -152,7 +159,10 @@ export async function GET(request: NextRequest) {
             query = query.eq('is_public', true);
           } else {
             // User has no access to non-public projects
-            return NextResponse.json({ data: [] });
+            return new NextResponse(JSON.stringify({ data: [] }), { 
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            });
           }
         }
       } else {
@@ -189,8 +199,7 @@ export async function GET(request: NextRequest) {
           const allAccessibleOrgIds = Array.from(new Set([...userOrgIds, ...parentOrgIds]));
           
           // Get projects from user's organizations OR public projects
-
-query = query.or(`organization_id.in.(${allAccessibleOrgIds.join(',')}),is_public.eq.true`);
+          query = query.or(`organization_id.in.(${allAccessibleOrgIds.join(',')}),is_public.eq.true`);
         } else {
           // User has no organizations, only show public projects
           query = query.eq('is_public', true);
@@ -203,13 +212,16 @@ query = query.or(`organization_id.in.(${allAccessibleOrgIds.join(',')}),is_publi
     
     if (error) throw error;
     
-    return NextResponse.json({ data });
+    return new NextResponse(JSON.stringify({ data }), { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logger.error('Error fetching projects:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch projects' },
-      { status: 500 }
-    );
+    return new NextResponse(JSON.stringify({ error: 'Failed to fetch projects' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
@@ -221,7 +233,10 @@ export async function POST(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
   
   try {
@@ -230,10 +245,10 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     if (!requestData.name || !requestData.organizationId) {
-      return NextResponse.json(
-        { error: 'Name and organization ID are required' },
-        { status: 400 }
-      );
+      return new NextResponse(JSON.stringify({ error: 'Name and organization ID are required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     // Check organization details to determine if it's a member agency
@@ -276,16 +291,16 @@ export async function POST(request: NextRequest) {
         
         // If user doesn't have access to either the member agency or parent, deny access
         if (!parentMembership || parentMembershipError) {
-          return NextResponse.json(
-            { error: 'Forbidden: You do not have permission to create projects in this organization' },
-            { status: 403 }
-          );
+          return new NextResponse(JSON.stringify({ error: 'Forbidden: You do not have permission to create projects in this organization' }), { 
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
       } else {
-        return NextResponse.json(
-          { error: 'Forbidden: You do not have permission to create projects in this organization' },
-          { status: 403 }
-        );
+        return new NextResponse(JSON.stringify({ error: 'Forbidden: You do not have permission to create projects in this organization' }), { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
     }
     
@@ -359,12 +374,15 @@ export async function POST(request: NextRequest) {
       logger.log('Processing geospatial files:', requestData.geospatialFiles.length);
     }
     
-    return NextResponse.json({ data: project }, { status: 201 });
+    return new NextResponse(JSON.stringify({ data: project }), { 
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     logger.error('Error creating project:', error);
-    return NextResponse.json(
-      { error: 'Failed to create project' },
-      { status: 500 }
-    );
+    return new NextResponse(JSON.stringify({ error: 'Failed to create project' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 } 

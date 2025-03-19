@@ -1,33 +1,31 @@
-// Logger utility to replace console statements
-const isDevEnvironment = process.env.NODE_ENV === 'development';
-
+// Simple logger utility for the application
 const logger = {
-  log: (...args: any[]) => {
-    if (isDevEnvironment) {
-      console.log(...args);
+  info: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[INFO] ${message}`, ...args);
     }
   },
   
-  warn: (...args: any[]) => {
-    if (isDevEnvironment) {
-      console.warn(...args);
+  warn: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[WARN] ${message}`, ...args);
     }
   },
   
-  error: (...args: any[]) => {
-    // Always log errors, even in production
-    console.error(...args);
+  error: (message: string, ...args: any[]) => {
+    console.error(`[ERROR] ${message}`, ...args);
   },
   
-  info: (...args: any[]) => {
-    if (isDevEnvironment) {
-      console.info(...args);
+  debug: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development' && process.env.DEBUG) {
+      console.log(`[DEBUG] ${message}`, ...args);
     }
   },
   
-  debug: (...args: any[]) => {
-    if (isDevEnvironment) {
-      console.debug(...args);
+  // Added log method as an alias to info for backward compatibility
+  log: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[LOG] ${message}`, ...args);
     }
   }
 };

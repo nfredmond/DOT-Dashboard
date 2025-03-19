@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import connectDB from "@/lib/database";
+import { connectToDatabase } from "@/lib/database";
 import CommunityInput from "../models/CommunityInput";
 import { OpenAI } from "openai";
 import logger from '../../../lib/logger';
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
       query.category = category;
     }
     
-    await connectDB();
+    await connectToDatabase();
     
     const communityInputs = await CommunityInput.find(query)
       .sort({ timestamp: -1 })
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    await connectDB();
+    await connectToDatabase();
     
     // Check for auto-approval settings
     const organizationSettings = {
@@ -186,7 +186,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
     
-    await connectDB();
+    await connectToDatabase();
     
     const communityInput = await CommunityInput.findById(data.id);
     
@@ -247,7 +247,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
     
-    await connectDB();
+    await connectToDatabase();
     
     const result = await CommunityInput.findByIdAndDelete(id);
     

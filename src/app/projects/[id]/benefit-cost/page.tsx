@@ -13,13 +13,13 @@ import {
 } from '@/lib/benefit-cost-service';
 import { BenefitCostAnalysis, BenefitCostAnalysisResult } from '@/types/benefit-cost';
 import { BenefitCostForm } from '@/components/benefit-cost/BenefitCostForm';
-import { BenefitCostSummaryCharts, SensitivityAnalysisChart, MonteCarloChart, MonetizationParametersChart } from '@/components/benefit-cost/BenefitCostCharts';
+import { BenefitCostSummaryCharts, SensitivityAnalysisChart, MonteCarloChart } from '@/components/benefit-cost/BenefitCostCharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, FileText, PlusIcon, EditIcon, Trash2Icon, BarChart3Icon, DownloadIcon, PlusCircleIcon, Copy, FileOutput, Sliders, Zap, Users, MapPin, CalendarDays, TrendingUp, Clock, Check } from 'lucide-react';
+import { Loader2, FileText, PlusIcon, EditIcon, Trash2Icon, DownloadIcon, PlusCircleIcon, Copy, FileOutput, Zap, Users, MapPin, CalendarDays, TrendingUp, Clock, Check } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -61,9 +61,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
-import { TimelineChart } from '@/components/benefit-cost/TimelineChart';
 import { Spinner } from '@/components/ui/spinner';
-import { CardFooter } from '@/components/ui/card';
 import dynamic from 'next/dynamic';
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -87,10 +85,10 @@ const formatCurrency = (value: number | any) => {
   }).format(numericValue);
 };
 
-export default function BenefitCostAnalysisPage({ params }: { params: { id: string } }) {
+export default function BenefitCostAnalysisPage({ params: pageParams }: { params: { id: string } }) {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.id as string;
+  const urlParams = useParams();
+  const projectId = urlParams.id as string;
   
   const [analyses, setAnalyses] = useState<BenefitCostAnalysis[]>([]);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
@@ -1825,7 +1823,7 @@ export default function BenefitCostAnalysisPage({ params }: { params: { id: stri
                                 
                                 <Card>
                                   <CardContent className="pt-6">
-                                    <h3 className="text-sm font-medium text-gray-500 mb-1">Probability of BCR > 1</h3>
+                                    <h3 className="text-sm font-medium text-gray-500 mb-1">Probability of BCR {`>`} 1</h3>
                                     <p className="text-2xl font-bold">
                                       {(monteCarloResults.results.find((r: any) => r.metric === 'benefitCostRatio')?.probabilityGreaterThan1 * 100).toFixed(1)}%
                                     </p>
@@ -2428,11 +2426,10 @@ export default function BenefitCostAnalysisPage({ params }: { params: { id: stri
                             <Check className={cn("h-4 w-4 mr-2", activeTimeScenario === null ? "opacity-100" : "opacity-0")} />
                             Base Case
                           </DropdownMenuItem>
-                          
-                  <CardTitle>Project Timeline Analysis</CardTitle>
-                  <CardDescription>
-                    Visualize how benefits and costs accrue over the {selectedAnalysis.analysisHorizon}-year project lifecycle
-                  </CardDescription>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {isTimelineLoading ? (

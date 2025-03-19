@@ -44,6 +44,19 @@ export interface MapConfig {
 
 // Extended Leaflet type declarations
 declare global {
+  interface Window {
+    L: any;
+    leafletMapInstance: any;
+    searchResultLayer: any;
+    userLocationMarker: any;
+    dismissSearchButton: any;
+    searchResultMarker: any;
+    projectMarkers: Record<string, any>;
+    isDarkMode: boolean;
+    themeObserver: MutationObserver;
+    _leaflet_map_instances?: any[];
+  }
+  
   namespace L {
     interface Marker {
       projectData?: ProjectMarker;

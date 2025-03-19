@@ -1,57 +1,65 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Spinner } from '@/components/ui/spinner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog';
-import {
-  Save,
-  PlayCircle,
-  BarChart2,
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Trash2, 
+  Play, 
+  Loader2, 
+  Save, 
+  ChevronLeft, 
   Settings,
   Calendar,
+  BarChart2,
   Package,
-  Trash2,
-  ChevronLeft,
-  AlertTriangle,
+  AlertTriangle
 } from 'lucide-react';
-import { ScenarioDefinition } from '@/types/trend-navigator';
-import TrendAssumptionsEditor from './trend-assumptions-editor';
-import PolicyPackagesEditor from './policy-packages-editor';
-import TimelineEditor from './timeline-editor';
 import logger from '../../lib/logger';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import TrendNavigatorService from '@/lib/trend-navigator/trend-navigator-service';
-import AssumptionsEditor from './assumptions-editor';
-import TrendsSelector from './trends-selector';
-import YearPicker from './year-picker';
+import { Spinner } from '@/components/ui/spinner';
+import TimelineEditor from './timeline-editor';
+import TrendAssumptionsEditor from './trend-assumptions-editor';
+import PolicyPackagesEditor from './policy-packages-editor';
+
+// Define the schema for validation
+const scenarioSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  base_year: z.number(),
+  horizon_years: z.array(z.number()).min(1, "At least one horizon year is required"),
+  tags: z.array(z.string()).optional(),
+  assumptions: z.record(z.any()).optional(),
+  policy_packages: z.array(z.any()).optional()
+});
 
 interface ScenarioEditorProps {
-  scenario: ScenarioDefinition | null;
+  scenario: any | null;
   isNew?: boolean;
   isLoading?: boolean;
-  onSave?: (scenarioData: Partial<ScenarioDefinition>) => Promise<void>;
+  onSave?: (scenarioData: any) => Promise<void>;
   onRun?: () => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel?: () => void;
   organizationId: string;
   scenarioId?: string;
-  readOnly?: boolean;
+  _readOnly?: boolean;
 }
 
 export default function ScenarioEditor({
@@ -64,7 +72,7 @@ export default function ScenarioEditor({
   onCancel,
   organizationId,
   scenarioId,
-  readOnly = false
+  _readOnly = false
 }: ScenarioEditorProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [name, setName] = useState('');
@@ -78,8 +86,8 @@ export default function ScenarioEditor({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [availableTrends, setAvailableTrends] = useState([]);
+  const [_loading, setLoading] = useState(false);
+  const [availableTrends, setAvailableTrends] = useState<any[]>([]);
   
   const router = useRouter();
   const { toast } = useToast();
@@ -123,14 +131,14 @@ export default function ScenarioEditor({
         form.reset({
           name: scenario.name,
           description: scenario.description || '',
-          base_year: scenario.base_year,
-          horizon_years: scenario.horizon_years,
+          base_year: scenario.baseYear,
+          horizon_years: scenario.horizonYears,
           tags: scenario.tags || [],
           assumptions: scenario.assumptions || {},
-          policy_packages: scenario.policy_packages || []
+          policy_packages: scenario.policyPackages || []
         });
       } catch (error) {
-        console.error('Error loading scenario:', error);
+        logger.error('Error loading scenario:', error);
         toast({
           title: 'Error',
           description: 'Failed to load scenario data',
@@ -150,7 +158,7 @@ export default function ScenarioEditor({
         const trends = await trendNavigatorService.getAvailableTrends();
         setAvailableTrends(trends);
       } catch (error) {
-        console.error('Error loading trends:', error);
+        logger.error('Error loading trends:', error);
       }
     };
     
@@ -176,7 +184,7 @@ export default function ScenarioEditor({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = async () => {
+  const _handleSave = async () => {
     if (!validateForm()) {
       toast({
         title: 'Validation Error',
@@ -297,7 +305,7 @@ export default function ScenarioEditor({
         router.push(`/scenarios/${result.id}`);
       }
     } catch (error) {
-      console.error('Error saving scenario:', error);
+      logger.error('Error saving scenario:', error);
       toast({
         title: 'Error',
         description: 'Failed to save scenario',
@@ -308,7 +316,7 @@ export default function ScenarioEditor({
     }
   };
 
-  const handleApplyTrend = async (trendKey: string, parameters: any) => {
+  const _handleApplyTrend = async (trendKey: string, parameters: any) => {
     setLoading(true);
     try {
       if (scenarioId) {
@@ -323,10 +331,10 @@ export default function ScenarioEditor({
         const currentTags = form.getValues('tags') || [];
         const currentAssumptions = form.getValues('assumptions') || {};
         
-        const trend = availableTrends.find(t => t.key === trendKey);
+        const trend = availableTrends.find(t => (t as any).key === trendKey);
         if (!trend) return;
         
-        const modifications = trend.modifications || {};
+        const modifications = (trend as any).modifications || {};
         const modifiedAssumptions = { ...currentAssumptions };
         
         Object.entries(modifications).forEach(([path, modification]: [string, any]) => {
@@ -346,11 +354,11 @@ export default function ScenarioEditor({
         });
       }
     } catch (error) {
-      console.error('Error applying trend:', error);
+      logger.error('Error applying trend:', error);
       toast({
         title: 'Error',
-        description: 'Failed to apply trend',
-        variant: 'destructive'
+        description: 'Failed to apply trend. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -383,7 +391,7 @@ export default function ScenarioEditor({
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-semibold">
-            {isNew ? 'Create New Scenario' : name || 'Edit Scenario'}
+            {isNew ? 'Create New Scenario' : scenario?.name || 'Edit Scenario'}
           </h1>
         </div>
         
@@ -394,7 +402,11 @@ export default function ScenarioEditor({
               onClick={handleRun}
               disabled={isLoading || isSaving}
             >
-              <PlayCircle className="h-4 w-4 mr-2" />
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
               Run Scenario
             </Button>
           )}
@@ -405,9 +417,9 @@ export default function ScenarioEditor({
             disabled={isLoading || isSaving}
           >
             {isSaving ? (
-              <Spinner size="sm" className="mr-2" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="mr-2 h-4 w-4" />
             )}
             {isNew ? 'Create Scenario' : 'Save Changes'}
           </Button>
@@ -419,9 +431,9 @@ export default function ScenarioEditor({
               disabled={isLoading || isDeleting}
             >
               {isDeleting ? (
-                <Spinner size="sm" className="mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="mr-2 h-4 w-4" />
               )}
               Delete
             </Button>
@@ -519,8 +531,8 @@ export default function ScenarioEditor({
           
           <TabsContent value="policies">
             <PolicyPackagesEditor
-              policyPackages={policyPackages}
-              onChange={setPolicyPackages}
+              packages={policyPackages}
+              _onChange={setPolicyPackages}
             />
           </TabsContent>
         </Tabs>
@@ -557,7 +569,7 @@ export default function ScenarioEditor({
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? <Spinner size="sm" className="mr-2" /> : null}
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Delete Scenario
             </Button>
           </DialogFooter>

@@ -97,7 +97,10 @@ export async function POST(
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
   
   try {
@@ -112,7 +115,10 @@ export async function POST(
       .single();
     
     if (!project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      return new NextResponse(JSON.stringify({ error: 'Project not found' }), { 
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     const organizationId = project.organization_id;
@@ -136,10 +142,10 @@ export async function POST(
       (userData?.metadata && userData.metadata.isGlobalAdmin);
     
     if (!isGlobalAdmin && !membership) {
-      return NextResponse.json(
-        { error: 'You do not have access to this project' },
-        { status: 403 }
-      );
+      return new NextResponse(JSON.stringify({ error: 'You do not have access to this project' }), { 
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     const body = await request.json();
@@ -147,17 +153,26 @@ export async function POST(
     
     // Validate required parameters
     if (!analysisId) {
-      return NextResponse.json({ error: 'Analysis ID is required' }, { status: 400 });
+      return new NextResponse(JSON.stringify({ error: 'Analysis ID is required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     if (!scenarioId && !campModelRunId) {
-      return NextResponse.json({ error: 'Either scenario ID or CAMP model run ID is required' }, { status: 400 });
+      return new NextResponse(JSON.stringify({ error: 'Either scenario ID or CAMP model run ID is required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     // Get the existing BCA
     const analysis = await getBenefitCostAnalysis(analysisId, organizationId);
     if (!analysis) {
-      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+      return new NextResponse(JSON.stringify({ error: 'Analysis not found' }), { 
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     // Get data from the source
@@ -168,7 +183,10 @@ export async function POST(
       // Get TrendNavigator scenario results
       const scenarioResult = await getScenarioResults(scenarioId);
       if (!scenarioResult) {
-        return NextResponse.json({ error: 'Scenario not found' }, { status: 404 });
+        return new NextResponse(JSON.stringify({ error: 'Scenario not found' }), { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       scenarioData = scenarioResult as unknown as ExtendedScenarioResults;
     }
@@ -177,7 +195,10 @@ export async function POST(
       // Get CAMP model results
       const campResult = await getCAMPModelRunResults(campModelRunId);
       if (!campResult) {
-        return NextResponse.json({ error: 'CAMP model run not found' }, { status: 404 });
+        return new NextResponse(JSON.stringify({ error: 'CAMP model run not found' }), { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       campData = campResult as unknown as ExtendedCAMPModelResults;
     }
@@ -196,17 +217,23 @@ export async function POST(
     // Save the updated analysis
     const updated = await updateBenefitCostAnalysis(analysisId, result, organizationId);
     
-    return NextResponse.json({
+    return new NextResponse(JSON.stringify({
       success: true,
       analysis: updated,
       dataSource: scenarioId ? 'scenario' : 'camp',
       sourceId: scenarioId || campModelRunId
+    }), { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     logger.error('Error integrating BCA with CAMP/TrendNavigator:', error);
-    return NextResponse.json({ 
+    return new NextResponse(JSON.stringify({ 
       error: 'Failed to integrate benefit-cost analysis with CAMP/TrendNavigator'
-    }, { status: 500 });
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 

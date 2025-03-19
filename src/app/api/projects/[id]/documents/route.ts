@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '../../../../../lib/logger';
 
 // GET /api/projects/[id]/documents - Get all documents for a project
 export async function GET(
@@ -268,8 +269,6 @@ export async function DELETE(
     }
     
     // Delete the document record from the database
-import logger from '../../../../../lib/logger';
-
     const { error: deleteError } = await supabase
       .from('project_documents')
       .delete()

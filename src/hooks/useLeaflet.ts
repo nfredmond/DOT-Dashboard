@@ -1,6 +1,7 @@
 import { isLeafletLoaded, ensureLeafletLoaded } from '@/lib/leaflet-preload'; 
 import type { Map as LeafletMap } from 'leaflet';
 import { useState, useEffect, useCallback } from 'react';
+import logger from '@/lib/logger';
 
 // Augment window with Leaflet global
 declare global {
@@ -33,19 +34,19 @@ export function useLeaflet(): UseLeafletReturn {
   // Function to safely initialize a Leaflet map
   const initializeMap = useCallback((containerElement: HTMLElement, options = {}) => {
     if (!leafletLoaded || !leafletInstance || !window.L) {
-      console.warn('Attempted to initialize map before Leaflet was loaded');
+      logger.warn('Attempted to initialize map before Leaflet was loaded');
       return null;
     }
     
     // Check if element exists in DOM
     if (!document.body.contains(containerElement)) {
-      console.error('Container element is not in the DOM');
+      logger.error('Container element is not in the DOM');
       return null;
     }
     
     // Ensure container has dimensions
     if (containerElement.clientWidth === 0 || containerElement.clientHeight === 0) {
-      console.warn('Container has zero width or height, setting minimum dimensions');
+      logger.warn('Container has zero width or height, setting minimum dimensions');
       containerElement.style.minWidth = '300px';
       containerElement.style.minHeight = '300px';
       
@@ -69,8 +70,8 @@ export function useLeaflet(): UseLeafletReturn {
     const mergedOptions = { ...defaultOptions, ...options };
     
     try {
-      console.log('Initializing map with container element:', containerElement);
-      console.log('Container element size:', containerElement.clientWidth, containerElement.clientHeight);
+      logger.log('Initializing map with container element:', containerElement);
+      logger.log('Container element size:', containerElement.clientWidth, containerElement.clientHeight);
       
       // Clean up any existing map with the same container first
       if (typeof containerElement.id === 'string' && containerElement.id) {
@@ -80,11 +81,11 @@ export function useLeaflet(): UseLeafletReturn {
         );
         
         if (existingMapInstance) {
-          console.warn('Found existing map instance for this container, removing it first');
+          logger.warn('Found existing map instance for this container, removing it first');
           try {
             existingMapInstance.remove();
           } catch (e) {
-            console.warn('Error removing existing map:', e);
+            logger.warn('Error removing existing map:', e);
           }
         }
       }
@@ -96,9 +97,9 @@ export function useLeaflet(): UseLeafletReturn {
       setTimeout(() => {
         try {
           newMap.invalidateSize(true);
-          console.log('Map size invalidated after initialization');
+          logger.log('Map size invalidated after initialization');
         } catch (e) {
-          console.warn('Error invalidating map size:', e);
+          logger.warn('Error invalidating map size:', e);
         }
       }, 100);
       
@@ -106,9 +107,9 @@ export function useLeaflet(): UseLeafletReturn {
       setTimeout(() => {
         try {
           newMap.invalidateSize(true);
-          console.log('Map size invalidated second time');
+          logger.log('Map size invalidated second time');
         } catch (e) {
-          console.warn('Error invalidating map size second time:', e);
+          logger.warn('Error invalidating map size second time:', e);
         }
       }, 500);
       
@@ -119,25 +120,25 @@ export function useLeaflet(): UseLeafletReturn {
       window._leaflet_map_instances.push(newMap);
       window.leafletMapInstance = newMap;
       
-      console.log('Map initialized successfully');
+      logger.log('Map initialized successfully');
       
       return newMap;
     } catch (error) {
-      console.error('Failed to initialize Leaflet map:', error);
+      logger.error('Failed to initialize Leaflet map:', error);
       return null;
     }
   }, [leafletLoaded, leafletInstance]);
 
   useEffect(() => {
-    console.log('useLeaflet: Loading Leaflet...');
+    logger.log('useLeaflet: Loading Leaflet...');
     const loadLeaflet = async () => {
       try {
         // First try to use our preload utility
-        console.log('useLeaflet: Trying preload utility...');
+        logger.log('useLeaflet: Trying preload utility...');
         const loaded = ensureLeafletLoaded();
         
         if (loaded && window.L) {
-          console.log('useLeaflet: Leaflet loaded via preload');
+          logger.log('useLeaflet: Leaflet loaded via preload');
           setLeafletInstance(window.L);
           setLeafletLoaded(true);
           return;
@@ -145,16 +146,16 @@ export function useLeaflet(): UseLeafletReturn {
         
         // Fallback: try dynamic import if preload failed
         if (!loaded) {
-          console.warn('useLeaflet: Preload failed, trying dynamic import');
+          logger.warn('useLeaflet: Preload failed, trying dynamic import');
           
           // Only attempt dynamic import if in browser
           if (typeof window !== 'undefined') {
-            console.log('useLeaflet: Importing Leaflet dynamically');
+            logger.log('useLeaflet: Importing Leaflet dynamically');
             const L = await import('leaflet');
             window.L = L;
             setLeafletInstance(L);
             setLeafletLoaded(true);
-            console.log('useLeaflet: Leaflet loaded via dynamic import');
+            logger.log('useLeaflet: Leaflet loaded via dynamic import');
             
             // Also try to load CSS
             try {
@@ -166,31 +167,31 @@ export function useLeaflet(): UseLeafletReturn {
                 document.head.appendChild(link);
               }
             } catch (err) {
-              console.warn('Dynamic CSS import failed, relying on preloaded CSS');
+              logger.warn('Dynamic CSS import failed, relying on preloaded CSS');
             }
           }
         }
       } catch (error) {
-        console.error('Failed to load Leaflet:', error);
+        logger.error('Failed to load Leaflet:', error);
       }
     };
 
     if (!leafletLoaded) {
       loadLeaflet();
     } else {
-      console.log('useLeaflet: Leaflet already loaded');
+      logger.log('useLeaflet: Leaflet already loaded');
     }
     
     // Cleanup function
     return () => {
       if (map) {
-        console.log('useLeaflet: Cleaning up map instance');
+        logger.log('useLeaflet: Cleaning up map instance');
         
         // Make sure to invalidate the map size before removing it
         try {
           map.invalidateSize();
         } catch (e) {
-          console.warn('Error invalidating map size:', e);
+          logger.warn('Error invalidating map size:', e);
         }
         
         // Wait a small amount of time before removing the map
@@ -198,7 +199,7 @@ export function useLeaflet(): UseLeafletReturn {
           try {
             map.remove();
           } catch (e) {
-            console.warn('Error removing map:', e);
+            logger.warn('Error removing map:', e);
           }
           
           setMap(null);

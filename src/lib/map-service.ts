@@ -1,5 +1,64 @@
 import { createClient } from '@/lib/supabase/client';
 
+// Define map tile sources interface
+export interface MapTileSource {
+  id: string;
+  name: string;
+  url: string;
+  maxZoom: number;
+  attribution: string;
+  type: 'raster' | 'vector';
+}
+
+// Default map tile sources
+const DEFAULT_MAP_TILES: MapTileSource[] = [
+  {
+    id: 'openStreetMap',
+    name: 'OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors',
+    type: 'raster'
+  },
+  {
+    id: 'cartoPositron',
+    name: 'Carto Positron',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    maxZoom: 20,
+    attribution: '© OpenStreetMap contributors, © CARTO',
+    type: 'raster'
+  },
+  {
+    id: 'cartoDarkMatter',
+    name: 'Carto Dark Matter',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    maxZoom: 20,
+    attribution: '© OpenStreetMap contributors, © CARTO',
+    type: 'raster'
+  }
+];
+
+/**
+ * Get available map tile sources
+ */
+export function getMapTiles(): MapTileSource[] {
+  return DEFAULT_MAP_TILES;
+}
+
+/**
+ * Get the default map type
+ */
+export function getDefaultMapType(): string {
+  return 'cartoPositron';
+}
+
+/**
+ * Get all available map types
+ */
+export function getAvailableMapTypes(): string[] {
+  return DEFAULT_MAP_TILES.map(tile => tile.id);
+}
+
 // Define simplified GeoJSON types
 interface GeoJSONGeometry {
   type: string;
