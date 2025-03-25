@@ -20,6 +20,12 @@ import {
 
 import { createClient } from '@/lib/supabase/client';
 
+// Export these functions so they can be used in the future
+export {
+  runOpenAIFallbackQuery,
+  runMCPAgentQuery
+};
+
 /**
  * Types of agents available
  */
@@ -29,7 +35,11 @@ export enum AgentType {
   SCENARIO_INSIGHTS = 'scenario_insights',
   SCENARIO_ASPECT_ANALYSIS = 'scenario_aspect_analysis',
   POLICY_RECOMMENDATIONS = 'policy_recommendations',
-  COMPARISON = 'comparison'
+  COMPARISON = 'comparison',
+  ANALYSIS = 'analysis',
+  PLANNING = 'planning',
+  BROWSER = 'browser',
+  COMPUTER = 'computer'
 }
 
 /**
@@ -51,6 +61,20 @@ export interface AgentQueryOptions {
   modelName?: string;
   temperature?: number;
   maxTokens?: number;
+  prompt?: string;
+  agentType?: AgentType;
+  systemPrompt?: string;
+  streamHandler?: (event: any) => void;
+}
+
+export interface RunAgentQueryOptions {
+  type: AgentType;
+  query: string;
+  context?: Record<string, any>;
+  modelName?: string;
+  temperature?: number;
+  maxTokens?: number;
+  streamHandler?: (event: any) => void;
 }
 
 export interface AgentQueryResponse {
@@ -76,6 +100,7 @@ function getOpenAIClient(): OpenAI {
   
   return new OpenAI({
     apiKey: apiKey,
+    dangerouslyAllowBrowser: true // Allow browser usage
   });
 }
 
@@ -85,14 +110,7 @@ function getOpenAIClient(): OpenAI {
  * @param options The query options
  * @returns The agent response
  */
-export async function runAgentQuery(options: {
-  type: AgentType;
-  query: string;
-  context?: Record<string, any>;
-  modelName?: string;
-  temperature?: number;
-  maxTokens?: number;
-}): Promise<AgentQueryResponse> {
+export async function runAgentQuery(options: RunAgentQueryOptions): Promise<AgentQueryResponse> {
   try {
     const supabase = createClient();
     
@@ -150,21 +168,21 @@ export async function runAgentQueryStreamed(
   // Enhance the query with context if available
   const enhancedQuery = enhanceQueryWithContext(query, context);
   
-  let fullResponse = '';
-  
   // Run the query with streaming
   try {
-    fullResponse = await runAgentQuery({
+    // Cast the result to string to fix type error
+    const result = await runAgentQuery({
       type: agentType,
       query: enhancedQuery,
       context: context,
-      streamHandler: onEvent ? (event) => {
-        // Forward the event to the callback
-        onEvent(event);
-      } : undefined
+      streamHandler: onEvent
     });
     
-    return { response: fullResponse };
+    if (typeof result === 'object' && 'result' in result) {
+      return { response: String(result.result) };
+    } else {
+      return { response: String(result) };
+    }
   } catch (error) {
     console.error('Error in runAgentQueryStreamed:', error);
     return { response: 'An error occurred while processing your request.' };
@@ -216,11 +234,19 @@ ${query}
 async function runOpenAIFallbackQuery(
   options: AgentQueryOptions
 ): Promise<string> {
-  const { prompt, agentType, systemPrompt, maxTokens, streamHandler } = options;
+  // Default values for all parameters that might be undefined
+  const { 
+    prompt = "Help me with this task", 
+    agentType, 
+    systemPrompt, 
+    maxTokens, 
+    streamHandler 
+  } = options;
   
   try {
     const openai = getOpenAIClient();
-    const finalSystemPrompt = systemPrompt || getSystemPromptForAgent(agentType);
+    const finalSystemPrompt = systemPrompt || 
+      (agentType ? getSystemPromptForAgent(agentType) : 'You are a helpful assistant.');
 
     if (streamHandler) {
       // Handle streaming
@@ -266,7 +292,7 @@ async function runOpenAIFallbackQuery(
 }
 
 /**
- * Run a query using a Model Context Protocol (MCP) server
+ * Run a query using Model Context Protocol (MCP)
  * 
  * @param options Query options
  * @returns Response from the agent
@@ -274,11 +300,11 @@ async function runOpenAIFallbackQuery(
 async function runMCPAgentQuery(
   options: AgentQueryOptions
 ): Promise<string> {
-  const { prompt, agentType, systemPrompt, maxTokens, streamHandler } = options;
+  const { prompt = "Help me with this task", agentType, systemPrompt, maxTokens, streamHandler } = options;
   
   try {
     // Choose the best server for this agent type
-    const server = chooseBestMCPServerForAgent(agentType);
+    const server = chooseBestMCPServerForAgent(agentType ? agentType.toString() : 'general');
     
     if (!server) {
       throw new Error(`No MCP server available with ${agentType} capability`);
@@ -320,15 +346,21 @@ async function runMCPAgentQuery(
 /**
  * Map an agent type to MCP capability
  */
-function mapAgentTypeToMCPCapability(agentType: AgentType): MCPCapability {
-  switch (agentType) {
-    case AgentType.ANALYSIS:
+function mapAgentTypeToMCPCapability(agentType: AgentType | undefined): MCPCapability {
+  if (!agentType) {
+    return MCPCapability.CHAT;
+  }
+  
+  const agentTypeStr = agentType.toString();
+  
+  switch (agentTypeStr) {
+    case AgentType.ANALYSIS.toString():
       return MCPCapability.ANALYSIS;
-    case AgentType.PLANNING:
+    case AgentType.PLANNING.toString():
       return MCPCapability.PLANNING;
-    case AgentType.BROWSER:
+    case AgentType.BROWSER.toString():
       return MCPCapability.WEB_BROWSE;
-    case AgentType.COMPUTER:
+    case AgentType.COMPUTER.toString():
       return MCPCapability.CODE_INTERPRETER;
     default:
       return MCPCapability.CHAT;
@@ -341,7 +373,11 @@ function mapAgentTypeToMCPCapability(agentType: AgentType): MCPCapability {
  * @param agentType The agent type
  * @returns System prompt string
  */
-function getSystemPromptForAgent(agentType: AgentType): string {
+function getSystemPromptForAgent(agentType: AgentType | undefined): string {
+  if (!agentType) {
+    return "You are an AI assistant helping with transportation planning tasks.";
+  }
+  
   switch (agentType) {
     case AgentType.ANALYSIS:
       return "You are a transportation analysis expert. Your job is to analyze transportation projects and provide insights on their impacts, benefits, and challenges. Be thorough, data-driven, and consider multiple perspectives in your analysis.";
@@ -355,9 +391,41 @@ function getSystemPromptForAgent(agentType: AgentType): string {
     case AgentType.COMPUTER:
       return "You are a computational assistant with data analysis and code interpretation capabilities. Analyze transportation data, create visualizations, and provide quantitative insights to support decision-making.";
     
+    case AgentType.SCENARIO_ANALYSIS:
+      return "You are a transportation scenario analysis expert. Your job is to analyze transportation scenarios and provide insights on their impacts, benefits, and challenges.";
+      
+    case AgentType.SCENARIO_INSIGHTS:
+      return "You are a transportation insights expert. Your job is to extract meaningful insights from transportation scenarios and data.";
+      
+    case AgentType.POLICY_RECOMMENDATIONS:
+      return "You are a transportation policy expert. Your job is to recommend policies that address transportation challenges and achieve policy goals.";
+      
+    case AgentType.COMPARISON:
+      return "You are a comparative analysis expert. Your job is to compare different transportation scenarios, policies, or projects and highlight the key differences and tradeoffs.";
+    
     default:
       return "You are an AI assistant helping with transportation planning tasks.";
   }
+}
+
+/**
+ * Interface for Scenario database model
+ */
+interface ScenarioData {
+  id: string;
+  name: string;
+  description: string;
+  base_year: number;
+  horizon_years: number[];
+  assumptions: string;
+  policy_packages: string[];
+  tags: string[];
+  baseline_scenario_id: string | null;
+  baseline?: { id: string; name: string } | null;
+  results?: any[];
+  created_at: string;
+  updated_at: string;
+  [key: string]: any;
 }
 
 /**
@@ -387,21 +455,31 @@ export async function formatScenarioForAgent(scenarioId: string, includeResults 
       throw new Error('Failed to fetch scenario data');
     }
     
-    // Format the data for the agent
-    return {
-      id: scenario.id,
-      name: scenario.name,
-      description: scenario.description,
-      baseYear: scenario.base_year,
-      horizonYears: scenario.horizon_years,
-      assumptions: scenario.assumptions,
-      policyPackages: scenario.policy_packages,
-      tags: scenario.tags,
-      baseline: scenario.baseline,
-      results: scenario.results,
-      createdAt: scenario.created_at,
-      updatedAt: scenario.updated_at
+    // Type guard to ensure scenario has the expected structure
+    if (typeof scenario !== 'object') {
+      throw new Error('Invalid scenario data format');
+    }
+    
+    // Type assertion for scenario
+    const scenarioData = scenario as ScenarioData;
+    
+    // Create a safe version of scenario data with defaults for missing properties
+    const safeScenario = {
+      id: scenarioData.id ?? 'unknown',
+      name: scenarioData.name ?? 'Untitled Scenario',
+      description: scenarioData.description ?? '',
+      baseYear: scenarioData.base_year ?? 2023,
+      horizonYears: Array.isArray(scenarioData.horizon_years) ? scenarioData.horizon_years : [2030, 2040],
+      assumptions: scenarioData.assumptions ?? '',
+      policyPackages: Array.isArray(scenarioData.policy_packages) ? scenarioData.policy_packages : [],
+      tags: Array.isArray(scenarioData.tags) ? scenarioData.tags : [],
+      baseline: scenarioData.baseline ?? null,
+      results: Array.isArray(scenarioData.results) ? scenarioData.results : [],
+      createdAt: scenarioData.created_at ?? new Date().toISOString(),
+      updatedAt: scenarioData.updated_at ?? new Date().toISOString()
     };
+    
+    return safeScenario;
   } catch (error) {
     console.error('Error formatting scenario for agent:', error);
     throw error;
