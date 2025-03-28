@@ -368,12 +368,387 @@ export interface Database {
           }
         ]
       }
+      switrs_collisions: {
+        Row: {
+          id: string
+          organization_id: string
+          case_id: string
+          collision_date: string
+          collision_time: string
+          latitude: number | null
+          longitude: number | null
+          location: string
+          primary_road: string | null
+          secondary_road: string | null
+          county_code: string | null
+          city_code: string | null
+          county_name: string | null
+          city_name: string | null
+          weather_condition: string | null
+          road_surface: string | null
+          road_condition: string | null
+          lighting_condition: string | null
+          pcf_violation: string | null
+          collision_severity_id: number | null
+          severity_description: string | null
+          party_count: number | null
+          injury_count: number | null
+          fatality_count: number | null
+          pedestrian_involved: boolean | null
+          bicycle_involved: boolean | null
+          motorcycle_involved: boolean | null
+          truck_involved: boolean | null
+          alcohol_involved: boolean | null
+          drug_involved: boolean | null
+          collision_type: string | null
+          hit_run_status: string | null
+          process_date: string | null
+          geom: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          case_id: string
+          collision_date: string
+          collision_time: string
+          latitude?: number | null
+          longitude?: number | null
+          location: string
+          primary_road?: string | null
+          secondary_road?: string | null
+          county_code?: string | null
+          city_code?: string | null
+          county_name?: string | null
+          city_name?: string | null
+          weather_condition?: string | null
+          road_surface?: string | null
+          road_condition?: string | null
+          lighting_condition?: string | null
+          pcf_violation?: string | null
+          collision_severity_id?: number | null
+          severity_description?: string | null
+          party_count?: number | null
+          injury_count?: number | null
+          fatality_count?: number | null
+          pedestrian_involved?: boolean | null
+          bicycle_involved?: boolean | null
+          motorcycle_involved?: boolean | null
+          truck_involved?: boolean | null
+          alcohol_involved?: boolean | null
+          drug_involved?: boolean | null
+          collision_type?: string | null
+          hit_run_status?: string | null
+          process_date?: string | null
+          geom?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          case_id?: string
+          collision_date?: string
+          collision_time?: string
+          latitude?: number | null
+          longitude?: number | null
+          location?: string
+          primary_road?: string | null
+          secondary_road?: string | null
+          county_code?: string | null
+          city_code?: string | null
+          county_name?: string | null
+          city_name?: string | null
+          weather_condition?: string | null
+          road_surface?: string | null
+          road_condition?: string | null
+          lighting_condition?: string | null
+          pcf_violation?: string | null
+          collision_severity_id?: number | null
+          severity_description?: string | null
+          party_count?: number | null
+          injury_count?: number | null
+          fatality_count?: number | null
+          pedestrian_involved?: boolean | null
+          bicycle_involved?: boolean | null
+          motorcycle_involved?: boolean | null
+          truck_involved?: boolean | null
+          alcohol_involved?: boolean | null
+          drug_involved?: boolean | null
+          collision_type?: string | null
+          hit_run_status?: string | null
+          process_date?: string | null
+          geom?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      switrs_parties: {
+        Row: {
+          id: string
+          organization_id: string
+          case_id: string
+          party_number: number
+          party_type: string
+          at_fault: boolean | null
+          age: number | null
+          sex: string | null
+          sobriety_type: string | null
+          sobriety_test: string | null
+          sobriety_test_result: string | null
+          move_violation: string | null
+          cell_phone_in_use: boolean | null
+          other_associated_factors: string | null
+          vehicle_make: string | null
+          vehicle_year: number | null
+          vehicle_type: string | null
+          direction: string | null
+          safety_equipment: string | null
+          ejection: string | null
+          injury: string | null
+          injury_severity: string | null
+          financial_responsibility: string | null
+          school_bus_related: boolean | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          case_id: string
+          party_number: number
+          party_type: string
+          at_fault?: boolean | null
+          age?: number | null
+          sex?: string | null
+          sobriety_type?: string | null
+          sobriety_test?: string | null
+          sobriety_test_result?: string | null
+          move_violation?: string | null
+          cell_phone_in_use?: boolean | null
+          other_associated_factors?: string | null
+          vehicle_make?: string | null
+          vehicle_year?: number | null
+          vehicle_type?: string | null
+          direction?: string | null
+          safety_equipment?: string | null
+          ejection?: string | null
+          injury?: string | null
+          injury_severity?: string | null
+          financial_responsibility?: string | null
+          school_bus_related?: boolean | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          case_id?: string
+          party_number?: number
+          party_type?: string
+          at_fault?: boolean | null
+          age?: number | null
+          sex?: string | null
+          sobriety_type?: string | null
+          sobriety_test?: string | null
+          sobriety_test_result?: string | null
+          move_violation?: string | null
+          cell_phone_in_use?: boolean | null
+          other_associated_factors?: string | null
+          vehicle_make?: string | null
+          vehicle_year?: number | null
+          vehicle_type?: string | null
+          direction?: string | null
+          safety_equipment?: string | null
+          ejection?: string | null
+          injury?: string | null
+          injury_severity?: string | null
+          financial_responsibility?: string | null
+          school_bus_related?: boolean | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      switrs_victims: {
+        Row: {
+          id: string
+          organization_id: string
+          case_id: string
+          victim_number: number
+          party_number: number
+          victim_age: number | null
+          victim_sex: string | null
+          victim_role: string | null
+          injury_severity: string | null
+          ejected: string | null
+          safety_equipment: string | null
+          seating_position: string | null
+          transportation: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          case_id: string
+          victim_number: number
+          party_number: number
+          victim_age?: number | null
+          victim_sex?: string | null
+          victim_role?: string | null
+          injury_severity?: string | null
+          ejected?: string | null
+          safety_equipment?: string | null
+          seating_position?: string | null
+          transportation?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          case_id?: string
+          victim_number?: number
+          party_number?: number
+          victim_age?: number | null
+          victim_sex?: string | null
+          victim_role?: string | null
+          injury_severity?: string | null
+          ejected?: string | null
+          safety_equipment?: string | null
+          seating_position?: string | null
+          transportation?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      switrs_hotspots: {
+        Row: {
+          id: string
+          organization_id: string
+          name: string
+          description: string | null
+          center_lat: number
+          center_lng: number
+          radius: number
+          collision_count: number
+          fatality_count: number
+          injury_count: number
+          pedestrian_count: number
+          bicyclist_count: number
+          motorcycle_count: number
+          most_common_violation: string | null
+          start_date: string
+          end_date: string
+          created_at: string
+          updated_at: string
+          created_by: string
+          geom: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          name: string
+          description?: string | null
+          center_lat: number
+          center_lng: number
+          radius: number
+          collision_count: number
+          fatality_count: number
+          injury_count: number
+          pedestrian_count: number
+          bicyclist_count: number
+          motorcycle_count: number
+          most_common_violation?: string | null
+          start_date: string
+          end_date: string
+          created_at?: string
+          updated_at?: string
+          created_by: string
+          geom?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          name?: string
+          description?: string | null
+          center_lat?: number
+          center_lng?: number
+          radius?: number
+          collision_count?: number
+          fatality_count?: number
+          injury_count?: number
+          pedestrian_count?: number
+          bicyclist_count?: number
+          motorcycle_count?: number
+          most_common_violation?: string | null
+          start_date?: string
+          end_date?: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string
+          geom?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      identify_collision_hotspots: {
+        Args: {
+          p_organization_id: string
+          p_start_date: string
+          p_end_date: string
+          p_min_lat: number
+          p_max_lat: number
+          p_min_lng: number
+          p_max_lng: number
+          p_grid_size: number
+          p_min_collisions: number
+        }
+        Returns: {
+          lat: number
+          lng: number
+          radius: number
+          collision_count: number
+          fatality_count: number
+          injury_count: number
+          pedestrian_count: number
+          bicyclist_count: number
+          motorcycle_count: number
+          most_common_violation: string
+        }[]
+      }
+      get_switrs_hotspots_geojson: {
+        Args: {
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      get_switrs_collisions_geojson: {
+        Args: {
+          p_organization_id: string
+          p_start_date?: string
+          p_end_date?: string
+          p_min_lat?: number
+          p_max_lat?: number
+          p_min_lng?: number
+          p_max_lng?: number
+          p_center_lat?: number
+          p_center_lng?: number
+          p_radius?: number
+        }
+        Returns: Json
+      }
+      get_switrs_collision_statistics: {
+        Args: {
+          p_organization_id: string
+          p_start_date?: string
+          p_end_date?: string
+          p_min_lat?: number
+          p_max_lat?: number
+          p_min_lng?: number
+          p_max_lng?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

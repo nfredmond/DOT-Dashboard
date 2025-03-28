@@ -1,7 +1,7 @@
-import { supabase } from '../supabase';
+import { getSupabaseClient } from '../supabase';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../logger';
+import logger from '../logger';
 
 /**
  * Interface definitions for SWITRS (Statewide Integrated Traffic Records System) data
@@ -203,14 +203,15 @@ class SWITRSService {
         });
 
         if (response.data && response.data.token) {
-          this.authToken = response.data.token;
+          const token: string = response.data.token;
+          this.authToken = token;
           
           // Set token expiry (usually 24 hours from TIMS API)
           const expiry = new Date();
           expiry.setHours(expiry.getHours() + 24);
           this.tokenExpiry = expiry;
           
-          return this.authToken;
+          return token;
         } else {
           throw new Error('Failed to get auth token from TIMS API');
         }
@@ -219,7 +220,7 @@ class SWITRSService {
       throw new Error('Invalid SWITRS credentials');
     } catch (error) {
       logger.error('Error getting SWITRS auth token:', error);
-      throw new Error(`Failed to authenticate with SWITRS: ${error.message}`);
+      throw new Error(`Failed to authenticate with SWITRS: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -320,8 +321,8 @@ class SWITRSService {
       
       return result;
     } catch (error) {
-      logger.error('Error querying SWITRS collisions:', error);
-      throw new Error(`Failed to query SWITRS data: ${error.message}`);
+      logger.error('Error querying SWITRS data:', error);
+      throw new Error(`Failed to query SWITRS data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -348,8 +349,8 @@ class SWITRSService {
         victims: response.data.victims || []
       };
     } catch (error) {
-      logger.error(`Error fetching SWITRS collision ${caseId}:`, error);
-      throw new Error(`Failed to fetch collision details: ${error.message}`);
+      logger.error('Error fetching collision details:', error);
+      throw new Error(`Failed to fetch collision details: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -412,7 +413,7 @@ class SWITRSService {
       for (let i = 0; i < collisionRecords.length; i += batchSize) {
         const batch = collisionRecords.slice(i, i + batchSize);
         
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
           .from('switrs_collisions')
           .upsert(batch, {
             onConflict: 'case_id',
@@ -454,7 +455,7 @@ class SWITRSService {
         for (let i = 0; i < partyRecords.length; i += batchSize) {
           const batch = partyRecords.slice(i, i + batchSize);
           
-          const { error } = await supabase
+          const { error } = await getSupabaseClient()
             .from('switrs_parties')
             .upsert(batch, {
               onConflict: 'case_id,party_number',
@@ -486,7 +487,7 @@ class SWITRSService {
         for (let i = 0; i < victimRecords.length; i += batchSize) {
           const batch = victimRecords.slice(i, i + batchSize);
           
-          const { error } = await supabase
+          const { error } = await getSupabaseClient()
             .from('switrs_victims')
             .upsert(batch, {
               onConflict: 'case_id,victim_number',
@@ -500,7 +501,7 @@ class SWITRSService {
       return collisions.length;
     } catch (error) {
       logger.error('Error saving SWITRS data to database:', error);
-      throw new Error(`Failed to save SWITRS data: ${error.message}`);
+      throw new Error(`Failed to save SWITRS data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -545,7 +546,7 @@ class SWITRSService {
       );
       
       // Use database spatial functions to identify hotspots
-      const { data: hotspots, error } = await supabase.rpc('identify_collision_hotspots', {
+      const { data: hotspots, error } = await getSupabaseClient().rpc('identify_collision_hotspots', {
         p_organization_id: organizationId,
         p_start_date: params.startDate,
         p_end_date: params.endDate,
@@ -568,7 +569,7 @@ class SWITRSService {
           `${params.name} #${savedHotspots.length + 1}` : 
           `Collision Hotspot #${savedHotspots.length + 1}`;
         
-        const { data, error } = await supabase
+        const { data, error } = await getSupabaseClient()
           .from('switrs_hotspots')
           .insert({
             id: hotspotId,
@@ -624,7 +625,7 @@ class SWITRSService {
       return savedHotspots;
     } catch (error) {
       logger.error('Error identifying collision hotspots:', error);
-      throw new Error(`Failed to identify hotspots: ${error.message}`);
+      throw new Error(`Failed to identify hotspots: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -633,7 +634,7 @@ class SWITRSService {
    */
   async getHotspots(organizationId: string): Promise<SWITRSHotspot[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseClient()
         .from('switrs_hotspots')
         .select('*')
         .eq('organization_id', organizationId)
@@ -664,7 +665,7 @@ class SWITRSService {
       }));
     } catch (error) {
       logger.error('Error getting SWITRS hotspots:', error);
-      throw new Error(`Failed to get hotspots: ${error.message}`);
+      throw new Error(`Failed to get hotspots: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -673,7 +674,7 @@ class SWITRSService {
    */
   async getHotspotsAsGeoJSON(organizationId: string): Promise<GeoJSON.FeatureCollection> {
     try {
-      const { data, error } = await supabase.rpc('get_switrs_hotspots_geojson', {
+      const { data, error } = await getSupabaseClient().rpc('get_switrs_hotspots_geojson', {
         p_organization_id: organizationId
       });
       
@@ -682,7 +683,7 @@ class SWITRSService {
       return data;
     } catch (error) {
       logger.error('Error getting SWITRS hotspots as GeoJSON:', error);
-      throw new Error(`Failed to get hotspots as GeoJSON: ${error.message}`);
+      throw new Error(`Failed to get hotspots as GeoJSON: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -704,7 +705,7 @@ class SWITRSService {
     }
   ): Promise<GeoJSON.FeatureCollection> {
     try {
-      const { data, error } = await supabase.rpc('get_switrs_collisions_geojson', {
+      const { data, error } = await getSupabaseClient().rpc('get_switrs_collisions_geojson', {
         p_organization_id: organizationId,
         p_start_date: params.startDate,
         p_end_date: params.endDate,
@@ -722,7 +723,7 @@ class SWITRSService {
       return data;
     } catch (error) {
       logger.error('Error getting SWITRS collisions as GeoJSON:', error);
-      throw new Error(`Failed to get collisions as GeoJSON: ${error.message}`);
+      throw new Error(`Failed to get collisions as GeoJSON: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -753,7 +754,7 @@ class SWITRSService {
     };
   }> {
     try {
-      const { data, error } = await supabase.rpc('get_switrs_collision_statistics', {
+      const { data, error } = await getSupabaseClient().rpc('get_switrs_collision_statistics', {
         p_organization_id: organizationId,
         p_start_date: params.startDate,
         p_end_date: params.endDate,
@@ -768,7 +769,7 @@ class SWITRSService {
       return data;
     } catch (error) {
       logger.error('Error getting SWITRS collision statistics:', error);
-      throw new Error(`Failed to get collision statistics: ${error.message}`);
+      throw new Error(`Failed to get collision statistics: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

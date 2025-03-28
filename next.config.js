@@ -12,14 +12,24 @@ const nextConfig = {
   // Disable TypeScript checking
   typescript: {
     ignoreBuildErrors: true,
+    // Add this line to prevent TypeScript from installing packages in .next/types
+    tsconfigPath: "tsconfig.json",
   },
   // Skip building of problematic API routes
   experimental: {
     optimizeCss: false,
     serverActions: {
-      allowedOrigins: ['localhost:3002'],
+      allowedOrigins: ['localhost:3002', 'localhost:3003'],
     },
-    webpackBuildWorker: true
+    webpackBuildWorker: true,
+    turbo: {
+      resolveAlias: {
+        // Mirror webpack aliases for Turbopack
+        './assets/marker-icon-2x.png': require.resolve('./src/lib/marker-images.js'),
+        './assets/marker-icon.png': require.resolve('./src/lib/marker-images.js'),
+        './assets/marker-shadow.png': require.resolve('./src/lib/marker-images.js')
+      }
+    }
   },
   // Explicitly set the output directory to avoid path issues
   distDir: '.next',
@@ -37,6 +47,11 @@ const nextConfig = {
         {
           source: '/api/projects/:id/bca/camp-integration',
           destination: '/api/placeholder',
+        },
+        // Redirect root path to /homepage
+        {
+          source: '/',
+          destination: '/homepage',
         },
       ],
     };
@@ -124,7 +139,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self' https://planningmanager.ai; img-src 'self' data: https://i.imgur.com https://planningmanager.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';`
+            value: "default-src 'self' https://planningmanager.ai; img-src 'self' data: blob: https://i.imgur.com https://planningmanager.ai https://*.mapbox.com https://*.openstreetmap.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; worker-src blob: 'self'; connect-src 'self' https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com;"
           }
         ]
       }
