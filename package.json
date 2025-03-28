@@ -1,5 +1,5 @@
 {
-  "name": "planning-manager-v8",
+  "name": "planning-manager",
   "version": "0.1.0",
   "description": "Planning Manager with Mapbox GL JS integration",
   "private": true,
