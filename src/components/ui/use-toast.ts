@@ -1,3 +1,4 @@
+import logger from '../../lib/logger';
 // Proper toast implementation
 // In a real app, you might use a proper toast library like sonner or react-hot-toast
 
@@ -9,7 +10,7 @@ export type ToastProps = {
 
 // Function to show a toast notification
 export const toast = (props: ToastProps) => {
-  console.log('Toast:', props);
+  logger.log('Toast:', props);
   // In a real implementation, this would show a toast
   // This is a simplified implementation for now
 }

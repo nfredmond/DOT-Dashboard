@@ -23,7 +23,10 @@ class OpenAIClient implements AIClient {
   private client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({ 
+      apiKey,
+      dangerouslyAllowBrowser: true // Allow browser usage
+    });
   }
 
   async complete(options: {
@@ -33,7 +36,7 @@ class OpenAIClient implements AIClient {
     stop?: string | string[];
   }): Promise<string> {
     const response = await this.client.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: options.prompt }],
       max_tokens: options.max_tokens,
       temperature: options.temperature,
@@ -59,15 +62,20 @@ class AnthropicClient implements AIClient {
     stop?: string | string[];
   }): Promise<string> {
     const response = await this.client.messages.create({
-      model: 'claude-3-opus-20240229',
-      max_tokens: options.max_tokens,
+      model: 'claude-3-7-sonnet-20240620',
+      max_tokens: options.max_tokens || 1000,
       temperature: options.temperature,
       system: 'You are an expert transportation planner and analyst.',
       messages: [{ role: 'user', content: options.prompt }],
       stop_sequences: Array.isArray(options.stop) ? options.stop : options.stop ? [options.stop] : undefined
     });
 
-    return response.content[0]?.text || '';
+    // Handle text content block type
+    const content = response.content[0];
+    if (content && 'text' in content) {
+      return content.text;
+    }
+    return '';
   }
 }
 
@@ -119,11 +127,14 @@ export async function streamAIResponse(
     throw new Error('OpenAI API key not found. Streaming requires OpenAI.');
   }
   
-  const openai = new OpenAI({ apiKey: openaiApiKey });
+  const openai = new OpenAI({ 
+    apiKey: openaiApiKey,
+    dangerouslyAllowBrowser: true // Allow browser usage
+  });
   let fullResponse = '';
   
   const stream = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: options.max_tokens,
     temperature: options.temperature,

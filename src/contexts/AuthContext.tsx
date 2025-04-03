@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const supabase = createClient()
 
   // Check if the user is already logged in when the app loads
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (demoUser) {
           console.log('Found demo user in localStorage');
           setUser(JSON.parse(demoUser));
+          setIsAuthenticated(true);
           
           // Set a cookie to indicate demo mode for server-side API routes
           document.cookie = "planning_manager_demo_mode=true; path=/; max-age=86400";
@@ -177,8 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
           
         setUser(userData)
+        setIsAuthenticated(true)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
+        setIsAuthenticated(false)
       }
     })
     
@@ -187,6 +191,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe()
     }
   }, [])
+
+  // If user exists, we are authenticated - update isAuthenticated state when user changes
+  useEffect(() => {
+    setIsAuthenticated(!!user);
+  }, [user]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
@@ -212,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Save to localStorage to persist the session
         localStorage.setItem('planning_manager_demo_user', JSON.stringify(demoAdminUser));
         setUser(demoAdminUser);
+        setIsAuthenticated(true);
         
         setIsLoading(false);
         return true;
@@ -236,13 +246,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Save to localStorage to persist the session
         localStorage.setItem('planning_manager_demo_user', JSON.stringify(demoRegularUser));
         setUser(demoRegularUser);
+        setIsAuthenticated(true);
         
         setIsLoading(false);
         return true;
       }
-      
-      // Check if the email belongs to greendottransportation.com
-      const isGreendotEmployee = email.endsWith('@greendottransportation.com');
       
       // Regular Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -254,45 +262,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
       
-      // If the user is from greendottransportation.com, ensure they have global admin privileges
-      if (isGreendotEmployee && data?.user) {
-        // Check if user already has global admin role
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role, isGlobalAdmin')
-          .eq('user_id', data.user.id)
-          .single();
+      if (data?.user) {
+        // Check if the email belongs to greendottransportation.com again after sign-in
+        const isGreendotEmployee = data.user.email?.endsWith('@greendottransportation.com');
         
-        // Update profile if needed
-        if (!profileData?.isGlobalAdmin) {
-          const { error: updateProfileError } = await supabase
-            .from('profiles')
-            .update({
-              role: 'global_admin',
-              isGlobalAdmin: true,
-              metadata: { isGlobalAdmin: true }
-            })
-            .eq('user_id', data.user.id);
+        // Update user state with login data
+        // Get user profile data from the profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single()
           
-          if (updateProfileError) {
-            console.error("Error updating profile:", updateProfileError);
-          }
-          
-          // Also update auth metadata
-          const { error: updateAuthError } = await supabase.auth.updateUser({
-            data: {
-              isGlobalAdmin: true,
-              role: 'global_admin'
-            }
-          });
-          
-          if (updateAuthError) {
-            console.error("Error updating user metadata:", updateAuthError);
-          }
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error("Error fetching profile:", profileError)
         }
+        
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          firstName: profileData?.first_name,
+          lastName: profileData?.last_name,
+          role: isGreendotEmployee ? 'global_admin' : (profileData?.role || 'user'),
+          isGlobalAdmin: isGreendotEmployee ? true : (profileData?.isGlobalAdmin || false),
+          organizationId: profileData?.organization_id || '',
+          organizationName: profileData?.organization_name,
+          organizationRole: isGreendotEmployee ? 'org_admin' : profileData?.organization_role,
+          profileImage: profileData?.profile_image,
+        }
+        
+        setUser(userData)
+        setIsAuthenticated(true)
+        return true
       }
       
-      return true
+      return false
     } catch (error: any) {
       console.error("Login error:", error)
       setError(error.message || "Failed to login")
@@ -303,19 +307,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async (): Promise<void> => {
+    setIsLoading(true)
+    setError(null)
+    
     try {
-      setIsLoading(true)
-      
-      // If using demo user, just remove from localStorage
+      // Check if we're using a demo user
       if (localStorage.getItem('planning_manager_demo_user')) {
-        localStorage.removeItem('planning_manager_demo_user')
+        // Clear the demo user from localStorage
+        localStorage.removeItem('planning_manager_demo_user');
         
-        // Clear the demo cookie
-        document.cookie = "planning_manager_demo_mode=; path=/; max-age=0";
+        // Remove the demo mode cookie
+        document.cookie = "planning_manager_demo_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         
-        setUser(null)
-        setIsLoading(false)
-        return
+        // Reset user state
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
       }
       
       // Regular Supabase logout
@@ -326,9 +334,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setUser(null)
-    } catch (error: any) {
+      setIsAuthenticated(false)
+    } catch (error) {
       console.error("Logout error:", error)
-      setError(error.message || "Failed to logout")
+      setError("Failed to log out")
     } finally {
       setIsLoading(false)
     }
@@ -451,7 +460,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user,
-      isAuthenticated: !!user,
+      isAuthenticated,
       isLoading,
       login,
       logout,

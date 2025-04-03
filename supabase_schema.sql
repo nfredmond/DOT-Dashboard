@@ -2639,3 +2639,577 @@ USING (
     )
   )
 );
+
+-- Projects Schema
+CREATE TABLE IF NOT EXISTS projects (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  location TEXT,
+  category TEXT,
+  status TEXT,
+  priority TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  estimated_cost NUMERIC(15, 2),
+  allocated_budget NUMERIC(15, 2),
+  pse_budget NUMERIC(15, 2),
+  ce_budget NUMERIC(15, 2),
+  construction_budget NUMERIC(15, 2),
+  right_of_way_budget NUMERIC(15, 2),
+  pe_amount NUMERIC(15, 2),
+  contingency_amount NUMERIC(15, 2),
+  environmental_documentation JSONB,
+  nepa_status TEXT,
+  ceqa_status TEXT,
+  environmental_document_type TEXT,
+  environmental_clearance_date TIMESTAMP WITH TIME ZONE,
+  coordinates JSONB, -- {latitude: number, longitude: number}
+  geometry JSONB, -- GeoJSON geometry
+  map_type TEXT DEFAULT 'streets',
+  lead_agency TEXT,
+  is_public BOOLEAN DEFAULT false,
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id),
+  organization_id UUID,
+  parent_org_id UUID,
+  is_member_agency_project BOOLEAN DEFAULT false,
+  original_org_id UUID,
+  shared_with_orgs JSONB, -- Array of organization IDs
+  is_review_completed BOOLEAN DEFAULT false,
+  metadata JSONB,
+  scenario_analysis JSONB,
+  rank INTEGER,
+  total_score NUMERIC(5, 2),
+  -- Index for faster spatial queries
+  CONSTRAINT valid_coordinates CHECK (
+    coordinates ? 'latitude' AND 
+    coordinates ? 'longitude' AND
+    (coordinates->>'latitude')::numeric BETWEEN -90 AND 90 AND
+    (coordinates->>'longitude')::numeric BETWEEN -180 AND 180
+  )
+);
+
+-- Create GIN index on geometry for faster spatial queries 
+CREATE INDEX IF NOT EXISTS projects_geometry_idx ON projects USING GIN (geometry);
+
+-- Project Phases
+CREATE TABLE IF NOT EXISTS project_phases (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  status TEXT,
+  completion_percentage INTEGER,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Milestones
+CREATE TABLE IF NOT EXISTS project_milestones (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  phase_id UUID REFERENCES project_phases(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  due_date TIMESTAMP WITH TIME ZONE,
+  completed BOOLEAN DEFAULT false,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Scores
+CREATE TABLE IF NOT EXISTS project_scores (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  safety NUMERIC(5, 2),
+  equity NUMERIC(5, 2),
+  climate NUMERIC(5, 2),
+  congestion NUMERIC(5, 2),
+  cost_effectiveness NUMERIC(5, 2),
+  multimodal NUMERIC(5, 2),
+  environmental NUMERIC(5, 2),
+  economic NUMERIC(5, 2),
+  feasibility NUMERIC(5, 2),
+  overall NUMERIC(5, 2),
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  method TEXT, -- 'ai', 'manual', 'hybrid'
+  additional_scores JSONB, -- For custom scoring categories
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Benefits
+CREATE TABLE IF NOT EXISTS project_benefits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  vmt_reduction NUMERIC(10, 2),
+  ghg_reduction NUMERIC(10, 2),
+  jobs_created INTEGER,
+  safety_improvement NUMERIC(5, 2),
+  congestion_reduction NUMERIC(5, 2),
+  benefit_cost_ratio NUMERIC(10, 2),
+  economic_benefit_estimate NUMERIC(15, 2),
+  improved_accessibility INTEGER,
+  additional_benefits JSONB, -- For custom benefit metrics
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Funding Sources
+CREATE TABLE IF NOT EXISTS project_funding_sources (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  amount NUMERIC(15, 2),
+  secured BOOLEAN DEFAULT false,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Detailed Funding Sources
+CREATE TABLE IF NOT EXISTS detailed_funding_sources (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT,
+  amount NUMERIC(15, 2),
+  fiscal_year TEXT,
+  secured BOOLEAN DEFAULT false,
+  agency TEXT,
+  date_applied TIMESTAMP WITH TIME ZONE,
+  date_awarded TIMESTAMP WITH TIME ZONE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Grant Funding
+CREATE TABLE IF NOT EXISTS grant_funding (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  grant_name TEXT NOT NULL,
+  granting_agency TEXT,
+  amount NUMERIC(15, 2),
+  application_date TIMESTAMP WITH TIME ZONE,
+  award_date TIMESTAMP WITH TIME ZONE,
+  expiration_date TIMESTAMP WITH TIME ZONE,
+  status TEXT, -- 'Applied', 'Awarded', 'Denied', 'Expired'
+  match_required NUMERIC(15, 2),
+  match_source TEXT,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Invoices
+CREATE TABLE IF NOT EXISTS project_invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  invoice_number TEXT,
+  amount NUMERIC(15, 2),
+  date TIMESTAMP WITH TIME ZONE,
+  vendor TEXT,
+  description TEXT,
+  status TEXT, -- 'Pending', 'Paid', 'Rejected'
+  payment_date TIMESTAMP WITH TIME ZONE,
+  phase_id UUID REFERENCES project_phases(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Contracts
+CREATE TABLE IF NOT EXISTS project_contracts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  contract_number TEXT,
+  title TEXT,
+  contractor TEXT,
+  amount NUMERIC(15, 2),
+  start_date TIMESTAMP WITH TIME ZONE,
+  end_date TIMESTAMP WITH TIME ZONE,
+  status TEXT, -- 'Draft', 'Executed', 'Complete', 'Terminated'
+  description TEXT,
+  attachment_ids JSONB, -- Array of attachment IDs
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Construction Progress
+CREATE TABLE IF NOT EXISTS construction_progress (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  percent_complete INTEGER,
+  start_date TIMESTAMP WITH TIME ZONE,
+  estimated_end_date TIMESTAMP WITH TIME ZONE,
+  actual_end_date TIMESTAMP WITH TIME ZONE,
+  current_phase TEXT,
+  delays JSONB, -- Array of delay reasons
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Attachments
+CREATE TABLE IF NOT EXISTS project_attachments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT,
+  url TEXT,
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  uploaded_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Project Tags
+CREATE TABLE IF NOT EXISTS project_tags (
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  tag TEXT,
+  PRIMARY KEY (project_id, tag)
+);
+
+-- Project Partners
+CREATE TABLE IF NOT EXISTS project_partners (
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  partner TEXT,
+  PRIMARY KEY (project_id, partner)
+);
+
+-- Project Access Control
+CREATE TABLE IF NOT EXISTS project_access_control (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  entity_id TEXT NOT NULL, -- User ID or Organization ID
+  entity_type TEXT NOT NULL, -- 'user' or 'organization'
+  role TEXT NOT NULL, -- 'viewer', 'editor', 'admin'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Scenario Analysis
+CREATE TABLE IF NOT EXISTS scenario_analysis (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  timeline TEXT,
+  cost NUMERIC(15, 2),
+  benefits JSONB, -- Array of benefit descriptions
+  drawbacks JSONB, -- Array of drawback descriptions
+  feasibility NUMERIC(5, 2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Reporting Data
+CREATE TABLE IF NOT EXISTS reporting_data (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  report_date TIMESTAMP WITH TIME ZONE,
+  report_type TEXT,
+  data JSONB,
+  submitted_by UUID REFERENCES auth.users(id),
+  status TEXT, -- 'Draft', 'Submitted', 'Approved', 'Rejected'
+  field_id TEXT,
+  field_name TEXT,
+  value JSONB,
+  report_period TEXT,
+  reported_at TIMESTAMP WITH TIME ZONE,
+  reported_by UUID REFERENCES auth.users(id),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Organizations
+CREATE TABLE IF NOT EXISTS organizations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  logo_url TEXT,
+  primary_color TEXT DEFAULT '#3b82f6',
+  secondary_color TEXT DEFAULT '#93c5fd',
+  website TEXT,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zip TEXT,
+  is_active BOOLEAN DEFAULT true,
+  is_member_agency BOOLEAN DEFAULT false,
+  parent_org_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Organization Users
+CREATE TABLE IF NOT EXISTS organization_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- 'admin', 'member', 'viewer'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE (organization_id, user_id)
+);
+
+-- NEWLY ADDED TABLES FOR MAPBOX INTEGRATION
+
+-- Map Settings
+CREATE TABLE IF NOT EXISTS map_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  default_map_style TEXT DEFAULT 'streets-v12',
+  initial_center_lat NUMERIC(9, 6) DEFAULT 37.7749,
+  initial_center_lng NUMERIC(9, 6) DEFAULT -122.4194,
+  initial_zoom INTEGER DEFAULT 12,
+  has_custom_token BOOLEAN DEFAULT false,
+  custom_mapbox_token TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Community Input Categories
+CREATE TABLE IF NOT EXISTS community_input_categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  category_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT DEFAULT '#3b82f6',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE (organization_id, category_id)
+);
+
+-- Community Input Settings
+CREATE TABLE IF NOT EXISTS community_input_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  moderation_enabled BOOLEAN DEFAULT true,
+  ai_moderation_enabled BOOLEAN DEFAULT true,
+  allow_anonymous_submissions BOOLEAN DEFAULT false,
+  notify_on_new_submission BOOLEAN DEFAULT true,
+  max_images_per_submission INTEGER DEFAULT 3,
+  keyword_filtering_enabled BOOLEAN DEFAULT true,
+  auto_approve_verified_users BOOLEAN DEFAULT true,
+  image_moderation_enabled BOOLEAN DEFAULT true,
+  spam_detection_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Community Input Moderators
+CREATE TABLE IF NOT EXISTS community_input_moderators (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- 'Admin' or 'Moderator'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id),
+  UNIQUE (organization_id, user_id)
+);
+
+-- Community Inputs
+CREATE TABLE IF NOT EXISTS community_inputs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  type TEXT NOT NULL, -- 'point', 'line', 'polygon'
+  geometry JSONB NOT NULL, -- GeoJSON geometry
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  username TEXT,
+  user_id UUID REFERENCES auth.users(id),
+  email TEXT,
+  is_anonymous BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  llm_classification TEXT,
+  moderation_note TEXT,
+  moderated_by UUID REFERENCES auth.users(id),
+  moderated_at TIMESTAMP WITH TIME ZONE,
+  ip_address TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create GIN index on geometry for spatial queries
+CREATE INDEX IF NOT EXISTS community_inputs_geometry_idx ON community_inputs USING GIN (geometry);
+
+-- Community Input Images
+CREATE TABLE IF NOT EXISTS community_input_images (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  community_input_id UUID REFERENCES community_inputs(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  filename TEXT,
+  size INTEGER,
+  content_type TEXT,
+  moderation_status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  moderation_result JSONB, -- Results from image moderation service
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Trigger to update the "updated_at" timestamp on all tables
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply the trigger to all tables with an updated_at column
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOR t IN 
+    SELECT table_name 
+    FROM information_schema.columns 
+    WHERE column_name = 'updated_at' 
+    AND table_schema = 'public'
+  LOOP
+    EXECUTE format('
+      DROP TRIGGER IF EXISTS update_timestamp ON %I;
+      CREATE TRIGGER update_timestamp
+      BEFORE UPDATE ON %I
+      FOR EACH ROW
+      EXECUTE PROCEDURE update_timestamp();
+    ', t, t);
+  END LOOP;
+END;
+$$;
+
+-- Row Level Security (RLS) Policies
+
+-- Enable RLS on all tables
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOR t IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public'
+    AND table_type = 'BASE TABLE'
+  LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', t);
+  END LOOP;
+END;
+$$;
+
+-- Create policies for projects table
+CREATE POLICY projects_select_policy ON projects
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_users 
+      WHERE organization_id = projects.organization_id
+    ) 
+    OR projects.is_public = true
+    OR (
+      projects.organization_id IN (
+        SELECT organization_id FROM organization_users WHERE user_id = auth.uid()
+      )
+    )
+    OR (
+      projects.shared_with_orgs @> jsonb_build_array(
+        (SELECT organization_id FROM organization_users WHERE user_id = auth.uid() LIMIT 1)
+      )
+    )
+  );
+
+CREATE POLICY projects_insert_policy ON projects
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM organization_users 
+      WHERE organization_id = projects.organization_id 
+      AND role IN ('admin', 'member')
+    )
+  );
+
+CREATE POLICY projects_update_policy ON projects
+  FOR UPDATE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_users 
+      WHERE organization_id = projects.organization_id 
+      AND role IN ('admin', 'member')
+    ) 
+    OR auth.uid() = projects.created_by
+  );
+
+CREATE POLICY projects_delete_policy ON projects
+  FOR DELETE USING (
+    auth.uid() IN (
+      SELECT user_id FROM organization_users 
+      WHERE organization_id = projects.organization_id 
+      AND role = 'admin'
+    ) 
+    OR auth.uid() = projects.created_by
+  );
+
+-- Policy for community inputs
+CREATE POLICY community_inputs_select_policy ON community_inputs
+  FOR SELECT USING (
+    (community_inputs.status = 'approved' OR auth.uid() IN (
+      SELECT user_id FROM community_input_moderators 
+      WHERE organization_id = community_inputs.organization_id
+    ))
+  );
+
+CREATE POLICY community_inputs_insert_policy ON community_inputs
+  FOR INSERT WITH CHECK (true); -- Allow all authenticated users to insert
+
+CREATE POLICY community_inputs_update_policy ON community_inputs
+  FOR UPDATE USING (
+    auth.uid() IN (
+      SELECT user_id FROM community_input_moderators 
+      WHERE organization_id = community_inputs.organization_id
+    ) 
+    OR auth.uid() = community_inputs.user_id
+  );
+
+CREATE POLICY community_inputs_delete_policy ON community_inputs
+  FOR DELETE USING (
+    auth.uid() IN (
+      SELECT user_id FROM community_input_moderators 
+      WHERE organization_id = community_inputs.organization_id
+      AND role = 'Admin'
+    )
+  );
+
+-- Insert default data
+
+-- Insert default community input categories
+INSERT INTO community_input_categories (organization_id, category_id, name, color)
+VALUES
+  ('00000000-0000-0000-0000-000000000000', 'general', 'General', '#3b82f6'),
+  ('00000000-0000-0000-0000-000000000000', 'safety', 'Safety', '#ef4444'),
+  ('00000000-0000-0000-0000-000000000000', 'transportation', 'Active Transportation', '#22c55e'),
+  ('00000000-0000-0000-0000-000000000000', 'maintenance', 'Maintenance', '#f59e0b'),
+  ('00000000-0000-0000-0000-000000000000', 'traffic', 'Traffic', '#8b5cf6')
+ON CONFLICT DO NOTHING;
+
+-- Insert default map settings
+INSERT INTO map_settings (organization_id, default_map_style, initial_center_lat, initial_center_lng, initial_zoom)
+VALUES
+  ('00000000-0000-0000-0000-000000000000', 'streets-v12', 37.7749, -122.4194, 12)
+ON CONFLICT DO NOTHING;
+
+-- Insert default community input settings
+INSERT INTO community_input_settings (organization_id)
+VALUES
+  ('00000000-0000-0000-0000-000000000000')
+ON CONFLICT DO NOTHING;

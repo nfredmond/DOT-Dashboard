@@ -236,7 +236,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
         }
         
       } catch (err) {
-        console.error('Error fetching spatial data:', err);
+        logger.error('Error fetching spatial data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load spatial data');
       } finally {
         setLoading(false);
@@ -254,7 +254,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
     
     // Only initialize if we have a Mapbox token
     if (!mapboxgl.accessToken) {
-      console.warn('Mapbox token not found. Using placeholder map.');
+      logger.warn('Mapbox token not found. Using placeholder map.');
       setMapInitialized(true);
       return;
     }
@@ -291,7 +291,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
         newMap.remove();
       };
     } catch (err) {
-      console.error('Error initializing map:', err);
+      logger.error('Error initializing map:', err);
       setMapInitialized(true); // Set to true to prevent continuous retries
     }
   }, [loading, mapInitialized, activityLocations]);
@@ -378,6 +378,8 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
     } else {
       // Start animation from current time if time filter is enabled,
       // otherwise start from beginning
+import logger from '../lib/logger';
+
       if (enableTimeFilter) {
         setCurrentAnimationTime(timeFilter[0]);
       } else {

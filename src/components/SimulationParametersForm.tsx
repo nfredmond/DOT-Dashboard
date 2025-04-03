@@ -78,7 +78,7 @@ interface SimulationParametersFormProps {
 export default function SimulationParametersForm({ 
   onSubmit, 
   isLoading,
-  scenarioData 
+  scenarioData: _scenarioData 
 }: SimulationParametersFormProps) {
   const [activeTab, setActiveTab] = useState('population');
   

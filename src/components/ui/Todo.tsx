@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import logger from '../../lib/logger';
+
 
 export type TodoPriority = "low" | "medium" | "high";
 export type TodoStatus = "todo" | "in-progress" | "completed";
@@ -275,7 +277,7 @@ export function ProjectTodoList({
       } catch (err) {
         setError("Failed to load tasks");
         setIsLoading(false);
-        console.error(err);
+        logger.error(err instanceof Error ? err.message : String(err));
       }
     };
     

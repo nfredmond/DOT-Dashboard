@@ -7,10 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { ScenarioMetricsChart } from '@/components/charts/scenario-metrics-chart';
 import { createClient } from '@/lib/supabase/client';
-import { Scenario, ScenarioResults } from '@/types/trend-navigator';
+import { Scenario } from '@/types/trend-navigator';
+import type { ScenarioResults } from '@/types/trend-navigator';
 import { RunStatus } from '@/types/camp';
 import logger from '../lib/logger';
 
+// Extended types to handle database schema differences
+interface ExtendedScenarioResults extends ScenarioResults {
+  metrics?: Record<string, any>;
+}
 
 interface ScenarioResultsProps {
   scenarioId: string;
@@ -22,8 +27,8 @@ export function ScenarioResults({
   showBaselineComparison = true
 }: ScenarioResultsProps) {
   const [scenario, setScenario] = useState<Scenario | null>(null);
-  const [results, setResults] = useState<ScenarioResults | null>(null);
-  const [baselineResults, setBaselineResults] = useState<ScenarioResults | null>(null);
+  const [results, setResults] = useState<ExtendedScenarioResults | null>(null);
+  const [baselineResults, setBaselineResults] = useState<ExtendedScenarioResults | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,8 @@ export function ScenarioResults({
         throw new Error(`Error fetching scenario: ${scenarioError.message}`);
       }
       
-      setScenario(scenarioData as Scenario);
+      // Use proper type assertion pattern: first to unknown, then to the target type
+      setScenario(scenarioData as unknown as Scenario);
       
       // Fetch latest model run status
       const { data: runData, error: runError } = await supabase
@@ -75,26 +81,31 @@ export function ScenarioResults({
       if (resultsError && resultsError.code !== 'PGRST116') { // Ignore "no rows returned" error
         logger.warn(`Error fetching scenario results: ${resultsError.message}`);
       } else if (resultsData) {
-        setResults(resultsData as ScenarioResults);
+        setResults(resultsData as unknown as ExtendedScenarioResults);
       }
       
       // If baseline scenario exists and we should show comparison, fetch baseline results
       if (showBaselineComparison && scenarioData.baseline_scenario_id) {
+        const baselineId = typeof scenarioData.baseline_scenario_id === 'string' 
+          ? scenarioData.baseline_scenario_id 
+          : String(scenarioData.baseline_scenario_id);
+        
         const { data: baselineResultsData, error: baselineResultsError } = await supabase
           .from('scenario_results')
           .select('*')
-          .eq('scenario_id', scenarioData.baseline_scenario_id)
+          .eq('scenario_id', baselineId)
           .single();
         
         if (baselineResultsError && baselineResultsError.code !== 'PGRST116') {
           logger.warn(`Error fetching baseline results: ${baselineResultsError.message}`);
         } else if (baselineResultsData) {
-          setBaselineResults(baselineResultsData as ScenarioResults);
+          setBaselineResults(baselineResultsData as unknown as ExtendedScenarioResults);
         }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      logger.error(err);
+      // Fix the logger.error call by ensuring err is converted to a string
+      logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

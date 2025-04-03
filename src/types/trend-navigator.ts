@@ -4,6 +4,7 @@
  * These types define the structure of TrendNavigator data and features
  */
 
+import type { Feature, FeatureCollection, Geometry } from 'geojson';
 
 /**
  * Time horizons for scenario planning
@@ -183,22 +184,18 @@ export interface ScenarioMetrics {
 export interface ScenarioResults {
   id: string;
   scenarioId: string;
-  horizonYears: number[];
-  aggregateMetrics: {
-    [year: number]: {
-      congestionIndex: number;
-      emissionsIndex: number;
-      accessibilityIndex: number;
-      equityIndex: number;
-      safetyIndex: number;
-      overallIndex: number;
-    };
-  };
-  metrics: {
-    [year: number]: ScenarioMetrics;
-  };
   createdAt: string;
-  updatedAt: string;
+  indicators: {
+    [key: string]: number | string;
+  };
+  spatialResults?: {
+    zones?: FeatureCollection;
+    networks?: FeatureCollection;
+    points?: FeatureCollection;
+  };
+  summary?: {
+    [key: string]: any;
+  };
 }
 
 /**
@@ -290,7 +287,7 @@ export interface TrendAnalysisTemplate {
   trends: string[]; // Trend IDs to include
   policies: string[]; // Policy IDs to include
   defaultHorizonYears: number[];
-  comparisonMetrics: ScenarioImpactArea[];
+  comparisonMetrics: string[]; // Impact area IDs
   visualizations: ('chart' | 'map' | 'table' | 'dashboard')[];
   preset: boolean;
 }
@@ -307,7 +304,7 @@ export interface ScenarioRecommendation {
     rationale: string;
   }>;
   policies: string[];
-  expectedOutcomes: Record<ScenarioImpactArea, {
+  expectedOutcomes: Record<string, {
     prediction: string;
     confidence: number;
   }>;
@@ -586,4 +583,41 @@ export interface TrendScenarioComparison {
     metrics: Record<string, number>;
     absolute_metrics: Record<string, number>;
   }>;
+}
+
+export interface ScenarioDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  parameters?: Record<string, any>;
+  status: 'draft' | 'running' | 'completed' | 'failed';
+  type: 'land-use' | 'transportation' | 'environmental' | 'economic' | 'custom';
+}
+
+export interface ScenarioLayerStyle {
+  id: string;
+  name: string;
+  property: string;
+  type: 'fill' | 'line' | 'circle';
+  paint: Record<string, any>;
+  legend?: {
+    stops: [number, string][];
+    title: string;
+    unit?: string;
+  };
+}
+
+export interface GeoJSONCollection {
+  type: 'FeatureCollection';
+  features: Array<Feature<Geometry, Record<string, any>>>;
+}
+
+export interface ScenarioImpactArea {
+  id: string;
+  name: string;
+  description?: string;
+  indicators: string[];
+  weight: number;
 } 

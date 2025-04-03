@@ -17,11 +17,31 @@ import {
   analyzeScenarioAspect 
 } from '@/lib/scenario-insights-service';
 import { useToast } from '@/components/ui/use-toast';
+import logger from '@/lib/logger';
+
+// Extend ScenarioResults interface to include the missing properties
+interface ExtendedScenarioResults extends ScenarioResults {
+  comparisonToBaseline?: {
+    vmtChange: number;
+    ghgEmissionsChange: number;
+    congestionIndexChange: number;
+    transitShareChange: number;
+    walkShareChange: number;
+    bikeShareChange: number;
+  };
+  horizonYears: number[];
+  aggregateMetrics: Record<string, any>;
+}
+
+// Extend ScenarioDefinition to include baselineScenarioId
+interface ExtendedScenarioDefinition extends ScenarioDefinition {
+  baselineScenarioId?: string;
+}
 
 interface ScenarioInsightsProps {
   scenarioId: string;
-  scenario: ScenarioDefinition | null;
-  results: ScenarioResults | null;
+  scenario: ExtendedScenarioDefinition | null;
+  results: ExtendedScenarioResults | null;
   isLoading?: boolean;
   className?: string;
   isBaseline?: boolean;
@@ -104,17 +124,15 @@ export default function ScenarioInsights({
 
     try {
       const focusArea = tab === 'overview' 
-        ? 'overall' 
-        : (tab as 'emissions' | 'mode_share' | 'congestion' | 'equity');
+        ? 'overview' 
+        : tab;
 
       const response = await analyzeScenarioResults(
         scenarioId,
-        results,
-        scenario,
+        focusArea,
         {
-          focusArea,
           compareToBaseline: true,
-          detailLevel: tab === 'overview' ? 'summary' : 'detailed'
+          detailLevel: tab === 'overview' ? 'brief' : 'detailed'
         }
       );
 
@@ -183,7 +201,7 @@ export default function ScenarioInsights({
       const analysis = await analyzeScenarioAspect(
         scenario.id, 
         aspect as any,
-        scenario.baselineScenarioId
+        scenario.baselineScenarioId || null
       );
       
       setAspectAnalysis(prev => ({
@@ -268,8 +286,6 @@ export default function ScenarioInsights({
                   : inverseColors ? 'text-green-500' : 'text-destructive'
               }`}>
                 {formattedChange} {change > 0 ? 'increase' : 'decrease'} from baseline
-import logger from '../lib/logger';
-
               </span>
             </div>
           )}
@@ -384,7 +400,8 @@ import logger from '../lib/logger';
                     <span>Emissions Analysis</span>
                   </div>
                   <Badge variant="outline">
-                    {results.comparisonToBaseline?.ghgEmissionsChange < 0 ? 'Improved' : 'Needs Work'}
+                    {results.comparisonToBaseline?.ghgEmissionsChange && 
+                     results.comparisonToBaseline.ghgEmissionsChange < 0 ? 'Improved' : 'Needs Work'}
                   </Badge>
                 </Button>
                 

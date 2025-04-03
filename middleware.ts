@@ -14,15 +14,7 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const isPrimaryDomain = hostname.includes(APP_DOMAIN);
   
-  // Redirect root path to homepage with highest priority
-  // Note: The root page ('/') is still accessible as a separate route in the codebase
-  // but we want authenticated users to see the dashboard by default
-  if (pathname === '/') {
-    console.log('Redirecting from root to homepage via middleware with highest priority');
-    return NextResponse.redirect(new URL('/homepage', request.url));
-  }
-  
-  // Only proceed with auth checks for non-root paths
+  // Create Supabase client to check auth
   const { supabase, response } = createClient(request);
   
   // Check auth status
@@ -47,7 +39,18 @@ export async function middleware(request: NextRequest) {
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/register'];
   
-  // Proper authentication check
+  // Handle root path redirect based on authentication status
+  if (pathname === '/') {
+    if (session) {
+      // User is authenticated, redirect to homepage
+      console.log('Redirecting authenticated user from root to homepage');
+      return NextResponse.redirect(new URL('/homepage', request.url));
+    } else {
+      // User is not authenticated, redirect directly to login
+      console.log('Redirecting unauthenticated user from root to login');
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
   
   // If the user is not authenticated and trying to access a protected route
   if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {

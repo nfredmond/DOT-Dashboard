@@ -46,7 +46,6 @@ import {
   Trash2,
   Save,
   Map,
-  Layers,
   Globe,
   Users,
   Settings,
@@ -56,7 +55,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getAvailableMapTypes, getDefaultMapType } from "@/lib/map-service";
+import { getDefaultMapType, getMapboxStyles } from "@/lib/map-service";
 import {
   RadioGroup,
   RadioGroupItem,
@@ -72,6 +71,7 @@ import {
   saveMaps,
   updateDefaultBaseMap
 } from "@/lib/map-config-service";
+import logger from '@/lib/logger';
 
 // Types
 interface MapProviderGroup {
@@ -109,7 +109,7 @@ export function MapSettingsManager() {
   const [newMapForm, setNewMapForm] = useState({
     name: "",
     description: "",
-    baseMap: "cartoPositron",
+    baseMap: "cartoVoyager",
     assignedTo: ["all"],
     baseMapProvider: "default",
   });
@@ -122,66 +122,38 @@ export function MapSettingsManager() {
     url: "",
   });
 
-  // Get available base maps
-  const availableMapTypes = getAvailableMapTypes();
-
   // Get base maps organized by provider
   const getBaseMapsGroupedByProvider = () => {
     const result: MapProviderGroup[] = [];
     
-    // Add maps from enabled providers
-    if (mapProviders.find(p => p.provider === 'mapbox' && p.isEnabled)) {
-      result.push({ 
-        provider: 'Mapbox',
-        maps: [
-          { value: 'mapboxStreets', label: 'Mapbox Streets' },
-          { value: 'mapboxSatellite', label: 'Mapbox Satellite' },
-          { value: 'mapboxLight', label: 'Mapbox Light' }
-        ]
-      });
-    }
+    // Get map styles with API keys if available
+    const apiKeys: Record<string, string> = {};
+    mapProviders.forEach(p => {
+      if (p.isEnabled && p.apiKey) {
+        apiKeys[p.provider] = p.apiKey;
+      }
+    });
     
-    if (mapProviders.find(p => p.provider === 'maptiler' && p.isEnabled)) {
-      result.push({ 
-        provider: 'MapTiler',
-        maps: [
-          { value: 'maptilerStreets', label: 'MapTiler Streets' },
-          { value: 'maptilerSatellite', label: 'MapTiler Satellite' },
-          { value: 'maptilerOutdoors', label: 'MapTiler Outdoors' }
-        ]
-      });
-    }
-
-    if (mapProviders.find(p => p.provider === 'carto' && p.isEnabled)) {
-      result.push({ 
-        provider: 'CARTO',
-        maps: [
-          { value: 'cartoPositron', label: 'CARTO Positron' },
-          { value: 'cartoDarkMatter', label: 'CARTO Dark Matter' },
-          { value: 'cartoVoyager', label: 'CARTO Voyager' }
-        ]
-      });
-    }
+    const styles = getMapboxStyles(apiKeys);
     
-    if (mapProviders.find(p => p.provider === 'osm' && p.isEnabled)) {
-      result.push({ 
-        provider: 'OpenStreetMap',
-        maps: [
-          { value: 'osm', label: 'OpenStreetMap' }
-        ]
-      });
-    }
-    
-    // Add custom provider if enabled
-    const customProvider = mapProviders.find(p => p.provider === 'custom' && p.isEnabled);
-    if (customProvider) {
-      result.push({ 
-        provider: customProvider.name,
-        maps: [
-          { value: 'custom', label: customProvider.name }
-        ]
-      });
-    }
+    // Group by provider
+    mapProviders.forEach(provider => {
+      if (!provider.isEnabled) return;
+      
+      const providerStyles = styles.filter(s => s.provider === provider.provider);
+      if (providerStyles.length > 0) {
+        result.push({
+          provider: provider.name,
+          maps: providerStyles.map(s => ({ value: s.id, label: s.label }))
+        });
+      } else if (provider.provider === 'custom') {
+        // Add custom provider even if no predefined styles
+        result.push({
+          provider: provider.name,
+          maps: [{ value: 'custom', label: provider.name }]
+        });
+      }
+    });
     
     return result;
   };
@@ -217,7 +189,7 @@ export function MapSettingsManager() {
     saveMapProviders(updatedProviders); // Save to service
     
     // Mock saving to environment variables
-    console.log(`Saved API key for provider ${providerId}`);
+    logger.info(`Saved API key for provider ${providerId}`);
   };
 
   // Handler to create a new map
@@ -242,7 +214,7 @@ export function MapSettingsManager() {
     setNewMapForm({
       name: "",
       description: "",
-      baseMap: "cartoPositron",
+      baseMap: "cartoVoyager",
       baseMapProvider: "default",
       assignedTo: ["all"],
     });
@@ -286,37 +258,6 @@ export function MapSettingsManager() {
     setIsNewLayerDialogOpen(false);
   };
 
-  // Handler to remove a layer
-  const handleRemoveLayer = (mapId: string, layerId: string) => {
-    const updatedMaps = maps.map(map => 
-      map.id === mapId 
-        ? { ...map, layers: map.layers.filter(layer => layer.id !== layerId) } 
-        : map
-    );
-    
-    setMaps(updatedMaps);
-    saveMaps(updatedMaps); // Save to service
-  };
-
-  // Handler to toggle layer visibility
-  const handleToggleLayerVisibility = (mapId: string, layerId: string) => {
-    const updatedMaps = maps.map(map => 
-      map.id === mapId 
-        ? { 
-            ...map, 
-            layers: map.layers.map(layer => 
-              layer.id === layerId 
-                ? { ...layer, visible: !layer.visible }
-                : layer
-            ) 
-          } 
-        : map
-    );
-    
-    setMaps(updatedMaps);
-    saveMaps(updatedMaps); // Save to service
-  };
-
   // Handler to set a map as default
   const handleSetDefaultMap = (mapId: string) => {
     const updatedMaps = maps.map(map => ({
@@ -339,13 +280,6 @@ export function MapSettingsManager() {
     const updatedMaps = maps.filter(map => map.id !== mapId);
     setMaps(updatedMaps);
     saveMaps(updatedMaps); // Save to service
-  };
-
-  // Function to format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    else return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   // Add a new state and handler for global base map settings
@@ -616,12 +550,14 @@ export function MapSettingsManager() {
                     </SelectTrigger>
                     <SelectContent>
                       {newMapForm.baseMapProvider === 'default' ? (
-                        // Show all available maps
-                        availableMapTypes.map((mapType) => (
-                          <SelectItem key={mapType.value} value={mapType.value}>
-                            {mapType.label}
-                          </SelectItem>
-                        ))
+                        // Show all available maps from all providers
+                        getBaseMapsGroupedByProvider().flatMap(group => 
+                          group.maps.map(map => (
+                            <SelectItem key={map.value} value={map.value}>
+                              {group.provider} - {map.label}
+                            </SelectItem>
+                          ))
+                        )
                       ) : (
                         // Show maps for selected provider
                         getBaseMapsGroupedByProvider()
@@ -629,9 +565,9 @@ export function MapSettingsManager() {
                             group.provider === mapProviders.find(p => p.provider === newMapForm.baseMapProvider)?.name
                           )
                           .flatMap(group => group.maps)
-                          .map(mapType => (
-                            <SelectItem key={mapType.value} value={mapType.value}>
-                              {mapType.label}
+                          .map(map => (
+                            <SelectItem key={map.value} value={map.value}>
+                              {map.label}
                             </SelectItem>
                           ))
                       )}
@@ -706,7 +642,11 @@ export function MapSettingsManager() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {availableMapTypes.find(m => m.value === map.baseMap)?.label || map.baseMap}
+                    {
+                      getBaseMapsGroupedByProvider()
+                        .flatMap(group => group.maps)
+                        .find(style => style.value === map.baseMap)?.label || map.baseMap
+                    }
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -755,12 +695,12 @@ export function MapSettingsManager() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                         onClick={() => handleRemoveMap(map.id)}
                         disabled={map.isDefault}
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
+                        <span className="sr-only">Delete Map</span>
                       </Button>
                     </div>
                   </TableCell>
@@ -771,260 +711,51 @@ export function MapSettingsManager() {
         </CardContent>
       </Card>
 
-      {/* Layers Management Section */}
-      <Tabs defaultValue={maps[0]?.id}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Layer Management</CardTitle>
-            <CardDescription>
-              Manage map layers for each map configuration
-            </CardDescription>
-            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {maps.map((map) => (
-                <TabsTrigger key={map.id} value={map.id}>
-                  {map.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </CardHeader>
-          <CardContent>
-            {maps.map((map) => (
-              <TabsContent key={map.id} value={map.id} className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Layers for {map.name}</h3>
-                  <Button 
-                    className="flex items-center gap-2"
-                    onClick={() => {
-                      setSelectedMap(map);
-                      setIsNewLayerDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Layer</span>
-                  </Button>
-                </div>
-
-                {map.layers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 border border-dashed rounded-md">
-                    <Layers className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">No layers added yet</p>
-                    <Button 
-                      variant="link" 
-                      className="mt-2"
-                      onClick={() => {
-                        setSelectedMap(map);
-                        setIsNewLayerDialogOpen(true);
-                      }}
-                    >
-                      Add your first layer
-                    </Button>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Visible</TableHead>
-                        <TableHead>Layer Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Details</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {map.layers.map((layer) => (
-                        <TableRow key={layer.id}>
-                          <TableCell>
-                            <Switch
-                              checked={layer.visible}
-                              onCheckedChange={() => handleToggleLayerVisibility(map.id, layer.id)}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            <div className="flex flex-col">
-                              <span>{layer.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {layer.description}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                layer.type === 'kmz' 
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                                  : layer.type === 'external'
-                                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-                                  : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                              }
-                            >
-                              {layer.type === 'kmz' ? 'KMZ File' : 
-                               layer.type === 'external' ? 'External URL' : 
-                               'Custom Layer'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {layer.type === 'kmz' && layer.fileInfo ? (
-                              <div className="flex flex-col text-xs">
-                                <span className="font-medium">{layer.fileInfo.name}</span>
-                                <span>{formatFileSize(layer.fileInfo.size)}</span>
-                                <span>Uploaded: {layer.fileInfo.uploadDate}</span>
-                              </div>
-                            ) : layer.type === 'external' && layer.url ? (
-                              <div className="flex flex-col text-xs">
-                                <span className="font-medium truncate max-w-[200px]">{layer.url}</span>
-                              </div>
-                            ) : (
-                              <span className="text-xs">System defined layer</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleRemoveLayer(map.id, layer.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </TabsContent>
-            ))}
-          </CardContent>
-        </Card>
-      </Tabs>
-
-      {/* New Layer Dialog */}
-      <Dialog open={isNewLayerDialogOpen} onOpenChange={setIsNewLayerDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Layer</DialogTitle>
-            <DialogDescription>
-              {selectedMap ? `Add a new layer to ${selectedMap.name}` : 'Add a new map layer'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="layerName">Layer Name</Label>
-              <Input
-                id="layerName"
-                value={newLayerForm.name}
-                onChange={(e) => setNewLayerForm({ ...newLayerForm, name: e.target.value })}
-                placeholder="Highway Network"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="layerDescription">Description</Label>
-              <Textarea
-                id="layerDescription"
-                value={newLayerForm.description}
-                onChange={(e) => setNewLayerForm({ ...newLayerForm, description: e.target.value })}
-                placeholder="Describe what this layer shows"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="layerType">Layer Type</Label>
-              <Select
-                value={newLayerForm.type}
-                onValueChange={(value: 'kmz' | 'custom' | 'external') => setNewLayerForm({ ...newLayerForm, type: value })}
-              >
-                <SelectTrigger id="layerType">
-                  <SelectValue placeholder="Select layer type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="kmz">KMZ File Upload</SelectItem>
-                  <SelectItem value="external">External URL</SelectItem>
-                  <SelectItem value="custom">Custom Layer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {newLayerForm.type === 'kmz' && (
-              <div className="grid gap-2">
-                <Label htmlFor="kmzFile">KMZ File</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="kmzFile"
-                    type="file"
-                    accept=".kmz,.kml"
-                    className="flex-1"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setNewLayerForm({ ...newLayerForm, file: e.target.files[0] });
-                      }
-                    }}
-                  />
-                </div>
-                {newLayerForm.file && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {newLayerForm.file.name} ({formatFileSize(newLayerForm.file.size)})
-                  </p>
-                )}
-              </div>
-            )}
-
-            {newLayerForm.type === 'external' && (
-              <div className="grid gap-2">
-                <Label htmlFor="layerUrl">URL</Label>
-                <Input
-                  id="layerUrl"
-                  value={newLayerForm.url}
-                  onChange={(e) => setNewLayerForm({ ...newLayerForm, url: e.target.value })}
-                  placeholder="https://example.com/geojson-data.json"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter a URL to a GeoJSON, KML, or other supported geo data format
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewLayerDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddLayer}>Add Layer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Map Provider Configuration Dialog */}
+      {/* Edit Provider Dialog */}
       <Dialog open={isEditProviderDialogOpen} onOpenChange={setIsEditProviderDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Configure Map Provider</DialogTitle>
+            <DialogTitle>Configure Provider</DialogTitle>
             <DialogDescription>
-              {selectedProvider ? `Configure settings for ${selectedProvider.name}` : 'Configure map provider settings'}
+              {selectedProvider?.name} provider settings
             </DialogDescription>
           </DialogHeader>
+          
           {selectedProvider && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="providerName">Provider Name</Label>
+                <Label htmlFor="name">Display Name</Label>
                 <Input
-                  id="providerName"
+                  id="name"
                   value={selectedProvider.name}
                   onChange={(e) => setSelectedProvider({ ...selectedProvider, name: e.target.value })}
                 />
               </div>
               
-              <div className="grid gap-2">
-                <Label htmlFor="providerStatus">Status</Label>
-                <div className="flex items-center gap-2">
-                  <Switch 
-                    id="providerStatus"
-                    checked={selectedProvider.isEnabled}
-                    onCheckedChange={(checked) => {
-                      setSelectedProvider({ ...selectedProvider, isEnabled: checked });
-                    }}
-                  />
-                  <span>{selectedProvider.isEnabled ? 'Enabled' : 'Disabled'}</span>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="isEnabled"
+                  checked={selectedProvider.isEnabled}
+                  onCheckedChange={(checked) => 
+                    setSelectedProvider({ ...selectedProvider, isEnabled: checked as boolean })
+                  }
+                />
+                <Label htmlFor="isEnabled">
+                  Enabled
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="isDefault"
+                  checked={selectedProvider.isDefault}
+                  onCheckedChange={(checked) => 
+                    setSelectedProvider({ ...selectedProvider, isDefault: checked as boolean })
+                  }
+                />
+                <Label htmlFor="isDefault">
+                  Default Provider
+                </Label>
               </div>
               
               {selectedProvider.provider !== 'osm' && selectedProvider.provider !== 'carto' && (
@@ -1069,33 +800,113 @@ export function MapSettingsManager() {
                 </>
               )}
               
-              <div className="grid gap-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    id="isDefault"
-                    checked={selectedProvider.isDefault}
-                    onCheckedChange={(checked) => {
-                      setSelectedProvider({ ...selectedProvider, isDefault: !!checked });
-                    }}
-                  />
-                  <Label htmlFor="isDefault">Set as default provider</Label>
-                </div>
+              <div className="pt-4">
+                <Button 
+                  onClick={() => {
+                    if (selectedProvider) {
+                      handleUpdateProvider(selectedProvider);
+                      setIsEditProviderDialogOpen(false);
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Provider Settings
+                </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Layer Dialog */}
+      <Dialog open={isNewLayerDialogOpen} onOpenChange={setIsNewLayerDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Map Layer</DialogTitle>
+            <DialogDescription>
+              {selectedMap?.name ? `Add a layer to ${selectedMap.name}` : 'Add a new map layer'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="layerName">Layer Name</Label>
+              <Input
+                id="layerName"
+                value={newLayerForm.name}
+                onChange={(e) => setNewLayerForm({ ...newLayerForm, name: e.target.value })}
+                placeholder="Important Locations"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="layerDescription">Description</Label>
+              <Textarea
+                id="layerDescription"
+                value={newLayerForm.description}
+                onChange={(e) => setNewLayerForm({ ...newLayerForm, description: e.target.value })}
+                placeholder="Description of this layer's data"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="layerType">Layer Type</Label>
+              <Tabs 
+                value={newLayerForm.type} 
+                onValueChange={(v) => setNewLayerForm({ ...newLayerForm, type: v as any })}
+              >
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="kmz">KMZ/KML</TabsTrigger>
+                  <TabsTrigger value="custom">Custom</TabsTrigger>
+                  <TabsTrigger value="external">External</TabsTrigger>
+                </TabsList>
+                <TabsContent value="kmz" className="pt-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="kmzFile">Upload KMZ/KML File</Label>
+                    <Input
+                      id="kmzFile"
+                      type="file"
+                      accept=".kmz,.kml"
+                      onChange={(e) => setNewLayerForm({ 
+                        ...newLayerForm, 
+                        file: e.target.files ? e.target.files[0] : null
+                      })}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="custom" className="pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Custom layers are created within the app by drawing or uploading GeoJSON.
+                  </div>
+                </TabsContent>
+                <TabsContent value="external" className="pt-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="externalUrl">External Layer URL</Label>
+                    <Input
+                      id="externalUrl"
+                      value={newLayerForm.url}
+                      onChange={(e) => setNewLayerForm({ ...newLayerForm, url: e.target.value })}
+                      placeholder="https://example.com/api/layer"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter URL for an external GeoJSON or WMS layer
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditProviderDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsNewLayerDialogOpen(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={() => {
-                if (selectedProvider) {
-                  handleUpdateProvider(selectedProvider);
-                  setIsEditProviderDialogOpen(false);
-                }
-              }}
+              onClick={handleAddLayer}
+              disabled={!newLayerForm.name}
             >
-              Save Changes
+              Add Layer
             </Button>
           </DialogFooter>
         </DialogContent>

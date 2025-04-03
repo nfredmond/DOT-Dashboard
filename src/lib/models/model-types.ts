@@ -167,8 +167,8 @@ export interface AIModel {
  * Standard models available in the application, in order of priority
  * 1. Claude 3.7 Sonnet Thinking (default)
  * 2. Claude 3.7 Sonnet
- * 3. OpenAI o3-mini-thinking
- * 4. OpenAI o3-mini
+ * 3. OpenAI o3-mini
+ * 4. OpenAI o3-mini-thinking
  * 5. OpenAI o1-pro (research)
  * 6. Meta Llama 3
  * 7. Google GEMMA 3
@@ -215,24 +215,6 @@ export const standardModels: AIModel[] = [
     priority: 2
   },
   {
-    id: 'openai-o3-mini-thinking',
-    name: 'OpenAI o3-mini-thinking',
-    provider: 'openai',
-    maxTokens: 128000,
-    capabilities: {
-      thinking: true,
-      streaming: true,
-      vision: true,
-      functionCalling: true,
-      longContext: true,
-      codeGeneration: true,
-      research: false,
-    },
-    contextWindow: 128000,
-    description: 'Compact OpenAI model with thinking capabilities',
-    priority: 3
-  },
-  {
     id: 'openai-o3-mini',
     name: 'OpenAI o3-mini',
     provider: 'openai',
@@ -248,6 +230,24 @@ export const standardModels: AIModel[] = [
     },
     contextWindow: 128000,
     description: 'Compact OpenAI model with good performance',
+    priority: 3
+  },
+  {
+    id: 'openai-o3-mini-thinking',
+    name: 'OpenAI o3-mini-thinking',
+    provider: 'openai',
+    maxTokens: 128000,
+    capabilities: {
+      thinking: true,
+      streaming: true,
+      vision: true,
+      functionCalling: true,
+      longContext: true,
+      codeGeneration: true,
+      research: false,
+    },
+    contextWindow: 128000,
+    description: 'Compact OpenAI model with thinking capabilities',
     priority: 4
   },
   {

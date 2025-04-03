@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, LayersControl, useMap } from 'react-leaflet';
-import { FeatureGroup } from 'leaflet';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,489 +8,390 @@ import { Badge } from '@/components/ui/badge';
 import { InfoIcon, RefreshCw } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScenarioDefinition, ScenarioResults } from '@/types/trend-navigator';
-import { fetchZoneGeometry, fetchNetworkGeometry, getColorForValue } from '@/lib/map-service';
+import { ScenarioDefinition, ScenarioResults, GeoJSONCollection } from '@/types/trend-navigator';
+import { fetchZoneGeometry, fetchNetworkGeometry } from '@/lib/map-service';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
-import L from 'leaflet';
-import logger from '../lib/logger';
+import logger from '@/lib/logger';
+import MapboxMap from '@/components/ui/mapbox-map';
+import { MapboxProvider } from '@/contexts/mapbox-context';
+import MapboxSource from '@/components/ui/mapbox-source';
+import MapboxLayer from '@/components/ui/mapbox-layer';
+import MapboxStyleSwitcher from '@/components/ui/mapbox-style-switcher';
+import { getMapboxStyleForMap } from '@/lib/map-config-service';
+import mapboxgl from 'mapbox-gl';
 
-
-type MapMode = 'zones' | 'network';
-type ScenarioMapMetric = 
-  | 'vmt' 
-  | 'emissions' 
-  | 'congestion' 
-  | 'transitShare' 
-  | 'accessibility' 
-  | 'equity';
+// Generate a color scale for choropleth maps
+const generateColorScale = (min: number, max: number): [number, string][] => {
+  const range = max - min;
+  return [
+    [min, '#edf8e9'],
+    [min + range * 0.25, '#bae4b3'],
+    [min + range * 0.5, '#74c476'],
+    [min + range * 0.75, '#31a354'],
+    [max, '#006d2c'],
+  ];
+};
 
 interface ScenarioMapViewProps {
   scenario: ScenarioDefinition;
-  results: ScenarioResults | null;
-  className?: string;
+  results?: ScenarioResults;
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
-// Component to handle map re-centering
-function MapController({ focusedZone }: { focusedZone: any | null }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (focusedZone && focusedZone.geometry) {
-      try {
-        const layer = new FeatureGroup();
-        const geoJson = L.geoJSON(focusedZone);
-        geoJson.addTo(layer);
-        
-        map.fitBounds(layer.getBounds(), { padding: [50, 50] });
-      } catch (error) {
-        logger.error('Error focusing on zone:', error);
-      }
-    }
-  }, [focusedZone, map]);
-  
-  return null;
-}
-
-export function ScenarioMapView({ scenario, results, className = '' }: ScenarioMapViewProps) {
-  const [zoneGeometry, setZoneGeometry] = useState<any[] | null>(null);
-  const [networkGeometry, setNetworkGeometry] = useState<any[] | null>(null);
-  const [mapMode, setMapMode] = useState<MapMode>('zones');
-  const [selectedMetric, setSelectedMetric] = useState<ScenarioMapMetric>('vmt');
-  const [loading, setLoading] = useState(false);
+export function ScenarioMapView({ results, isLoading = false, onRefresh }: ScenarioMapViewProps) {
+  const [activeLayer, setActiveLayer] = useState<string>('zones');
+  const [zoneData, setZoneData] = useState<GeoJSONCollection | null>(null);
+  const [networkData, setNetworkData] = useState<GeoJSONCollection | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<string>('');
+  const [selectedFeature, setSelectedFeature] = useState<mapboxgl.MapboxGeoJSONFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [focusedZone, setFocusedZone] = useState<any | null>(null);
-  
-  const _mapRef = useRef<L.Map | null>(null);
-  const _geoJsonLayerRef = useRef<L.GeoJSON | null>(null);
-  
-  const loadGeoData = useCallback(async () => {
-    if (!scenario?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const zones = await fetchZoneGeometry(scenario.id);
-      setZoneGeometry(zones);
-      
-      const network = await fetchNetworkGeometry(scenario.id);
-      setNetworkGeometry(network);
-    } catch (err) {
-      logger.error('Error loading geometry data:', err);
-      setError('Failed to load map data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [scenario?.id]);
-  
+  const [colorScale, setColorScale] = useState<[number, string][]>([]);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  // Load zone geometries
   useEffect(() => {
-    loadGeoData();
-  }, [loadGeoData]);
-  
-  const getMetricValue = (feature: any): number => {
-    if (!results || !feature.properties) return 0;
-    
-    const zoneId = feature.properties.zone_id || feature.properties.id;
-    
-    if (!zoneId) return 0;
-    
-    const horizonYear = results.horizonYears[0];
-    
-    if (mapMode === 'zones') {
-      const zoneMetrics = results.spatialResults?.zoneMetrics?.[horizonYear]?.[zoneId];
-      
-      if (!zoneMetrics) return 0;
-      
-      switch (selectedMetric) {
-        case 'vmt':
-          return zoneMetrics.vmt || 0;
-        case 'emissions':
-          return zoneMetrics.ghgEmissions || 0;
-        case 'congestion':
-          return zoneMetrics.congestionIndex || 0;
-        case 'transitShare':
-          return (zoneMetrics.modeShares?.transit || 0) * 100;
-        case 'accessibility':
-          return zoneMetrics.accessibilityIndex || 0;
-        case 'equity':
-          return zoneMetrics.equityScore || 0;
-        default:
-          return 0;
+    const loadZoneGeometry = async () => {
+      try {
+        const data = await fetchZoneGeometry('default');
+        setZoneData(data as GeoJSONCollection);
+      } catch (err) {
+        setError('Failed to load zone data');
+        logger.error('Failed to load zone data', err);
       }
+    };
+
+    loadZoneGeometry();
+  }, []);
+
+  // Load network geometries
+  useEffect(() => {
+    const loadNetworkGeometry = async () => {
+      try {
+        const data = await fetchNetworkGeometry('default');
+        setNetworkData(data as GeoJSONCollection);
+      } catch (err) {
+        setError('Failed to load network data');
+        logger.error('Failed to load network data', err);
+      }
+    };
+
+    loadNetworkGeometry();
+  }, []);
+
+  // Generate property options for the active layer
+  const propertyOptions = useCallback(() => {
+    if (!results || !results.spatialResults) return [];
+    
+    const layerData = activeLayer === 'zones' 
+      ? results.spatialResults.zones
+      : activeLayer === 'networks' 
+        ? results.spatialResults.networks
+        : null;
+
+    if (!layerData || !layerData.features || layerData.features.length === 0) return [];
+
+    // Get all properties from the first feature
+    const properties = layerData.features[0].properties || {};
+    return Object.keys(properties)
+      .filter(key => !['id', 'name', 'geometry'].includes(key) && typeof properties[key] === 'number')
+      .map(key => ({
+        id: key,
+        name: key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        value: key
+      }));
+  }, [activeLayer, results]);
+
+  // When property selection changes, update the color scale
+  useEffect(() => {
+    if (!selectedProperty || !results || !results.spatialResults) return;
+    
+    const layerData = activeLayer === 'zones' 
+      ? results.spatialResults.zones
+      : activeLayer === 'networks' 
+        ? results.spatialResults.networks
+        : null;
+
+    if (!layerData || !layerData.features) return;
+
+    // Find min/max values for the selected property
+    let min = Infinity;
+    let max = -Infinity;
+    
+    layerData.features.forEach(feature => {
+      if (feature.properties && typeof feature.properties[selectedProperty] === 'number') {
+        min = Math.min(min, feature.properties[selectedProperty]);
+        max = Math.max(max, feature.properties[selectedProperty]);
+      }
+    });
+
+    if (min !== Infinity && max !== -Infinity) {
+      setColorScale(generateColorScale(min, max));
+    }
+  }, [selectedProperty, activeLayer, results]);
+
+  // Handle feature click on the map
+  const handleFeatureClick = useCallback((e: mapboxgl.MapMouseEvent) => {
+    const features = e.target.queryRenderedFeatures(e.point, {
+      layers: [`${activeLayer}-layer`]
+    });
+    
+    if (features.length > 0) {
+      setSelectedFeature(features[0]);
     } else {
-      const linkId = feature.properties.link_id;
-      const linkMetrics = results.spatialResults?.linkMetrics?.[horizonYear]?.[linkId];
-      
-      if (!linkMetrics) return 0;
-      
-      switch (selectedMetric) {
-        case 'vmt':
-          return linkMetrics.volume || 0;
-        case 'congestion':
-          return linkMetrics.congestionRatio || 0;
-        case 'transitShare':
-          return linkMetrics.transitVolume || 0;
-        default:
-          return 0;
-      }
+      setSelectedFeature(null);
     }
-  };
-  
-  const zoneStyle = (feature: any) => {
-    const value = getMetricValue(feature);
-    
-    // Get min/max values for current metric for normalization
-    let min = Infinity;
-    let max = -Infinity;
-    
-    if (zoneGeometry) {
-      zoneGeometry.forEach(zone => {
-        const zoneValue = getMetricValue(zone);
-        min = Math.min(min, zoneValue);
-        max = Math.max(max, zoneValue);
-      });
+  }, [activeLayer]);
+
+  // Map style expression for choropleth coloring
+  const getMapFillExpression = useCallback(() => {
+    if (!selectedProperty || !colorScale.length) return ['rgba', 200, 200, 200, 0.6];
+
+    return [
+      'interpolate',
+      ['linear'],
+      ['get', selectedProperty],
+      ...colorScale.flat()
+    ];
+  }, [selectedProperty, colorScale]);
+
+  // Prepare layer styles based on the selected property
+  const getLayerPaint = useCallback(() => {
+    if (activeLayer === 'zones') {
+      return {
+        'fill-color': getMapFillExpression(),
+        'fill-opacity': 0.7,
+        'fill-outline-color': '#000'
+      };
     }
     
-    // Use appropriate color scheme based on metric
-    let colorScheme: 'red' | 'green' | 'blue' = 'blue';
-    
-    switch (selectedMetric) {
-      case 'vmt':
-      case 'emissions':
-      case 'congestion':
-        colorScheme = 'red'; // Higher is worse
-        break;
-      case 'transitShare':
-      case 'accessibility':
-      case 'equity':
-        colorScheme = 'green'; // Higher is better
-        break;
+    if (activeLayer === 'networks') {
+      return {
+        'line-color': getMapFillExpression(),
+        'line-width': 3,
+        'line-opacity': 0.8
+      };
     }
     
-    // Get color based on value
-    const fillColor = getColorForValue(value, min, max, colorScheme);
-    
-    return {
-      fillColor,
-      weight: 1,
-      opacity: 1,
-      color: 'white',
-      fillOpacity: 0.7
-    };
-  };
-  
-  const linkStyle = (feature: any) => {
-    const value = getMetricValue(feature);
-    
-    // Get min/max values for current metric for normalization
-    let min = Infinity;
-    let max = -Infinity;
-    
-    if (networkGeometry) {
-      networkGeometry.forEach(link => {
-        const linkValue = getMetricValue(link);
-        min = Math.min(min, linkValue);
-        max = Math.max(max, linkValue);
-      });
-    }
-    
-    // Use appropriate color scheme based on metric
-    let colorScheme: 'red' | 'green' | 'blue' = 'blue';
-    
-    switch (selectedMetric) {
-      case 'vmt':
-      case 'congestion':
-        colorScheme = 'red'; // Higher is worse
-        break;
-      case 'transitShare':
-        colorScheme = 'green'; // Higher is better
-        break;
-      default:
-        colorScheme = 'blue';
-    }
-    
-    // Get color based on value
-    const color = getColorForValue(value, min, max, colorScheme);
-    
-    return {
-      color,
-      weight: 3 + Math.min(value / max * 5, 5), // Width based on value
-      opacity: 0.8
-    };
-  };
-  
-  const handleZoneClick = (event: any) => {
-    const feature = event.target.feature;
-    setFocusedZone(feature);
-  };
-  
-  const getFormattedMetricValue = (value: number): string => {
-    switch (selectedMetric) {
-      case 'vmt':
-        return value.toLocaleString() + ' miles';
-      case 'emissions':
-        return value.toLocaleString() + ' tons';
-      case 'congestion':
-        return value.toFixed(2) + ' index';
-      case 'transitShare':
-        return value.toFixed(1) + '%';
-      case 'accessibility':
-        return value.toFixed(2) + ' index';
-      case 'equity':
-        return value.toFixed(2) + ' score';
-      default:
-        return value.toString();
-    }
-  };
-  
-  const getMetricName = (metric: ScenarioMapMetric): string => {
-    switch (metric) {
-      case 'vmt':
-        return 'Vehicle Miles Traveled';
-      case 'emissions':
-        return 'GHG Emissions';
-      case 'congestion':
-        return 'Congestion Index';
-      case 'transitShare':
-        return 'Transit Share';
-      case 'accessibility':
-        return 'Accessibility Index';
-      case 'equity':
-        return 'Equity Score';
-      default:
-        return metric;
-    }
-  };
-  
-  const handleMapAction = (action: string) => {
-    if (action === 'refresh') {
-      loadGeoData();
-    } else if (action === 'resetView' && zoneGeometry?.length) {
-      setFocusedZone(null);
-      // Map reset handled by controller
-    }
-  };
-  
-  // If no results, show message
+    return {};
+  }, [activeLayer, getMapFillExpression]);
+
+  const handleMapLoad = useCallback((map: mapboxgl.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  // When no results are available
   if (!results) {
     return (
-      <Card className={className}>
+      <Card className="h-full w-full">
         <CardHeader>
           <CardTitle>Scenario Map</CardTitle>
-          <CardDescription>Run scenario to see spatial results</CardDescription>
+          <CardDescription>
+            Visualize scenario metrics on the map
+          </CardDescription>
         </CardHeader>
-        <CardContent className="h-[500px] flex items-center justify-center">
+        <CardContent className="h-[500px] relative flex flex-col items-center justify-center">
           <Alert>
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>No Results Available</AlertTitle>
             <AlertDescription>
-              Run this scenario to view geographical results
+              Run the scenario to view spatial results on the map.
             </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
     );
   }
-  
-  // Check if spatial results are available
-  if (results && (!results.spatialResults || (!results.spatialResults.zoneMetrics && !results.spatialResults.linkMetrics))) {
+
+  // When results are loading
+  if (isLoading) {
     return (
-      <Card className={className}>
+      <Card className="h-full w-full">
         <CardHeader>
           <CardTitle>Scenario Map</CardTitle>
-          <CardDescription>No spatial data available</CardDescription>
+          <CardDescription>
+            Loading scenario results...
+          </CardDescription>
         </CardHeader>
-        <CardContent className="h-[500px] flex items-center justify-center">
-          <Alert>
-            <InfoIcon className="h-4 w-4" />
-            <AlertTitle>No Spatial Data</AlertTitle>
-            <AlertDescription>
-              This scenario does not include spatial results
-            </AlertDescription>
-          </Alert>
+        <CardContent className="h-[500px] relative flex flex-col items-center justify-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-muted-foreground">Loading spatial data...</p>
         </CardContent>
       </Card>
     );
   }
   
+  const hasZoneData = results.spatialResults?.zones && results.spatialResults.zones.features.length > 0;
+  const hasNetworkData = results.spatialResults?.networks && results.spatialResults.networks.features.length > 0;
+  
   return (
-    <Card className={className}>
+    <Card className="h-full w-full">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-center">
           <div>
             <CardTitle>Scenario Map</CardTitle>
             <CardDescription>
-              Spatial analysis for {scenario.name}
+              Visualize scenario metrics on the map
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleMapAction('refresh')}
-              disabled={loading}
-            >
-              {loading ? <Spinner size="sm" className="mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          {onRefresh && (
+            <Button variant="outline" size="sm" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-          </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="py-2 flex flex-wrap gap-4 items-center">
-          <div className="flex flex-col space-y-1">
-            <Label htmlFor="metric-select">Metric</Label>
-            <Select
-              value={selectedMetric}
-              onValueChange={(value) => setSelectedMetric(value as ScenarioMapMetric)}
-            >
-              <SelectTrigger id="metric-select" className="w-[180px]">
-                <SelectValue placeholder="Select Metric" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vmt">Vehicle Miles Traveled</SelectItem>
-                <SelectItem value="emissions">GHG Emissions</SelectItem>
-                <SelectItem value="congestion">Congestion</SelectItem>
-                <SelectItem value="transitShare">Transit Share</SelectItem>
-                <SelectItem value="accessibility">Accessibility</SelectItem>
-                <SelectItem value="equity">Equity</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex flex-col space-y-1">
-            <Label htmlFor="map-mode">View</Label>
+        <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div className="w-full sm:w-1/3">
+            <Label htmlFor="layer-type">Layer Type</Label>
             <Tabs
-              value={mapMode}
-              onValueChange={(value) => setMapMode(value as MapMode)}
-              className="w-[180px]"
+              defaultValue={activeLayer}
+              className="w-full"
+              onValueChange={setActiveLayer}
             >
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="zones">Zones</TabsTrigger>
-                <TabsTrigger value="network">Network</TabsTrigger>
+                <TabsTrigger value="zones" disabled={!hasZoneData}>Zones</TabsTrigger>
+                <TabsTrigger value="networks" disabled={!hasNetworkData}>Networks</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
-          
-          <div className="ml-auto">
-            <Badge variant="outline" className="mr-2">
-              {results.horizonYears[0]}
-            </Badge>
-            <Badge variant="outline">
-              {mapMode === 'zones' ? `${zoneGeometry?.length || 0} Zones` : `${networkGeometry?.length || 0} Links`}
-            </Badge>
+          <div className="w-full sm:w-2/3">
+            <Label htmlFor="metric">Metric</Label>
+            <Select 
+              value={selectedProperty} 
+              onValueChange={setSelectedProperty}
+              disabled={propertyOptions().length === 0}
+            >
+              <SelectTrigger id="metric">
+                <SelectValue placeholder="Select a metric" />
+              </SelectTrigger>
+              <SelectContent>
+                {propertyOptions().map(option => (
+                  <SelectItem key={option.id} value={option.value}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
-        {error && (
-          <Alert className="my-2">
-            <InfoIcon className="h-4 w-4" />
+        {error ? (
+          <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        )}
-        
-        <div className="h-[500px] rounded-md overflow-hidden border mt-2">
-          {loading ? (
-            <div className="h-full flex items-center justify-center bg-muted/20">
-              <Spinner size="lg" />
-            </div>
-          ) : (
-            <>
-              <MapContainer
-                center={[37.7749, -122.4194]} // Default center (San Francisco)
-                zoom={10}
-                style={{ height: '100%', width: '100%' }}
+        ) : (
+          <div className="h-[500px] relative">
+            <MapboxProvider>
+              <MapboxMap 
+                initialViewState={{
+                  longitude: -122.4194,
+                  latitude: 37.7749,
+                  zoom: 11
+                }}
+                mapStyle={getMapboxStyleForMap('streets')}
+                onMapLoad={handleMapLoad}
+                onMapClick={handleFeatureClick}
               >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                <MapboxStyleSwitcher 
+                  position="top-right" 
+                  styles={[
+                    {id: 'streets', name: 'Streets', url: 'mapbox://styles/mapbox/streets-v12'},
+                    {id: 'satellite', name: 'Satellite', url: 'mapbox://styles/mapbox/satellite-streets-v12'},
+                    {id: 'light', name: 'Light', url: 'mapbox://styles/mapbox/light-v11'},
+                    {id: 'dark', name: 'Dark', url: 'mapbox://styles/mapbox/dark-v11'}
+                  ]}
                 />
                 
-                <LayersControl position="topright">
-                  {mapMode === 'zones' && zoneGeometry && (
-                    <LayersControl.Overlay checked name="Zones">
-                      <GeoJSON
-                        data={zoneGeometry}
-                        style={zoneStyle}
-                        onEachFeature={(feature, layer) => {
-                          layer.on({
-                            click: handleZoneClick
-                          });
-                          
-                          const metricValue = getMetricValue(feature);
-                          const zoneName = feature.properties.name || `Zone ${feature.properties.zone_id || feature.properties.id || 'Unknown'}`;
-                          
-                          layer.bindPopup(`
-                            <div>
-                              <h3>${zoneName}</h3>
-                              <p><strong>${getMetricName(selectedMetric)}:</strong> ${getFormattedMetricValue(metricValue)}</p>
-                            </div>
-                          `);
-                        }}
-                      />
-                    </LayersControl.Overlay>
-                  )}
-                  
-                  {mapMode === 'network' && networkGeometry && (
-                    <LayersControl.Overlay checked name="Network">
-                      <GeoJSON
-                        data={networkGeometry}
-                        style={linkStyle}
-                        onEachFeature={(feature, layer) => {
-                          const metricValue = getMetricValue(feature);
-                          const linkName = feature.properties.name || `Link ${feature.properties.link_id || 'Unknown'}`;
-                          
-                          layer.bindPopup(`
-                            <div>
-                              <h3>${linkName}</h3>
-                              <p><strong>${getMetricName(selectedMetric)}:</strong> ${getFormattedMetricValue(metricValue)}</p>
-                            </div>
-                          `);
-                        }}
-                      />
-                    </LayersControl.Overlay>
-                  )}
-                </LayersControl>
+                {activeLayer === 'zones' && zoneData && (
+                  <>
+                    <MapboxSource 
+                      id="zones-source"
+                      source={{
+                        type: 'geojson',
+                        data: results.spatialResults?.zones || zoneData
+                      }}
+                    />
+                    <MapboxLayer
+                      id="zones-layer"
+                      type="fill"
+                      source="zones-source"
+                      paint={getLayerPaint()}
+                    />
+                    <MapboxLayer
+                      id="zones-outline"
+                      type="line"
+                      source="zones-source"
+                      paint={{
+                        'line-color': '#000',
+                        'line-width': 1,
+                        'line-opacity': 0.5
+                      }}
+                    />
+                  </>
+                )}
                 
-                <MapController focusedZone={focusedZone} />
-              </MapContainer>
-            </>
-          )}
-        </div>
-        
-        {/* Map Legend */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Legend</span>
-            <div className="flex items-center gap-1">
-              {selectedMetric === 'vmt' || selectedMetric === 'emissions' || selectedMetric === 'congestion' ? (
-                <>
-                  <div className="w-4 h-4 bg-green-300 rounded-sm"></div>
-                  <span className="text-xs">Low</span>
-                  <div className="w-4 h-4 bg-yellow-300 rounded-sm ml-2"></div>
-                  <span className="text-xs">Medium</span>
-                  <div className="w-4 h-4 bg-red-300 rounded-sm ml-2"></div>
-                  <span className="text-xs">High</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-4 h-4 bg-red-300 rounded-sm"></div>
-                  <span className="text-xs">Low</span>
-                  <div className="w-4 h-4 bg-yellow-300 rounded-sm ml-2"></div>
-                  <span className="text-xs">Medium</span>
-                  <div className="w-4 h-4 bg-green-300 rounded-sm ml-2"></div>
-                  <span className="text-xs">High</span>
-                </>
-              )}
-            </div>
+                {activeLayer === 'networks' && networkData && (
+                  <>
+                    <MapboxSource 
+                      id="networks-source"
+                      source={{
+                        type: 'geojson',
+                        data: results.spatialResults?.networks || networkData
+                      }}
+                    />
+                    <MapboxLayer
+                      id="networks-layer"
+                      type="line"
+                      source="networks-source"
+                      paint={getLayerPaint()}
+                    />
+                  </>
+                )}
+              </MapboxMap>
+            </MapboxProvider>
+            
+            {/* Legend */}
+            {selectedProperty && colorScale.length > 0 && (
+              <div className="absolute bottom-4 right-4 bg-background/90 p-2 rounded-md shadow z-10">
+                <div className="text-xs font-medium mb-1">{selectedProperty.replace(/_/g, ' ')}</div>
+                <div className="flex h-2 w-32">
+                  {colorScale.map(([_, color], i) => (
+                    <div 
+                      key={i} 
+                      className="flex-1 h-full" 
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs mt-1">
+                  <span>{colorScale[0][0].toFixed(1)}</span>
+                  <span>{colorScale[colorScale.length - 1][0].toFixed(1)}</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Feature Info */}
+            {selectedFeature && (
+              <div className="absolute top-4 left-4 bg-background/90 p-2 rounded-md shadow z-10 max-w-xs">
+                <div className="text-sm font-medium">
+                  {selectedFeature.properties?.name || 'Feature Info'}
+                </div>
+                <div className="text-xs mt-1">
+                  {selectedProperty && selectedFeature.properties?.[selectedProperty] !== undefined && (
+                    <Badge>
+                      {selectedProperty}: {selectedFeature.properties[selectedProperty].toFixed(2)}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          
-          <div className="text-xs text-muted-foreground">
-            Click on map features for detailed information
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

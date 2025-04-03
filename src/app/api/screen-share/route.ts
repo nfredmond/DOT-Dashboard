@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openai } from '@/lib/openai-service';
+import OpenAI from 'openai';
+import logger from '../../../lib/logger';
 
 /**
  * Configuration for the API route using the new App Router format
@@ -9,6 +10,11 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds
+
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 /**
  * API handler for screen sharing and analysis
@@ -32,8 +38,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Strip the MIME type prefix from the data URL to get just the base64 data
-
-const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
+    const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     
     // Use OpenAI's API or any other multimodal LLM
     const response = await openai.chat.completions.create({
@@ -60,7 +65,7 @@ const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     
     return NextResponse.json({ analysis });
   } catch (error) {
-    console.error('Error processing screen share:', error);
+    logger.error('Error processing screen share:', error);
     
     // Check if it's an OpenAI API error
     if (error && typeof error === 'object' && 'status' in error) {

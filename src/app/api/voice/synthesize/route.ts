@@ -24,6 +24,8 @@
 
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai-service';
+import logger from '../../../../lib/logger';
+
 
 // Configure route with App Router format
 export const dynamic = 'force-dynamic';
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error('Speech synthesis error:', error);
+    logger.error('Speech synthesis error:', error);
     return NextResponse.json(
       { error: `Speech synthesis failed: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
@@ -113,7 +115,7 @@ async function synthesizeWithOpenAI(text: string, voice: string, speed: number) 
       },
     });
   } catch (error) {
-    console.error('OpenAI TTS error:', error);
+    logger.error('OpenAI TTS error:', error);
     throw new Error(`OpenAI TTS failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

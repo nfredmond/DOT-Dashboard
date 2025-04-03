@@ -119,7 +119,7 @@ const createSampleProjects = (): Project[] => {
 };
 
 // Context type definition
-export type ProjectsContextType = {
+export interface ProjectsContextType {
   projects: Project[];
   filteredProjects: Project[];
   addProject: (project: Project) => void;
@@ -128,7 +128,7 @@ export type ProjectsContextType = {
   getProjectById: (projectId: string) => Project | undefined;
   setFilteredProjects: (projects: Project[]) => void;
   clearFilters: () => void;
-};
+}
 
 // Create the context
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);

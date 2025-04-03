@@ -39,6 +39,7 @@ import { Switch } from '@/components/ui/switch';
 
 import { getBenefitCostTemplates } from '@/lib/benefit-cost-service';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../../lib/logger';
 
 interface BenefitCostFormProps {
   projectId: string;
@@ -125,7 +126,7 @@ export function BenefitCostForm({ projectId, initialAnalysis, onSave, onCancel }
           }
         }
       } catch (error) {
-        console.error('Error loading benefit-cost templates:', error);
+        logger.error('Error loading benefit-cost templates:', error);
       }
     };
     

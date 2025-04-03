@@ -90,22 +90,22 @@ function getModelName(provider: LLMProvider, modelType: ModelType): string {
         case ModelType.FAST:
           return 'gpt-3.5-turbo';
         case ModelType.BALANCED:
-          return 'gpt-4o';
+          return 'gpt-4o-mini';
         case ModelType.POWERFUL:
-          return 'gpt-4-turbo';
-        default:
           return 'gpt-4o';
+        default:
+          return 'gpt-4o-mini';
       }
     case LLMProvider.ANTHROPIC:
       switch (modelType) {
         case ModelType.FAST:
-          return 'claude-3-haiku';
+          return 'claude-3-haiku-20240307';
         case ModelType.BALANCED:
-          return 'claude-3-sonnet';
+          return 'claude-3-7-sonnet-20240620';
         case ModelType.POWERFUL:
-          return 'claude-3-opus';
+          return 'claude-3-opus-20240229';
         default:
-          return 'claude-3-sonnet';
+          return 'claude-3-7-sonnet-20240620';
       }
     case LLMProvider.META:
       switch (modelType) {
@@ -333,7 +333,13 @@ export async function getCompletion(
         responseText = data.choices[0].message.content;
         break;
       case LLMProvider.ANTHROPIC:
-        responseText = data.content[0].text;
+        // Ensure proper handling of different content block types
+        const content = data.content[0];
+        if (content && 'text' in content) {
+          responseText = content.text;
+        } else {
+          responseText = ""; // Fallback if the content block doesn't have text
+        }
         break;
       case LLMProvider.META:
         responseText = data.choices[0].message.content;
@@ -494,7 +500,7 @@ export async function processWithLLM(options: LLMProcessOptions): Promise<string
     const {
       text,
       context = {},
-      model = 'gpt-4-turbo',
+      model = 'gpt-4o-mini',
       temperature = 0.7,
       maxTokens = 1000,
       systemPrompt

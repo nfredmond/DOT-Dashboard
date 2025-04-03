@@ -8,10 +8,9 @@ import { UserRole } from '@/types/organization';
 interface AppLayoutProps {
   children: React.ReactNode;
   userRole?: UserRole;
-  isAdmin?: boolean;
 }
 
-export function AppLayout({ children, userRole, _isAdmin }: AppLayoutProps) {
+export function AppLayout({ children, userRole }: AppLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   

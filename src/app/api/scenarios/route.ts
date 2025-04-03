@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 /**
  * GET /api/scenarios
@@ -15,7 +16,8 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(_req: NextRequest) {
   try {
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     
     // Get the user's session
     const { data: { session } } = await supabase.auth.getSession();
@@ -64,7 +66,7 @@ export async function GET(_req: NextRequest) {
     
     return NextResponse.json(scenarios || []);
   } catch (error: any) {
-    logger.error('Error retrieving scenarios:', error.message);
+    console.error('Error retrieving scenarios:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to retrieve scenarios' },
@@ -80,7 +82,8 @@ export async function GET(_req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
     
     // Get the user's session
     const { data: { session } } = await supabase.auth.getSession();
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
       .single();
     
     if (error) {
-      logger.error('Error creating scenario:', error);
+      console.error('Error creating scenario:', error);
       return NextResponse.json(
         { error: 'Failed to create scenario' },
         { status: 500 }
@@ -138,7 +141,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(scenario, { status: 201 });
   } catch (error: any) {
-    logger.error('Error creating scenario:', error.message);
+    console.error('Error creating scenario:', error.message);
     
     return NextResponse.json(
       { error: 'Failed to create scenario' },
@@ -186,7 +189,7 @@ export async function PUT(req: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    logger.error('Error comparing scenarios:', error);
+    console.error('Error comparing scenarios:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while comparing scenarios' },
       { status: 500 }
@@ -217,8 +220,7 @@ export async function PATCH(req: NextRequest) {
     }
     
     // Fetch the project from the database
-
-const project = await db.project.findUnique({
+    const project = await db.project.findUnique({
       where: { id: projectId },
     });
     
@@ -234,7 +236,7 @@ const project = await db.project.findUnique({
     
     return NextResponse.json(result);
   } catch (error) {
-    logger.error('Error refining scenario:', error);
+    console.error('Error refining scenario:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while refining the scenario' },
       { status: 500 }

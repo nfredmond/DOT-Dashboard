@@ -1,5 +1,5 @@
 import { TileLayerOptions } from "./map-helpers";
-import { getMapTiles } from "./map-service";
+import { getMapTiles, getMapboxStyleById } from "./map-service";
 
 // Types for Map Settings
 export interface MapProviderConfig {
@@ -51,8 +51,8 @@ const defaultMapProviders: MapProviderConfig[] = [
     name: "Mapbox",
     provider: "mapbox",
     apiKey: "",
-    isEnabled: false,
-    isDefault: false
+    isEnabled: true,
+    isDefault: true
   },
   {
     id: "maptiler",
@@ -67,7 +67,7 @@ const defaultMapProviders: MapProviderConfig[] = [
     name: "CARTO",
     provider: "carto",
     isEnabled: true,
-    isDefault: true
+    isDefault: false
   },
   {
     id: "osm",
@@ -91,7 +91,7 @@ const defaultMapProviders: MapProviderConfig[] = [
 const defaultMaps: MapDefinition[] = [
   {
     id: "1",
-    name: "",
+    name: "Default Map",
     description: "Standard map for all transportation projects",
     baseMap: "cartoVoyager",
     isDefault: true,
@@ -269,7 +269,7 @@ export function getMapForUser(userId: string, agencyId?: string): MapDefinition 
 }
 
 /**
- * Get the tile layer configuration for a map
+ * Get the tile layer configuration for a map (Leaflet)
  * This extends the regular map service by using the map configuration
  */
 export function getTileLayerForMap(mapId: string): TileLayerOptions {
@@ -306,4 +306,68 @@ export function getTileLayerForMap(mapId: string): TileLayerOptions {
   // Use the map service to get the tile configuration
   const mapTiles = getMapTiles();
   return mapTiles[map.baseMap] || mapTiles.cartoVoyager;
+}
+
+/**
+ * Get Mapbox style URL for a map 
+ * @param mapId Map ID
+ * @returns The style URL to use with Mapbox GL
+ */
+export function getMapboxStyleForMap(mapId: string): string {
+  const maps = getMaps();
+  const providers = getMapProviders();
+  const map = maps.find(m => m.id === mapId);
+  
+  if (!map) {
+    // Return CARTO Voyager as default if map not found
+    return "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+  }
+  
+  // Get API keys from enabled providers
+  const apiKeys: Record<string, string> = {};
+  providers.forEach(provider => {
+    if (provider.isEnabled && provider.apiKey) {
+      apiKeys[provider.provider] = provider.apiKey;
+    }
+  });
+  
+  // Get style URL for the selected baseMap
+  const style = getMapboxStyleById(map.baseMap, apiKeys);
+  
+  // If style found, return its URL
+  if (style) {
+    return style.url;
+  }
+  
+  // For custom provider
+  if (map.baseMap === 'custom') {
+    const customProvider = providers.find(p => p.provider === 'custom');
+    if (customProvider && customProvider.isEnabled) {
+      // For custom raster source, create a style JSON
+      // This is simplified - in a real app, you'd generate full style JSON
+      return JSON.stringify({
+        version: 8,
+        sources: {
+          'custom-raster': {
+            type: 'raster',
+            tiles: [customProvider.customUrl],
+            tileSize: 256,
+            attribution: customProvider.customAttribution
+          }
+        },
+        layers: [
+          {
+            id: 'custom-raster-layer',
+            type: 'raster',
+            source: 'custom-raster',
+            minzoom: 0,
+            maxzoom: 22
+          }
+        ]
+      });
+    }
+  }
+  
+  // Fallback to CARTO Voyager if style not found
+  return "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 } 

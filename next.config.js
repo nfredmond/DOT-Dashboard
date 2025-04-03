@@ -7,7 +7,10 @@ const nextConfig = {
     'react-leaflet',
     '@react-leaflet/core',
     'leaflet-defaulticon-compatibility',
-    'react-leaflet-cluster'
+    'react-leaflet-cluster',
+    'mapbox-gl',
+    '@mapbox/mapbox-gl-draw',
+    '@mapbox/mapbox-gl-geocoder'
   ],
   // Disable TypeScript checking
   typescript: {
@@ -19,7 +22,7 @@ const nextConfig = {
   experimental: {
     optimizeCss: false,
     serverActions: {
-      allowedOrigins: ['localhost:3002', 'localhost:3003'],
+      allowedOrigins: ['localhost:3002', 'localhost:3003', 'localhost:3004'],
     },
     webpackBuildWorker: true,
     turbo: {
@@ -57,7 +60,7 @@ const nextConfig = {
     };
   },
   // Configure webpack for image handling only
-  webpack: (config, { webpack, isServer, dev }) => {
+  webpack: (config, { webpack, isServer, _dev }) => {
     // Define the path to our marker images module
     const markerImagesPath = require.resolve('./src/lib/marker-images.js');
 
