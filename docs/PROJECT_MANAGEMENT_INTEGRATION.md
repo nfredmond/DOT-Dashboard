@@ -106,13 +106,13 @@ A comprehensive multi-step form that:
 - Updates the central context with new projects
 - Supports environmental documentation and funding data entry
 
-### 5. DirectLeafletMap Component
+### 5. DirectMapbox GL JSMap Component
 
 **Location**: `src/app/project-mapping-wrapper/page.tsx`
 
 The map implementation that:
 
-- Displays project data using Leaflet mapping library
+- Displays project data using Mapbox GL JS mapping library
 - Responds to project events through the MapBridge
 - Renders different geometry types (points, lines, polygons)
 - Updates when projects are added, modified, or removed
@@ -149,20 +149,20 @@ A component that:
    - Component calls `addProject()` from the ProjectsContext
    - ProjectsContext stores the project and dispatches a 'project-added' event
    - MapBridge listens for the event and calls its `onProjectAdded` handler
-   - DirectLeafletMap receives the project data and renders it on the map
+   - DirectMapbox GL JSMap receives the project data and renders it on the map
    
 2. **Updating a Project**:
    - Project data is updated in the management interface
    - `updateProject()` is called on the ProjectsContext
    - ProjectsContext updates the store and dispatches a 'project-updated' event
    - MapBridge captures the event and passes it to the map components
-   - DirectLeafletMap updates the visualization with the changed data
+   - DirectMapbox GL JSMap updates the visualization with the changed data
    
 3. **Deleting a Project**:
    - `deleteProject()` is called on the ProjectsContext
    - ProjectsContext removes the project and dispatches a 'project-deleted' event
    - MapBridge relays this event to the map components
-   - DirectLeafletMap removes the project from visualization
+   - DirectMapbox GL JSMap removes the project from visualization
 
 ## Event-Based Communication
 
@@ -195,7 +195,7 @@ The system handles synchronization between these storage locations automatically
 
 ### Enhanced Database Support
 
-In Planning Manager v6, the project management integration is fully supported by an enhanced database schema:
+In Planning Manager v7, the project management integration is fully supported by an enhanced database schema:
 
 ```sql
 CREATE TABLE projects (

@@ -316,4 +316,4 @@ if (userPrefs && map) {
 
 For more information, refer to:
 - [Mapbox GL JS Documentation](https://docs.mapbox.com/mapbox-gl-js/api/)
-- [MAPBOX-MIGRATION.md](./MAPBOX-MIGRATION.md) - Details on the migration from Leaflet 
+- [MAPBOX-MIGRATION.md](./MAPBOX-MIGRATION.md) - Details on the migration from Mapbox GL JS 

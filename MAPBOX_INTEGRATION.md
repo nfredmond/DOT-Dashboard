@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Planning Manager application now uses Mapbox GL JS instead of Leaflet for mapping functionality. This upgrade brings numerous benefits including better performance, improved visual quality, and more advanced mapping capabilities.
+The Planning Manager application now uses Mapbox GL JS instead of Mapbox GL JS for mapping functionality. This upgrade brings numerous benefits including better performance, improved visual quality, and more advanced mapping capabilities.
 
 ## Key Benefits
 
@@ -142,11 +142,11 @@ If you encounter issues with the community input system:
 3. Check the browser console for API errors
 4. Verify that the correct organizations and categories are configured
 
-## Mapbox vs. Leaflet
+## Mapbox vs. Mapbox GL JS
 
 ### Why We Migrated
 
-We migrated from Leaflet to Mapbox GL JS for several reasons:
+We migrated from Mapbox GL JS to Mapbox GL JS for several reasons:
 
 1. **Performance**: Mapbox GL JS offers significantly better performance for large datasets
 2. **Vector Tiles**: Vector tiles allow for more fluid interaction and dynamic styling
@@ -158,7 +158,7 @@ We migrated from Leaflet to Mapbox GL JS for several reasons:
 
 The migration impacts the following areas:
 
-1. **Map Components**: All Leaflet-based components have been replaced
+1. **Map Components**: All Mapbox GL JS-based components have been replaced
 2. **Geometry Handling**: GeoJSON processing has been updated for Mapbox compatibility
 3. **Events**: Map event handling has been updated to use Mapbox events
 4. **Controls**: Custom map controls have been reimplemented for Mapbox

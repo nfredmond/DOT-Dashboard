@@ -9,7 +9,7 @@ The Planning Manager is built using a modern web application architecture with t
 - **Frontend Framework**: Next.js 14 with App Router
 - **Backend Services**: Supabase (PostgreSQL + Authentication + Storage)
 - **State Management**: React Context + SWR
-- **Mapping**: Leaflet.js + React-Leaflet
+- **Mapping**: Mapbox GL JS.js + React-Mapbox GL JS
 - **UI Components**: Tailwind CSS + Shadcn/ui
 - **AI Integration**: OpenAI API
 - **File Storage**: Supabase Storage for organization logos and documents
@@ -24,7 +24,7 @@ graph TD
     Auth[Auth Context]
     DB[(Supabase DB)]
     Cache[SWR Cache]
-    Map[Leaflet Maps]
+    Map[Mapbox GL JS Maps]
     AI[OpenAI Service]
     
     Client --> NextJS

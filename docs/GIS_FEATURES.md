@@ -1,10 +1,10 @@
 # GIS Features Documentation
 
-This document outlines the Geographic Information System (GIS) features implemented in the Planning Manager application using Leaflet.js and related technologies.
+This document outlines the Geographic Information System (GIS) features implemented in the Planning Manager application using Mapbox GL JS.js and related technologies.
 
 ## Overview
 
-The Planning Manager uses Leaflet.js as its primary mapping library, chosen for its lightweight performance, extensive plugin ecosystem, and ease of customization. The application integrates Leaflet maps seamlessly into the Next.js frontend through React-Leaflet.
+The Planning Manager uses Mapbox GL JS.js as its primary mapping library, chosen for its lightweight performance, extensive plugin ecosystem, and ease of customization. The application integrates Mapbox GL JS maps seamlessly into the Next.js frontend through React-Mapbox GL JS.
 
 ## Core Features
 
@@ -426,8 +426,8 @@ The Planning Manager uses Leaflet.js as its primary mapping library, chosen for 
 ```typescript
 // src/components/map/BaseMap.tsx
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, LayersControl, ZoomControl, ScaleControl } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, LayersControl, ZoomControl, ScaleControl } from 'react-Mapbox GL JS';
+import 'Mapbox GL JS/dist/Mapbox GL JS.css';
 
 const { BaseLayer } = LayersControl;
 
@@ -492,9 +492,9 @@ export default BaseMap;
 ```typescript
 // src/components/map/ProjectLayer.tsx
 import { useEffect } from 'react';
-import { useMap } from 'react-leaflet';
-import L from 'leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
+import { useMap } from 'react-Mapbox GL JS';
+import L from 'Mapbox GL JS';
+import MarkerClusterGroup from 'react-Mapbox GL JS-cluster';
 import { getProjectIcon } from '@/lib/map/icons';
 import { createProjectPopup } from '@/lib/map/popups';
 
@@ -574,10 +574,10 @@ export default ProjectLayer;
 ```typescript
 // src/components/map/DrawToolbar.tsx
 import { useEffect, useRef } from 'react';
-import { useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet-draw';
-import 'leaflet-draw/dist/leaflet.draw.css';
+import { useMap } from 'react-Mapbox GL JS';
+import L from 'Mapbox GL JS';
+import 'Mapbox GL JS-draw';
+import 'Mapbox GL JS-draw/dist/Mapbox GL JS.draw.css';
 
 interface DrawToolbarProps {
   onGeometryCreated?: (geojson: GeoJSON.GeoJSON) => void;
@@ -715,7 +715,7 @@ import ProjectFilterPanel from '@/components/projects/ProjectFilterPanel';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // Dynamically import the map component with no SSR
-// This prevents hydration issues with Leaflet
+// This prevents hydration issues with Mapbox GL JS
 const ProjectMapComponent = dynamic(
   () => import('@/components/map/ProjectMapComponent'),
   { ssr: false }

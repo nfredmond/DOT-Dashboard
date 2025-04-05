@@ -38,7 +38,7 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Phase 2 Key Deliverables
 
-- ✅ Enhanced GIS mapping with Leaflet
+- ✅ Enhanced GIS mapping with Mapbox GL JS
 - ✅ Project scoring and prioritization system
 - ✅ AI/LLM integration for project analysis
 - ✅ Advanced filtering and search capabilities
@@ -58,8 +58,8 @@ The development of Planning Manager follows a phased approach, with each phase b
 
 #### Phase 2 Technical Details
 
-- Leaflet.js with custom plugins for mapping
-- React-Leaflet for component integration
+- Mapbox GL JS.js with custom plugins for mapping
+- React-Mapbox GL JS for component integration
 - OpenAI and Anthropic API integration
 - Recharts for data visualization
 - SWR for data fetching and caching

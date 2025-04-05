@@ -80,7 +80,7 @@ The Project Integration System provides a seamless connection between the projec
 
 ### 2. Map Integration
 
-- Leaflet for interactive maps
+- Mapbox GL JS for interactive maps
 - Custom controls for project interaction
 - GeoJSON for standardized spatial data
 - Clustering for performance with many projects

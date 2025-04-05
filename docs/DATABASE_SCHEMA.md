@@ -1,6 +1,6 @@
-# Planning Manager v6 Database Schema
+# Planning Manager v7 Database Schema
 
-This document provides a comprehensive reference for the Planning Manager v6 database schema. The schema is designed to support full project management integration, LLM capabilities, MCP servers, and Agents SDK.
+This document provides a comprehensive reference for the Planning Manager v7 database schema. The schema is designed to support full project management integration, LLM capabilities, MCP servers, and Agents SDK.
 
 ## Overview
 
@@ -599,7 +599,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ## Using the Schema
 
-This schema definition is comprehensive and designed to support all aspects of the Planning Manager v6 application. To use it:
+This schema definition is comprehensive and designed to support all aspects of the Planning Manager v7 application. To use it:
 
 1. Connect to your Supabase PostgreSQL database
 2. Run the complete `supabase_schema.sql` script

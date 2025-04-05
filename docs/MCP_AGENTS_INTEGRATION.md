@@ -1,4 +1,4 @@
-# MCP and Agents SDK Integration - Planning Manager v6
+# MCP and Agents SDK Integration - Planning Manager v7
 
 ## Implementation Status
 
@@ -19,7 +19,7 @@
 
 ## Overview
 
-The Planning Manager v6 application integrates both Model Component Package (MCP) technology and OpenAI's Agents SDK to provide powerful AI assistance across the application. This document details the technical implementation of these integrations, how they work together, and how to extend and maintain them.
+The Planning Manager v7 application integrates both Model Component Package (MCP) technology and OpenAI's Agents SDK to provide powerful AI assistance across the application. This document details the technical implementation of these integrations, how they work together, and how to extend and maintain them.
 
 ## Architecture
 

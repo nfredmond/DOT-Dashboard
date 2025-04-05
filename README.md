@@ -6,7 +6,7 @@ This project implements an interactive spatial visualization system for transpor
 
 ### Mapbox GL JS Integration
 
-We've migrated from Leaflet to Mapbox GL JS for all mapping functionality, bringing significant improvements:
+We've migrated from Mapbox GL JS to Mapbox GL JS for all mapping functionality, bringing significant improvements:
 
 - **WebGL-powered maps** with vector tiles for superior performance
 - **3D visualization** capabilities for terrain, buildings, and extrusions

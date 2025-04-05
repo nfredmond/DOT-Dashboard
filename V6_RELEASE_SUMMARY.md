@@ -1,14 +1,14 @@
-# Planning Manager v6 - Release Summary
+# Planning Manager v7 - Release Summary
 
 ## Overview
 
-Planning Manager v6 represents a major leap forward in transportation planning capabilities, featuring deep integrations with modeling tools, enhanced AI capabilities, and improved community feedback systems. This document summarizes the key features and improvements in this version.
+Planning Manager v7 represents a major leap forward in transportation planning capabilities, featuring deep integrations with modeling tools, enhanced AI capabilities, and improved community feedback systems. This document summarizes the key features and improvements in this version.
 
 ## Key Features
 
 ### GreenChAMP and TrendNavigator Integration
 
-Planning Manager v6 now includes full integration with advanced transportation modeling tools:
+Planning Manager v7 now includes full integration with advanced transportation modeling tools:
 
 - **Advanced Modeling Framework**: Integrated scenario planning with travel demand forecasting
 - **GreenChAMP (Green DOT Chained Activity Modelling Process)**: Travel demand forecasting with sophisticated trip generation, distribution, mode choice, and assignment modeling
@@ -99,7 +99,7 @@ UI improvements include:
 
 ### For Existing Users
 
-Existing Planning Manager users can upgrade to v6 by:
+Existing Planning Manager users can upgrade to v7 by:
 
 1. Backing up your existing data
 2. Running the provided database migration script
@@ -108,7 +108,7 @@ Existing Planning Manager users can upgrade to v6 by:
 
 ### For New Users
 
-New users can get started with Planning Manager v6 by:
+New users can get started with Planning Manager v7 by:
 
 1. Setting up a Supabase project
 2. Running the `supabase_schema.sql` script to create the database schema
@@ -119,7 +119,7 @@ New users can get started with Planning Manager v6 by:
 
 ## Documentation
 
-Comprehensive documentation is available for all aspects of Planning Manager v6:
+Comprehensive documentation is available for all aspects of Planning Manager v7:
 
 - **User Guides**: Step-by-step instructions for all features
 - **Technical Documentation**: Architecture and implementation details
@@ -129,7 +129,7 @@ Comprehensive documentation is available for all aspects of Planning Manager v6:
 
 ## Feedback and Support
 
-We welcome feedback on Planning Manager v6:
+We welcome feedback on Planning Manager v7:
 
 - Submit issues through the GitHub repository
 - Contact support at support@planningmanager.ai

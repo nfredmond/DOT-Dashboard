@@ -174,7 +174,7 @@ The data layer is built on Supabase, providing a robust foundation for data stor
 
 ### GIS Data Sources
 
-- **Base Maps**: Leaflet tile providers
+- **Base Maps**: Mapbox GL JS tile providers
 - **External Layers**: Integration with GIS data services
 - **Geocoding**: Address lookup and reverse geocoding
 

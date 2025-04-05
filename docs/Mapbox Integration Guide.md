@@ -170,9 +170,9 @@ To use Mapbox GL JS, you need to set up your Mapbox access token in the environm
 NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
 ```
 
-## Benefits over Leaflet
+## Benefits over Mapbox GL JS
 
-The migration from Leaflet to Mapbox GL JS provides several key advantages:
+The migration from Mapbox GL JS to Mapbox GL JS provides several key advantages:
 
 1. **WebGL-powered rendering**: Much better performance for large datasets
 2. **Vector tile support**: Efficient loading and rendering of map data

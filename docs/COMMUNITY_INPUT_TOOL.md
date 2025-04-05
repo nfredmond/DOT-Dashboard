@@ -36,8 +36,8 @@ The Community Input Mapping Tool is an advanced feature of the Planning Manager 
 
 ### Front-end Components
 
-- **Map Component**: Uses Leaflet.js for the interactive map
-- **Drawing Tools**: EditControl from react-leaflet-draw for geometry creation
+- **Map Component**: Uses Mapbox GL JS.js for the interactive map
+- **Drawing Tools**: EditControl from react-Mapbox GL JS-draw for geometry creation
 - **Form Components**: Shadcn UI components for input form
 - **Admin Interface**: Admin panel with moderation capabilities
 - **Dialogs and Popovers**: For input forms and information display
@@ -124,10 +124,10 @@ Administrators can customize the community input tool for their organization:
 
 ## Implementation Notes
 
-- Uses dynamic imports for Leaflet components to ensure proper client-side rendering
+- Uses dynamic imports for Mapbox GL JS components to ensure proper client-side rendering
 - Implements error boundaries to handle map rendering issues
 - Supports geolocation for users to find their current location
-- Provides fallback mechanisms for when Leaflet cannot be loaded
+- Provides fallback mechanisms for when Mapbox GL JS cannot be loaded
 - Ensures organization-specific data isolation in the database
 - Uses optimistic UI updates for better user experience
 

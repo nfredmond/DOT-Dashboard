@@ -1,6 +1,6 @@
-# Leaflet to Mapbox Migration Guide
+# Mapbox GL JS to Mapbox Migration Guide
 
-This document outlines the process for migrating map components from Leaflet to Mapbox GL JS in the Planning Manager application.
+This document outlines the process for migrating map components from Mapbox GL JS to Mapbox GL JS in the Planning Manager application.
 
 ## Key Components
 
@@ -41,13 +41,13 @@ NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
 
 ### 3. Import Changes
 
-Replace Leaflet imports with Mapbox imports:
+Replace Mapbox GL JS imports with Mapbox imports:
 
 ```typescript
-// Before (Leaflet)
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { useLeaflet } from '@/hooks/useLeaflet';
-import 'leaflet/dist/leaflet.css';
+// Before (Mapbox GL JS)
+import { MapContainer, TileLayer, Marker, Popup } from 'react-Mapbox GL JS';
+import { useMapbox GL JS } from '@/hooks/useMapbox GL JS';
+import 'Mapbox GL JS/dist/Mapbox GL JS.css';
 
 // After (Mapbox)
 import mapboxgl from 'mapbox-gl';
@@ -61,7 +61,7 @@ import BaseMap from '@/components/maps/BaseMap';
 #### Basic Map
 
 ```tsx
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 <MapContainer
   center={[37.7749, -122.4194]}
   zoom={12}
@@ -84,7 +84,7 @@ import BaseMap from '@/components/maps/BaseMap';
 #### Markers
 
 ```tsx
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 <Marker position={[37.7749, -122.4194]}>
   <Popup>
     <div>San Francisco</div>
@@ -112,7 +112,7 @@ import BaseMap from '@/components/maps/BaseMap';
 #### GeoJSON Data
 
 ```tsx
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 <GeoJSON
   data={geoJsonData}
   style={() => ({
@@ -142,7 +142,7 @@ import BaseMap from '@/components/maps/BaseMap';
 #### Drawing Tools
 
 ```tsx
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 <FeatureGroup>
   <EditControl
     position="topright"
@@ -177,7 +177,7 @@ import BaseMap from '@/components/maps/BaseMap';
 #### Map Click Events
 
 ```typescript
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 const MapClickHandler = () => {
   useMapEvents({
     click: (e) => {
@@ -196,7 +196,7 @@ map.on('click', (e) => {
 #### Feature Click Events
 
 ```typescript
-// Before (Leaflet)
+// Before (Mapbox GL JS)
 <GeoJSON
   data={data}
   onEachFeature={(feature, layer) => {
@@ -224,8 +224,8 @@ map.on('click', (e) => {
 ### 6. Cleanup and Disposal
 
 ```typescript
-// Before (Leaflet)
-// Cleanup happens automatically with react-leaflet
+// Before (Mapbox GL JS)
+// Cleanup happens automatically with react-Mapbox GL JS
 
 // After (Mapbox)
 useEffect(() => {
@@ -242,11 +242,11 @@ useEffect(() => {
 
 ## Common Gotchas
 
-1. **Coordinate Order**: Leaflet uses [lat, lng] while Mapbox uses [lng, lat]
-2. **Styling**: Leaflet uses simple JS objects, Mapbox uses paint/layout properties
-3. **Popups**: In Leaflet, popups are child components; in Mapbox, they're created programmatically
-4. **Events**: Leaflet uses a more React-like event system; Mapbox uses direct listeners
-5. **Zoom Levels**: Mapbox has different default zoom levels than Leaflet
+1. **Coordinate Order**: Mapbox GL JS uses [lat, lng] while Mapbox uses [lng, lat]
+2. **Styling**: Mapbox GL JS uses simple JS objects, Mapbox uses paint/layout properties
+3. **Popups**: In Mapbox GL JS, popups are child components; in Mapbox, they're created programmatically
+4. **Events**: Mapbox GL JS uses a more React-like event system; Mapbox uses direct listeners
+5. **Zoom Levels**: Mapbox has different default zoom levels than Mapbox GL JS
 
 ## Best Practices
 
@@ -254,12 +254,12 @@ useEffect(() => {
 2. Use the provided utility components for consistency
 3. Consider performance - use clustering for large datasets
 4. For drawing features, remember to clean up the draw control when finished
-5. Test on mobile devices - Mapbox has better touch support than Leaflet
+5. Test on mobile devices - Mapbox has better touch support than Mapbox GL JS
 6. Use the map utility functions in `/src/lib/map-utils.ts` for common operations
 
 ## Advanced Features
 
-Mapbox supports several advanced features not easily available in Leaflet:
+Mapbox supports several advanced features not easily available in Mapbox GL JS:
 
 1. 3D terrain and buildings
 2. Custom layer styling with expressions

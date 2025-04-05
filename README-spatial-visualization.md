@@ -91,7 +91,7 @@ The spatial visualization is integrated into the simulation detail page under th
 
 Potential future enhancements for the spatial visualization system:
 
-1. Integration with Mapbox GL or Leaflet for interactive mapping
+1. Integration with Mapbox GL or Mapbox GL JS for interactive mapping
 2. Additional filtering capabilities (time of day, demographic attributes)
 3. Comparative visualization between different simulation runs
 4. Accessibility analysis tools

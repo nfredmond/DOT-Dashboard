@@ -2,7 +2,9 @@
 
 This directory contains comprehensive documentation for the Transportation Planning Manager application.
 
-## Documentation Overview
+## Documentation
+
+- [Mapbox Integration Guide](MAPBOX_INTEGRATION.md) Overview
 
 ### User Documentation
 

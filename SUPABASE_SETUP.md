@@ -1,8 +1,8 @@
-# Supabase Database Setup Guide for Planning Manager v6
+# Supabase Database Setup Guide for Planning Manager v7
 
 > **Important Note**: While this document covers setting up the Planning Manager with Supabase, agencies also have the option to use the built-in offline database functionality instead. The offline database operates entirely within the browser using IndexedDB and requires no external database service. This option is ideal for agencies with data sovereignty requirements, limited connectivity, or those who prefer to maintain data locally. See [OFFLINE_DATABASE.md](OFFLINE_DATABASE.md) for complete details on the offline database option.
 
-This document outlines detailed instructions for setting up the database schema for the Planning Manager v6 application using Supabase. The database is designed for transportation planning agencies to manage projects, score them using customizable criteria, and track community feedback.
+This document outlines detailed instructions for setting up the database schema for the Planning Manager v7 application using Supabase. The database is designed for transportation planning agencies to manage projects, score them using customizable criteria, and track community feedback.
 
 ## Domain Configuration
 
@@ -122,11 +122,11 @@ The database schema includes the following main components:
 - **project_scenarios**: Alternative project approaches and design options
 - **scenario_comparisons**: Comparisons between different project scenarios
 
-## New in v6
+## New in v7
 
 ### Community Feedback System
 
-Planning Manager v6 includes a comprehensive community feedback system with the following tables:
+Planning Manager v7 includes a comprehensive community feedback system with the following tables:
 
 - **community_feedback**: Stores public input on projects with optional geospatial data
 - **community_feedback_votes**: Tracks community voting on feedback items
@@ -177,7 +177,7 @@ The schema includes numerous indices to ensure fast queries:
 
 ## Offline Database Support
 
-Planning Manager v6 includes robust support for offline operations. Key components:
+Planning Manager v7 includes robust support for offline operations. Key components:
 
 - **sync_status**: Tracks the synchronization status of records
 - **sync_queue**: Queues changes made offline for synchronization when online
