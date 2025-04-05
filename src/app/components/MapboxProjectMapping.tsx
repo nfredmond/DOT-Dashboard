@@ -1,60 +1,73 @@
-'use client';
+"use client"
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { cn } from '@/lib/utils';
-import MapboxMap from '@/components/ui/mapbox-map';
-import MapboxSource from '@/components/ui/mapbox-source';
-import MapboxLayer from '@/components/ui/mapbox-layer';
-import { useMapbox } from '@/contexts/mapbox-context';
-import { Project, ProjectStatus, ProjectCategory, ProjectGeometry } from '@/types/project';
-import { projectToGeoJSON } from '@/lib/map/project-map-integration';
-import { Button } from '@/components/ui/button';
-import { Search, MapPin, Layers } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { MAP_STYLES, initMapboxToken } from '@/lib/map-utils';
 
-// Define map style options
-const MAP_STYLES = [
+import BaseMap from '@/components/maps/BaseMap';
+import MarkerLayer, { MarkerData } from '@/components/maps/MarkerLayer';
+import GeoJSONLayer from '@/components/maps/GeoJSONLayer';
+
+// Initialize Mapbox token
+initMapboxToken();
+
+// Define the possible base maps to select from
+export const MAPBOX_BASE_MAPS = [
   {
-    id: 'mapboxStreets',
-    name: 'Mapbox Streets',
-    url: 'mapbox://styles/mapbox/streets-v12',
+    name: 'Streets',
+    style: MAP_STYLES.STREETS,
     checked: true,
   },
   {
-    id: 'mapboxOutdoors',
-    name: 'Mapbox Outdoors',
-    url: 'mapbox://styles/mapbox/outdoors-v12',
+    name: 'Outdoors',
+    style: MAP_STYLES.OUTDOORS,
     checked: false,
   },
   {
-    id: 'mapboxLight',
-    name: 'Mapbox Light',
-    url: 'mapbox://styles/mapbox/light-v11',
+    name: 'Light',
+    style: MAP_STYLES.LIGHT,
     checked: false,
   },
   {
-    id: 'mapboxDark',
-    name: 'Mapbox Dark',
-    url: 'mapbox://styles/mapbox/dark-v11',
+    name: 'Dark',
+    style: MAP_STYLES.DARK,
     checked: false,
   },
   {
-    id: 'mapboxSatellite',
-    name: 'Mapbox Satellite',
-    url: 'mapbox://styles/mapbox/satellite-streets-v12',
+    name: 'Satellite',
+    style: MAP_STYLES.SATELLITE,
     checked: false,
   },
+  {
+    name: 'Satellite Streets',
+    style: MAP_STYLES.SATELLITE_STREETS,
+    checked: false,
+  }
 ];
 
-interface MapboxProjectMappingProps {
-  projects?: Project[];
+// Export the interface so it can be imported elsewhere
+export interface Project {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  address?: string;
+  category?: string;
+  description?: string;
+  budget?: string;
+  startDate?: string;
+  endDate?: string;
+  geometry?: {
+    type: 'Point' | 'LineString' | 'Polygon';
+    coordinates: number[] | number[][] | number[][][];
+  };
+}
+
+interface ProjectMappingProps {
+  projects?: Project[]; 
   initialCenter?: [number, number];
   initialZoom?: number;
   height?: string;
@@ -63,12 +76,12 @@ interface MapboxProjectMappingProps {
   selectedProject?: Project | null;
   onMarkerClick?: (project: Project) => void;
   testingMode?: boolean;
-  onError?: (error: Error) => void;
+  mapStyle?: string;
 }
 
 export function MapboxProjectMapping({
   projects = [],
-  initialCenter = [-121.0149, 39.2615], // Nevada City, CA (note: Mapbox uses [lng, lat] unlike Leaflet)
+  initialCenter = [-121.0149, 39.2615], // Nevada City, CA (note: Mapbox uses [lng, lat])
   initialZoom = 13,
   height = '100%',
   width = '100%',
@@ -76,412 +89,330 @@ export function MapboxProjectMapping({
   selectedProject = null,
   onMarkerClick,
   testingMode = true,
-  onError,
-}: MapboxProjectMappingProps) {
-  // State for projects
+  mapStyle = MAP_STYLES.STREETS,
+}: ProjectMappingProps) {
+  // References and state
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
+  const [mapLoaded, setMapLoaded] = useState(false);
   
-  // State for map styles and layers
-  const [mapStyles, setMapStyles] = useState(MAP_STYLES);
-  const [selectedMapStyle, setSelectedMapStyle] = useState(() => 
-    MAP_STYLES.find(style => style.checked)?.url || MAP_STYLES[0].url
-  );
+  // Marker and GeoJSON data
+  const [markers, setMarkers] = useState<MarkerData[]>([]);
+  const [geoJsonData, setGeoJsonData] = useState<GeoJSON.FeatureCollection>({
+    type: 'FeatureCollection',
+    features: []
+  });
   
-  // Layer visibility state
-  const [showProjects, setShowProjects] = useState(true);
-  
-  // Get Mapbox context
-  const { map, flyTo, fitBounds } = useMapbox(); // eslint-disable-line no-unused-vars
-  
-  // Add test projects in testing mode
+  // Add test projects for Nevada City when in testing mode
   useEffect(() => {
-    if (testingMode && projects.length === 0) {
-      // Add sample projects if needed for testing
-      const testProjects = generateTestProjects();
-      setLocalProjects(testProjects);
+    if (testingMode) {
+      // Add test Nevada City projects if in testing mode
+      const nevadaCityProjects: Project[] = [
+        {
+          id: 'test-1',
+          name: 'Nevada City Downtown Improvement',
+          description: 'Sidewalk and streetscape improvements in downtown area',
+          latitude: 39.2617,
+          longitude: -121.0176,
+          status: 'in progress',
+          category: 'Infrastructure',
+        },
+        {
+          id: 'test-2',
+          name: 'Deer Creek Trail Extension',
+          description: 'Extending the Deer Creek Trail by 1.5 miles',
+          latitude: 39.2585,
+          longitude: -121.0122,
+          status: 'planning',
+          category: 'Recreation',
+        },
+        {
+          id: 'test-3',
+          name: 'Highway 49 Intersection Upgrade',
+          description: 'Safety improvements at Coyote Street intersection',
+          latitude: 39.2546,
+          longitude: -121.0254,
+          status: 'approved',
+          category: 'Highway',
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              [-121.0254, 39.2546],
+              [-121.0264, 39.2556],
+              [-121.0274, 39.2566],
+            ]
+          }
+        },
+      ];
+      
+      // Combine existing projects with test projects
+      setLocalProjects([...projects, ...nevadaCityProjects]);
     } else {
       setLocalProjects(projects);
     }
   }, [projects, testingMode]);
   
-  // Handle selected project changes
+  // Convert projects to markers and GeoJSON features
   useEffect(() => {
-    if (selectedProject && map) {
-      // Find the project in our local projects
-      const project = localProjects.find(p => p.id === selectedProject.id) || selectedProject;
-      
-      // If project has geometry, fit bounds to it
-      if (project.geometry) {
-        // Create GeoJSON feature for the project
-        const feature = projectToGeoJSON(project);
-        if (feature) {
-          // Use Mapbox's fitBounds to focus on the geometry
-          try {
-            // Get coordinates from the GeoJSON feature
-            const coordinates = getAllCoordinates(project.geometry);
-            if (coordinates.length > 0) {
-              // Calculate bounds
-              const bounds = getBoundsFromCoordinates(coordinates);
-              // Fit map to bounds with padding
-              fitBounds([
-                [bounds.west, bounds.south],
-                [bounds.east, bounds.north]
-              ], { padding: 50 });
-            }
-          } catch (error) {
-            console.error('Error fitting bounds to project geometry:', error);
-            // Fallback to flyTo if bounds calculation fails
-            if (project.coordinates) {
-              flyTo({ 
-                lng: project.coordinates.longitude, 
-                lat: project.coordinates.latitude,
-                zoom: 14
-              });
-            }
-          }
+    // Create markers for projects without geometry
+    const projectMarkers: MarkerData[] = localProjects
+      .filter(project => !project.geometry)
+      .map(project => ({
+        id: project.id,
+        longitude: project.longitude,
+        latitude: project.latitude,
+        title: project.name,
+        description: project.description || '',
+        color: getStatusColor(project.status),
+        type: project.category || 'default',
+        properties: {
+          status: project.status,
+          address: project.address,
+          budget: project.budget,
+          category: project.category
         }
-      } else if (project.coordinates) {
-        // For point projects without geometry, just fly to the coordinates
-        flyTo({ 
-          lng: project.coordinates.longitude, 
-          lat: project.coordinates.latitude,
-          zoom: 14
+      }));
+    
+    setMarkers(projectMarkers);
+    
+    // Create GeoJSON for projects with geometry
+    const features: GeoJSON.Feature[] = localProjects
+      .filter(project => project.geometry)
+      .map(project => {
+        const color = getStatusColor(project.status);
+        
+        return {
+          type: 'Feature',
+          geometry: project.geometry as GeoJSON.Geometry,
+          properties: {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            status: project.status,
+            address: project.address,
+            category: project.category,
+            budget: project.budget,
+            color
+          }
+        };
+      });
+    
+    setGeoJsonData({
+      type: 'FeatureCollection',
+      features
+    });
+  }, [localProjects]);
+  
+  // Zoom to selected project when it changes
+  useEffect(() => {
+    if (selectedProject && mapRef.current) {
+      const map = mapRef.current;
+      
+      if (selectedProject.geometry) {
+        // Create GeoJSON feature for fitting bounds
+        const geoJsonFeature = {
+          type: 'Feature',
+          properties: {},
+          geometry: selectedProject.geometry
+        };
+        
+        try {
+          // Create bounds from the feature
+          const bounds = new mapboxgl.LngLatBounds();
+          
+          if (selectedProject.geometry.type === 'Point') {
+            const coords = selectedProject.geometry.coordinates as [number, number];
+            bounds.extend(coords);
+          } else if (selectedProject.geometry.type === 'LineString') {
+            const coords = selectedProject.geometry.coordinates as [number, number][];
+            coords.forEach(coord => bounds.extend(coord));
+          } else if (selectedProject.geometry.type === 'Polygon') {
+            const coords = selectedProject.geometry.coordinates[0] as [number, number][];
+            coords.forEach(coord => bounds.extend(coord));
+          }
+          
+          // Fit bounds with padding
+          map.fitBounds(bounds, {
+            padding: 50,
+            maxZoom: 16
+          });
+        } catch (error) {
+          console.error('Error calculating bounds:', error);
+          // Fallback to simple flyTo if error occurs
+          map.flyTo({
+            center: [selectedProject.longitude, selectedProject.latitude],
+            zoom: 14
+          });
+        }
+      } else {
+        // For projects without geometry, fly to location
+        map.flyTo({
+          center: [selectedProject.longitude, selectedProject.latitude],
+          zoom: 14,
+          essential: true,
+          duration: 1000
         });
       }
     }
-  }, [selectedProject, localProjects, map, flyTo, fitBounds]);
+  }, [selectedProject]);
   
-  // Handle marker click event from the map
-  const handleFeatureClick = useCallback((e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
-    if (e.features && e.features.length > 0) {
-      const feature = e.features[0];
-      const projectId = feature.properties?.id;
-      
-      if (projectId && onMarkerClick) {
-        const project = localProjects.find(p => p.id === projectId);
-        if (project) {
-          onMarkerClick(project);
-        }
-      }
+  // Get status color
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return '#4caf50'; // Green
+      case 'in progress':
+        return '#2196f3'; // Blue
+      case 'planning':
+        return '#ff9800'; // Orange
+      case 'completed':
+        return '#9c27b0'; // Purple
+      case 'rejected':
+        return '#f44336'; // Red
+      default:
+        return '#3388ff'; // Default blue
+    }
+  };
+  
+  // Create HTML for popups
+  const createPopupContent = (project: Project | MarkerData): string => {
+    // Handle both Project and MarkerData types
+    const name = 'title' in project ? project.title : (project as Project).name;
+    const description = project.description || '';
+    const status = 'properties' in project && project.properties?.status 
+      ? project.properties.status 
+      : 'status' in project ? project.status : '';
+    const address = 'properties' in project && project.properties?.address 
+      ? project.properties.address 
+      : 'address' in project ? project.address : '';
+    const budget = 'properties' in project && project.properties?.budget 
+      ? project.properties.budget 
+      : 'budget' in project ? project.budget : '';
+    
+    const statusClass = 
+      status.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
+      status.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800' :
+      'bg-yellow-100 text-yellow-800';
+    
+    return `
+      <div class="popup-content">
+        <h3 class="font-bold text-base border-b pb-2 mb-2">${name}</h3>
+        ${address ? `<p class="text-sm mb-1">${address}</p>` : ''}
+        <p class="text-sm mb-2">
+          <span class="font-medium">Status:</span> 
+          <span class="ml-1 px-2 py-0.5 rounded-full text-xs ${statusClass}">
+            ${status}
+          </span>
+        </p>
+        ${description ? `<p class="text-sm mt-1 text-gray-600">${description}</p>` : ''}
+        ${budget ? `<p class="text-sm mt-2 font-semibold">${budget}</p>` : ''}
+      </div>
+    `;
+  };
+  
+  // Handle marker click
+  const handleMarkerClick = useCallback((marker: MarkerData) => {
+    if (!onMarkerClick) return;
+    
+    // Find the corresponding project
+    const project = localProjects.find(p => p.id === marker.id);
+    if (project) {
+      onMarkerClick(project);
     }
   }, [localProjects, onMarkerClick]);
   
-  // Convert projects to GeoJSON
-  const projectsGeoJSON = {
-    type: 'FeatureCollection',
-    features: localProjects
-      .map(project => projectToGeoJSON(project))
-      .filter(Boolean) as GeoJSON.Feature[]
-  };
-  
-  // Handle map style changes
-  const handleMapStyleChange = (styleId: string) => {
-    const style = MAP_STYLES.find(s => s.id === styleId);
-    if (style) {
-      setMapStyles(prev => 
-        prev.map(s => ({
-          ...s,
-          checked: s.id === styleId
-        }))
-      );
-      setSelectedMapStyle(style.url);
+  // Handle GeoJSON feature click
+  const handleFeatureClick = (e: mapboxgl.MapLayerMouseEvent) => {
+    if (!onMarkerClick || !e.features || e.features.length === 0) return;
+    
+    const feature = e.features[0];
+    const properties = feature.properties;
+    if (!properties) return;
+    
+    // Find the corresponding project
+    const project = localProjects.find(p => p.id === properties.id);
+    if (project) {
+      onMarkerClick(project);
     }
   };
   
-  // Create color expressions for different project statuses
-  const getStatusColorExpression = () => [
-    'match',
-    ['get', 'status'],
-    'Planning', '#ff9800',
-    'Design', '#2196f3',
-    'Environmental', '#009688',
-    'RightOfWay', '#9c27b0',
-    'Construction', '#ff5722',
-    'Complete', '#4caf50',
-    'Cancelled', '#f44336',
-    'On Hold', '#9e9e9e',
-    '#3388ff' // default color
-  ];
-
+  // Handle map load
+  const handleMapLoad = (map: mapboxgl.Map) => {
+    mapRef.current = map;
+    setMapLoaded(true);
+    
+    // Add click handler for project features
+    map.on('click', 'project-features', handleFeatureClick);
+    
+    // Change cursor when hovering over features
+    map.on('mouseenter', 'project-features', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.on('mouseleave', 'project-features', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  };
+  
   return (
-    <div className={cn("relative w-full", className)} style={{ height, width }}>
-      {/* Main Mapbox component */}
-      <MapboxMap
-        initialViewState={{
-          longitude: initialCenter[0],
-          latitude: initialCenter[1],
-          zoom: initialZoom,
-        }}
-        mapStyle={selectedMapStyle}
+    <div 
+      className={cn("relative", className)} 
+      style={{ height, width }}
+      data-testid="mapbox-project-mapping"
+    >
+      <BaseMap
+        initialCenter={initialCenter}
+        initialZoom={initialZoom}
+        style={mapStyle}
+        onMapLoad={handleMapLoad}
         className="h-full w-full"
-        onMapLoad={(map) => {
-          // Map loaded successfully
-        }}
-        onError={(error: Error) => {
-          console.error('Mapbox initialization error:', error);
-          if (onError) onError(error);
-        }}
       >
-        {/* Project data source and layers */}
-        {showProjects && localProjects.length > 0 && (
-          <>
-            <MapboxSource
-              id="projects-source"
-              source={{
-                type: 'geojson',
-                data: projectsGeoJSON as GeoJSON.FeatureCollection,
-              }}
-            >
-              {/* Point layer for point geometries */}
-              <MapboxLayer
-                id="project-points"
-                type="circle"
-                filter={['==', ['geometry-type'], 'Point']}
-                paint={{
-                  'circle-radius': 8,
-                  'circle-color': getStatusColorExpression(),
-                  'circle-stroke-width': 2,
-                  'circle-stroke-color': '#ffffff',
-                  'circle-opacity': 0.8,
-                }}
-                onClick={handleFeatureClick}
-              />
-              
-              {/* Line layer for LineString geometries */}
-              <MapboxLayer
-                id="project-lines"
-                type="line"
-                filter={['==', ['geometry-type'], 'LineString']}
-                paint={{
-                  'line-color': getStatusColorExpression(),
-                  'line-width': 4,
-                  'line-opacity': 0.8,
-                }}
-                onClick={handleFeatureClick}
-              />
-              
-              {/* Fill layer for Polygon geometries */}
-              <MapboxLayer
-                id="project-polygons-fill"
-                type="fill"
-                filter={['==', ['geometry-type'], 'Polygon']}
-                paint={{
-                  'fill-color': getStatusColorExpression(),
-                  'fill-opacity': 0.3,
-                }}
-                onClick={handleFeatureClick}
-              />
-              
-              {/* Outline layer for Polygon geometries */}
-              <MapboxLayer
-                id="project-polygons-outline"
-                type="line"
-                filter={['==', ['geometry-type'], 'Polygon']}
-                paint={{
-                  'line-color': getStatusColorExpression(),
-                  'line-width': 2,
-                  'line-opacity': 0.8,
-                }}
-                onClick={handleFeatureClick}
-              />
-            </MapboxSource>
-          </>
+        {/* Project markers for points */}
+        {mapRef.current && markers.length > 0 && (
+          <MarkerLayer
+            map={mapRef.current}
+            markers={markers}
+            usePopup={true}
+            customPopup={(marker) => createPopupContent(marker)}
+            onClick={handleMarkerClick}
+          />
         )}
-      </MapboxMap>
-      
-      {/* UI Controls - Map Style Selector */}
-      <div className="absolute top-3 right-3 z-[1000]">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="bg-white shadow-md">
-              <Layers className="h-4 w-4 mr-2" />
-              Layers
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Map Style</DropdownMenuLabel>
-            {mapStyles.map(style => (
-              <DropdownMenuCheckboxItem
-                key={style.id}
-                checked={style.checked}
-                onCheckedChange={() => handleMapStyleChange(style.id)}
-              >
-                {style.name}
-              </DropdownMenuCheckboxItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Layers</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={showProjects}
-              onCheckedChange={setShowProjects}
-            >
-              Projects
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      
-      {/* Search Button (placeholder for future implementation) */}
-      <div className="absolute bottom-3 left-3 z-[1000]">
-        <Button variant="outline" size="sm" className="bg-white shadow-md">
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
-      </div>
-      
-      {/* Locate Button (placeholder for future implementation) */}
-      <div className="absolute bottom-3 left-24 z-[1000]">
-        <Button variant="outline" size="sm" className="bg-white shadow-md">
-          <MapPin className="h-4 w-4" />
-        </Button>
-      </div>
+        
+        {/* Project GeoJSON for lines and polygons */}
+        {mapRef.current && geoJsonData.features.length > 0 && (
+          <GeoJSONLayer
+            map={mapRef.current}
+            sourceId="project-features-source"
+            layerId="project-features"
+            data={geoJsonData}
+            layerType="line"
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 3,
+              'line-opacity': 0.8
+            }}
+            onFeatureClick={handleFeatureClick}
+          />
+        )}
+        
+        {/* Project GeoJSON for polygon fills */}
+        {mapRef.current && geoJsonData.features.filter(f => f.geometry.type === 'Polygon').length > 0 && (
+          <GeoJSONLayer
+            map={mapRef.current}
+            sourceId="project-polygons-source"
+            layerId="project-polygons"
+            data={{
+              type: 'FeatureCollection',
+              features: geoJsonData.features.filter(f => f.geometry.type === 'Polygon')
+            }}
+            layerType="fill"
+            paint={{
+              'fill-color': ['get', 'color'],
+              'fill-opacity': 0.3
+            }}
+          />
+        )}
+      </BaseMap>
     </div>
   );
-}
-
-// Helper function to generate test projects
-function generateTestProjects(): Project[] {
-  const defaultProject = {
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    startDate: new Date().toISOString(),
-    endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
-    estimatedCost: 0,
-    allocatedBudget: 0,
-    pseBudget: 0,
-    ceBudget: 0,
-    environmentalDocumentation: { leadAgency: 'Caltrans' },
-    nepaStatus: 'Not Started' as const,
-    ceqaStatus: 'Not Started' as const,
-    environmentalDocumentType: 'None' as const,
-    environmentalClearanceDate: '',
-    phases: [],
-    milestones: [],
-    scores: {
-      safety: 0,
-      equity: 0,
-      climate: 0,
-      congestion: 0,
-      costEffectiveness: 0,
-      multimodal: 0,
-      environmental: 0,
-      economic: 0,
-      feasibility: 0,
-      overall: 0
-    },
-    benefits: {
-      vmtReduction: 0,
-      ghgReduction: 0,
-      jobsCreated: 0,
-      safetyImprovement: 0,
-      congestionReduction: 0,
-      benefitCostRatio: 0,
-      economicBenefitEstimate: 0,
-      improvedAccessibility: 0
-    },
-    leadAgency: 'Nevada County',
-    partners: [],
-    fundingSources: [],
-    tags: [],
-    attachments: [],
-    isPublic: true,
-    accessControl: [],
-    organizationId: 'demo-org',
-    createdBy: 'demo-user',
-    mapType: 'streets',
-    location: 'Nevada City, CA',
-    priority: 'Medium' as const
-  };
-
-  return [
-    {
-      ...defaultProject,
-      id: '1',
-      name: 'Nevada City Downtown Revitalization',
-      description: 'Renovating the historic downtown area',
-      status: 'Construction' as ProjectStatus,
-      coordinates: { latitude: 39.2615, longitude: -121.0149 },
-      category: 'Infrastructure Improvement' as ProjectCategory
-    },
-    {
-      ...defaultProject,
-      id: '2',
-      name: 'Deer Creek Trail Extension',
-      description: 'Extending the trail by 2 miles',
-      status: 'Planning' as ProjectStatus,
-      coordinates: { latitude: 39.2525, longitude: -121.0199 },
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [-121.0299, 39.2515],
-          [-121.0199, 39.2525],
-          [-121.0099, 39.2545]
-        ]
-      } as ProjectGeometry,
-      category: 'Bicycle' as ProjectCategory
-    },
-    {
-      ...defaultProject,
-      id: '3',
-      name: 'Pioneer Park Improvements',
-      description: 'Renovating facilities at Pioneer Park',
-      status: 'Design' as ProjectStatus,
-      coordinates: { latitude: 39.2715, longitude: -121.0249 },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [[
-          [-121.0249, 39.2715],
-          [-121.0229, 39.2715],
-          [-121.0229, 39.2735],
-          [-121.0249, 39.2735],
-          [-121.0249, 39.2715]
-        ]]
-      } as ProjectGeometry,
-      category: 'Pedestrian' as ProjectCategory
-    }
-  ];
-}
-
-// Helper function to extract all coordinates from a GeoJSON geometry
-function getAllCoordinates(geometry: ProjectGeometry): [number, number][] {
-  const coordinates: [number, number][] = [];
-  
-  if (!geometry) return coordinates;
-  
-  if (geometry.type === 'Point') {
-    coordinates.push(geometry.coordinates as [number, number]);
-  } 
-  else if (geometry.type === 'LineString') {
-    geometry.coordinates.forEach((coord: any) => {
-      coordinates.push(coord as [number, number]);
-    });
-  }
-  else if (geometry.type === 'Polygon') {
-    geometry.coordinates[0].forEach((coord: any) => {
-      coordinates.push(coord as [number, number]);
-    });
-  }
-  
-  return coordinates;
-}
-
-// Helper function to calculate bounds from coordinates
-function getBoundsFromCoordinates(coords: [number, number][]): { north: number, south: number, east: number, west: number } {
-  if (!coords.length) {
-    return { north: 0, south: 0, east: 0, west: 0 };
-  }
-  
-  let north = coords[0][1];
-  let south = coords[0][1];
-  let east = coords[0][0];
-  let west = coords[0][0];
-  
-  coords.forEach((coord: [number, number]) => {
-    north = Math.max(north, coord[1]);
-    south = Math.min(south, coord[1]);
-    east = Math.max(east, coord[0]);
-    west = Math.min(west, coord[0]);
-  });
-  
-  return { north, south, east, west };
 } 

@@ -1,25 +1,8 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import '@/lib/leaflet-preload';
-
-// Fix for Leaflet default marker icon in Next.js
-// This is necessary because Leaflet assumes marker assets are available at specific paths
-// which doesn't work with Next.js static file serving by default
-const fixLeafletIcon = () => {
-  // Delete the default icon first
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-  // Set up the new paths
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: '/images/marker-icon-2x.png',
-    iconUrl: '/images/marker-icon.png',
-    shadowUrl: '/images/marker-shadow.png',
-  });
-};
+import React, { useEffect, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface ProjectLocationMapProps {
   latitude: number;
@@ -34,13 +17,49 @@ const ProjectLocationMap: React.FC<ProjectLocationMapProps> = ({
   projectName,
   zoom = 13,
 }) => {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     // Only run on client side
     setIsMounted(true);
-    fixLeafletIcon();
-  }, []);
+    
+    if (!mapContainer.current) return;
+    
+    // Initialize the map
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [longitude, latitude],
+      zoom: zoom
+    });
+
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // Add a marker
+    const popup = new mapboxgl.Popup({ offset: 25 })
+      .setHTML(`
+        <div>
+          <strong>${projectName}</strong>
+          <div>Lat: ${latitude.toFixed(6)}</div>
+          <div>Lng: ${longitude.toFixed(6)}</div>
+        </div>
+      `);
+      
+    new mapboxgl.Marker()
+      .setLngLat([longitude, latitude])
+      .setPopup(popup)
+      .addTo(map.current);
+      
+    // Clean up on unmount
+    return () => {
+      if (map.current) {
+        map.current.remove();
+      }
+    };
+  }, [latitude, longitude, projectName, zoom]);
 
   if (!isMounted) {
     return (
@@ -50,27 +69,7 @@ const ProjectLocationMap: React.FC<ProjectLocationMapProps> = ({
     );
   }
 
-  return (
-    <MapContainer
-      center={[latitude, longitude]}
-      zoom={zoom}
-      style={{ height: '100%', width: '100%' }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-      />
-      <Marker position={[latitude, longitude]}>
-        <Popup>
-          <div>
-            <strong>{projectName}</strong>
-            <div>Lat: {latitude.toFixed(6)}</div>
-            <div>Lng: {longitude.toFixed(6)}</div>
-          </div>
-        </Popup>
-      </Marker>
-    </MapContainer>
-  );
+  return <div ref={mapContainer} className="h-full w-full" />;
 };
 
 export default ProjectLocationMap; 

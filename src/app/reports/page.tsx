@@ -38,6 +38,7 @@ import {
   ArrowUpDownIcon,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Link from "next/link";
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState("all");
@@ -218,9 +219,11 @@ export default function Reports() {
           </Tabs>
 
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button className="w-full sm:w-auto">
-              <PlusIcon className="mr-2 h-4 w-4" />
-              New Report
+            <Button className="w-full sm:w-auto" asChild>
+              <Link href="/reports/generate">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                New Report
+              </Link>
             </Button>
             <Button variant="outline" className="w-full sm:w-auto">
               <DownloadIcon className="mr-2 h-4 w-4" />
@@ -338,9 +341,15 @@ export default function Reports() {
                     <TableCell className="font-medium" id={`n6ifi3_${index}`}>
                       <div className="flex items-center" id={`acx1m4_${index}`}>
                         {getTypeIcon(report.type)}
-                        <span className="ml-2" id={`1cs80o_${index}`}>
-                          {report.title}
-                        </span>
+                        <Link
+                          href={`/reports/${report.id}`}
+                          className="ml-2 hover:underline"
+                          id={`1cs80o_${index}`}
+                        >
+                          <div className="max-w-[500px] truncate font-medium">
+                            {report.title}
+                          </div>
+                        </Link>
                       </div>
                     </TableCell>
                     <TableCell id={`0z8pkq_${index}`}>{report.type}</TableCell>

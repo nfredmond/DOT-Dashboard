@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectsProvider } from "@/contexts/ProjectsContext";
 import dynamic from "next/dynamic";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Dynamically import the Mapbox community input map
 const MapboxCommunityInputMap = dynamic(

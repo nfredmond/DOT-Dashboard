@@ -42,6 +42,7 @@ import { ProjectManager } from "./components/ProjectManager";
 import { useRouter } from "next/navigation";
 import { ProjectScoringSettings } from "./components/ProjectScoringSettings";
 import { MapSettingsManager } from "./components/MapSettingsManager";
+import { UserMapPreferences } from "./components/UserMapPreferences";
 
 export default function AdminPanel() {
   const [_activeTab, setActiveTab] = useState("overview");
@@ -365,10 +366,10 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="layers" className="mt-0">
+          <TabsContent value="layers" className="mt-0 space-y-8">
             <Card>
               <CardHeader>
-                <CardTitle>Map Settings</CardTitle>
+                <CardTitle>Map Configuration</CardTitle>
                 <CardDescription>
                   Manage maps, base layers, and KMZ file uploads for different users and agencies
                 </CardDescription>
@@ -377,6 +378,8 @@ export default function AdminPanel() {
                 <MapSettingsManager />
               </CardContent>
             </Card>
+            
+            <UserMapPreferences />
           </TabsContent>
         </Tabs>
       </div>

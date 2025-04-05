@@ -1,0 +1,23 @@
+# Python dependencies for Planning Manager
+# Install with: pip install -r requirements.txt
+
+# Math and Scientific Libraries
+mpmath>=1.3.0
+sympy>=1.12.0
+numpy>=1.24.0
+networkx>=3.1.0
+numba>=0.58.0
+
+# Data Processing
+more-itertools>=10.1.0
+fsspec>=2023.6.0
+filelock>=3.12.2
+llvmlite>=0.40.0
+
+# ML/AI
+torch>=2.0.0
+openai-whisper>=20231117
+
+# Templating
+jinja2>=3.1.2
+MarkupSafe>=2.1.3 

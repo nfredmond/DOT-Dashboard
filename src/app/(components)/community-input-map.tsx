@@ -1,13 +1,14 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
-import { Map as LeafletMap, LatLng } from 'leaflet';
+import React, { useState, useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -25,17 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   MapPinIcon,
   SendIcon,
-  FileIcon,
-  TextIcon,
-  XIcon,
   PenLineIcon,
   SquareIcon,
   ImageIcon,
-  UserIcon,
-  AlertTriangleIcon,
-  FilterIcon,
+  XIcon,
   CogIcon,
-  MapPin,
+  FilterIcon,
 } from "lucide-react";
 import { 
   Dialog, 
@@ -44,88 +40,17 @@ import {
   DialogFooter, 
   DialogHeader, 
   DialogTitle,
-  DialogTrigger, 
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
-import '@/lib/leaflet-preload'; 
-import { useLeaflet } from "@/hooks/useLeaflet";
-import { useMapEvents } from "react-leaflet";
 import { Switch } from "@/components/ui/switch";
+import BaseMap from "@/components/maps/BaseMap";
+import GeoJSONLayer from "@/components/maps/GeoJSONLayer";
+import MarkerLayer, { MarkerData } from "@/components/maps/MarkerLayer";
+import { initMapboxToken } from "@/lib/map-utils";
 
-// Rename unused variables
-const _Card = Card;
-const _CardContent = CardContent;
-const _CardDescription = CardDescription;
-const _CardFooter = CardFooter;
-const _CardHeader = CardHeader;
-const _CardTitle = CardTitle;
-const _MapPinIcon = MapPinIcon;
-const _SendIcon = SendIcon;
-const _FileIcon = FileIcon;
-const _TextIcon = TextIcon;
-const _XIcon = XIcon;
-const _AlertTriangleIcon = AlertTriangleIcon;
-const _FilterIcon = FilterIcon;
-const _DialogTrigger = DialogTrigger;
-
-// Type for Leaflet
-type _L = typeof import('leaflet');
-
-// Dynamically import Leaflet components with no SSR
-const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
-  { ssr: false }
-);
-const FeatureGroup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.FeatureGroup),
-  { ssr: false }
-);
-const _ZoomControl = dynamic(
-  () => import('react-leaflet').then((mod) => mod.ZoomControl),
-  { ssr: false }
-);
-
-// Import EditControl with proper typing
-const EditControl = dynamic(
-  () => import('../project-mapping/components/EditControl').then((mod) => mod.EditControl),
-  { ssr: false }
-);
-
-// Geo-search component
-const SearchControl = dynamic(
-  () => import('@/app/components/SearchControl').then((mod) => mod.SearchControl),
-  { ssr: false }
-);
-
-// Geolocation component
-const GeolocateControl = dynamic(
-  () => import('@/app/components/GeolocateControl').then((mod) => mod.GeolocateControl),
-  { ssr: false }
-);
-
-// Dynamically import polyline and polygon components
-const Polyline = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polyline),
-  { ssr: false }
-);
-
-const Polygon = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polygon),
-  { ssr: false }
-);
+// Initialize Mapbox access token
+initMapboxToken();
 
 // Define types
 interface CommunityInput {
@@ -161,15 +86,12 @@ interface Agency {
   useLlmModeration: boolean;
 }
 
-// Rename unused variables for linter compliance
-const _useCallback = useCallback;
-
 export function CommunityInputMap() {
   // Map state
-  const [mapCenter, _setMapCenter] = useState<[number, number]>([37.7749, -122.4194]);
-  const [zoom, _setZoom] = useState(12);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const { leafletLoaded } = useLeaflet();
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-122.4194, 37.7749]);
+  const [zoom, setZoom] = useState(12);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   
   // Input state
   const [drawingMode, setDrawingMode] = useState<'point' | 'line' | 'polygon' | null>(null);
@@ -186,7 +108,7 @@ export function CommunityInputMap() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   // Admin state
-  const [isAdmin, _setIsAdmin] = useState(true); // Set to true by default for testing
+  const [isAdmin, setIsAdmin] = useState(true); // Set to true by default for testing
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [autoApprove, setAutoApprove] = useState(false);
   const [useLlmModeration, setUseLlmModeration] = useState(true);
@@ -198,8 +120,15 @@ export function CommunityInputMap() {
   // Community input data
   const [communityInputs, setCommunityInputs] = useState<CommunityInput[]>([]);
   const [filteredInputs, setFilteredInputs] = useState<CommunityInput[]>([]);
-  const [categoryFilter, _setCategoryFilter] = useState<string | null>(null);
-  const [statusFilter, _setStatusFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  
+  // Marker and GeoJSON data
+  const [markers, setMarkers] = useState<MarkerData[]>([]);
+  const [geoJsonData, setGeoJsonData] = useState<GeoJSON.FeatureCollection>({
+    type: 'FeatureCollection',
+    features: []
+  });
   
   // Categories for input - in real app, these would be configurable
   const inputCategories: InputCategory[] = [
@@ -306,6 +235,71 @@ export function CommunityInputMap() {
     fetchCommunityInputs();
   }, []);
   
+  // Convert community inputs to markers and GeoJSON when filtered inputs change
+  useEffect(() => {
+    // Create markers for point features
+    const newMarkers: MarkerData[] = filteredInputs
+      .filter(input => input.type === 'point')
+      .map(input => ({
+        id: input.id,
+        longitude: input.geometry.lng,
+        latitude: input.geometry.lat,
+        title: input.title,
+        description: input.description,
+        color: getCategoryColor(input.category),
+        type: input.category,
+        properties: {
+          ...input,
+          status: input.status,
+          category: input.category,
+          username: input.username,
+          images: input.images
+        }
+      }));
+    
+    setMarkers(newMarkers);
+    
+    // Create GeoJSON for lines and polygons
+    const features: GeoJSON.Feature[] = filteredInputs
+      .filter(input => input.type === 'line' || input.type === 'polygon')
+      .map(input => {
+        const color = getCategoryColor(input.category);
+        let geometry: GeoJSON.Geometry;
+        
+        if (input.type === 'line') {
+          geometry = {
+            type: 'LineString',
+            coordinates: input.geometry.map((point: any) => [point.lng, point.lat])
+          };
+        } else { // polygon
+          geometry = {
+            type: 'Polygon',
+            coordinates: [[...input.geometry.map((point: any) => [point.lng, point.lat]), input.geometry.map((point: any) => [point.lng, point.lat])[0]]]
+          };
+        }
+        
+        return {
+          type: 'Feature',
+          geometry,
+          properties: {
+            id: input.id,
+            title: input.title,
+            description: input.description,
+            category: input.category,
+            username: input.username,
+            status: input.status,
+            color,
+            images: input.images
+          }
+        };
+      });
+    
+    setGeoJsonData({
+      type: 'FeatureCollection',
+      features
+    });
+  }, [filteredInputs]);
+  
   // Filter inputs when category or status filters change
   useEffect(() => {
     let filtered = [...communityInputs];
@@ -322,78 +316,207 @@ export function CommunityInputMap() {
   }, [communityInputs, categoryFilter, statusFilter]);
   
   // Map event handlers
-  const handleSetMap = (map: LeafletMap) => {
+  const handleMapLoad = (map: mapboxgl.Map) => {
     mapRef.current = map;
-  };
-  
-  const _handleZoomIn = () => {
-    if (mapRef.current) {
-      mapRef.current.setZoom(mapRef.current.getZoom() + 1);
-    }
-  };
-
-  const _handleZoomOut = () => {
-    if (mapRef.current) {
-      mapRef.current.setZoom(mapRef.current.getZoom() - 1);
-    }
-  };
-
-  const _handleResetView = () => {
-    if (mapRef.current) {
-      mapRef.current.setView(mapCenter, zoom);
-    }
+    
+    // Add a popup for GeoJSON features when clicked
+    map.on('click', 'community-lines', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      
+      const feature = e.features[0];
+      if (!feature.properties) return;
+      
+      const props = feature.properties;
+      
+      // Create popup content
+      const popupContent = `
+        <div class="p-2">
+          <h3 class="font-medium mb-1">${props.title || ''}</h3>
+          <p class="text-sm text-gray-600 mb-2">${props.description || ''}</p>
+          <div class="flex items-center gap-2 mb-2">
+            <span style="background-color: ${props.color || '#3b82f6'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+              ${inputCategories.find(cat => cat.id === props.category)?.name || 'General'}
+            </span>
+            <span style="border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+              ${props.status || ''}
+            </span>
+          </div>
+          <div class="flex items-center gap-1 text-xs text-gray-500">
+            <span>${props.username || ''}</span>
+          </div>
+        </div>
+      `;
+      
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+    });
+    
+    map.on('click', 'community-polygons', (e) => {
+      if (!e.features || e.features.length === 0) return;
+      
+      const feature = e.features[0];
+      if (!feature.properties) return;
+      
+      const props = feature.properties;
+      
+      // Create popup content
+      const popupContent = `
+        <div class="p-2">
+          <h3 class="font-medium mb-1">${props.title || ''}</h3>
+          <p class="text-sm text-gray-600 mb-2">${props.description || ''}</p>
+          <div class="flex items-center gap-2 mb-2">
+            <span style="background-color: ${props.color || '#3b82f6'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+              ${inputCategories.find(cat => cat.id === props.category)?.name || 'General'}
+            </span>
+            <span style="border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+              ${props.status || ''}
+            </span>
+          </div>
+          <div class="flex items-center gap-1 text-xs text-gray-500">
+            <span>${props.username || ''}</span>
+          </div>
+        </div>
+      `;
+      
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+    });
+    
+    // Change cursor when hovering over features
+    map.on('mouseenter', 'community-lines', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.on('mouseleave', 'community-lines', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    
+    map.on('mouseenter', 'community-polygons', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    
+    map.on('mouseleave', 'community-polygons', () => {
+      map.getCanvas().style.cursor = '';
+    });
   };
   
   // Drawing mode handlers
   const enablePointMode = () => {
+    if (!mapRef.current) return;
+    
+    // Disable drawing controls if active
+    if (drawRef.current) {
+      mapRef.current.removeControl(drawRef.current);
+      drawRef.current = null;
+    }
+    
     setDrawingMode('point');
     setSelectedGeometry(null);
-  };
-  
-  const enableLineMode = () => {
-    setDrawingMode('line');
-    setSelectedGeometry(null);
-  };
-  
-  const enablePolygonMode = () => {
-    setDrawingMode('polygon');
-    setSelectedGeometry(null);
-  };
-  
-  // Handle map click for point placement
-  const handleMapClick = (e: any) => {
-    if (drawingMode === 'point') {
-      setSelectedGeometry({ lat: e.latlng.lat, lng: e.latlng.lng });
-      setCurrentInput(prev => ({ ...prev, type: 'point' }));
-      setShowInputForm(true);
-      setDrawingMode(null);
+    
+    // Change cursor to indicate point placement mode
+    if (mapRef.current) {
+      mapRef.current.getCanvas().style.cursor = 'crosshair';
     }
   };
   
-  // Handle drawing created event from EditControl
-  const handleDrawingCreated = (e: any) => {
-    const layer = e.layer;
-    const type = e.layerType;
+  const enableLineMode = () => {
+    if (!mapRef.current) return;
     
-    if (type === 'polyline') {
-      const points = layer.getLatLngs().map((latlng: LatLng) => ({ 
-        lat: latlng.lat, 
-        lng: latlng.lng 
+    // Add drawing control for lines
+    setDrawingMode('line');
+    setSelectedGeometry(null);
+    
+    // Initialize draw control for line
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        line_string: true,
+        trash: true
+      }
+    });
+    
+    mapRef.current.addControl(draw);
+    drawRef.current = draw;
+  };
+  
+  const enablePolygonMode = () => {
+    if (!mapRef.current) return;
+    
+    // Add drawing control for polygons
+    setDrawingMode('polygon');
+    setSelectedGeometry(null);
+    
+    // Initialize draw control for polygon
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        trash: true
+      }
+    });
+    
+    mapRef.current.addControl(draw);
+    drawRef.current = draw;
+  };
+  
+  // Handle map click for point placement
+  const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+    if (drawingMode === 'point') {
+      setSelectedGeometry({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      setCurrentInput(prev => ({ ...prev, type: 'point' }));
+      setShowInputForm(true);
+      setDrawingMode(null);
+      
+      // Reset cursor
+      if (mapRef.current) {
+        mapRef.current.getCanvas().style.cursor = '';
+      }
+    }
+  };
+  
+  // Handle drawing created event from Draw control
+  const handleDrawingCreate = (e: any) => {
+    if (!drawingMode || !mapRef.current || !drawRef.current) return;
+    
+    // Get the created feature
+    const data = e.features[0];
+    
+    if (data.geometry.type === 'LineString') {
+      // Format for our application structure
+      const points = data.geometry.coordinates.map((coord: [number, number]) => ({ 
+        lng: coord[0], 
+        lat: coord[1] 
       }));
+      
       setSelectedGeometry(points);
       setCurrentInput(prev => ({ ...prev, type: 'line' }));
       setShowInputForm(true);
-    } else if (type === 'polygon') {
-      const points = layer.getLatLngs()[0].map((latlng: LatLng) => ({ 
-        lat: latlng.lat, 
-        lng: latlng.lng 
+    } else if (data.geometry.type === 'Polygon') {
+      // Format for our application structure (using first ring)
+      const points = data.geometry.coordinates[0].map((coord: [number, number]) => ({ 
+        lng: coord[0], 
+        lat: coord[1] 
       }));
+      
+      // Remove last coordinate as it's the same as the first for a closed polygon
+      points.pop();
+      
       setSelectedGeometry(points);
       setCurrentInput(prev => ({ ...prev, type: 'polygon' }));
       setShowInputForm(true);
     }
     
     setDrawingMode(null);
+    
+    // Remove the draw control after feature creation
+    if (mapRef.current && drawRef.current) {
+      mapRef.current.removeControl(drawRef.current);
+      drawRef.current = null;
+    }
   };
   
   // File upload handlers
@@ -404,7 +527,7 @@ export function CommunityInputMap() {
     }
   };
   
-  const _removeFile = (index: number) => {
+  const removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
   
@@ -503,7 +626,6 @@ export function CommunityInputMap() {
       
       // For demo, just add to local state
       setCommunityInputs(prev => [...prev, newInput]);
-      setFilteredInputs(prev => [...prev, newInput]);
       
       // Reset form
       setCurrentInput({
@@ -518,19 +640,11 @@ export function CommunityInputMap() {
       setUploadedFiles([]);
       setShowInputForm(false);
       
-      // Reset map for next input
-      if (mapRef.current) {
-        // Remove temporary drawing layers
-        const map = mapRef.current;
-        // Check if the map has the Leaflet.PM plugin
-        if (map && 'pm' in map) {
-          // Type assertion for the Leaflet.PM plugin
-          const pmMap = map as any;
-          const drawnItems = pmMap.pm.getGeomanDrawLayers();
-          drawnItems.forEach((layer: any) => {
-            map.removeLayer(layer);
-          });
-        }
+      // Clear any drawn features
+      if (mapRef.current && drawRef.current) {
+        drawRef.current.deleteAll();
+        mapRef.current.removeControl(drawRef.current);
+        drawRef.current = null;
       }
       
       alert('Your input has been submitted successfully' + (autoApprove ? ' and is now visible on the map.' : ' and is waiting for approval.'));
@@ -567,17 +681,6 @@ export function CommunityInputMap() {
       });
       
       setCommunityInputs(updatedInputs);
-      
-      // Apply filters
-      let filtered = [...updatedInputs];
-      if (categoryFilter) {
-        filtered = filtered.filter(input => input.category === categoryFilter);
-      }
-      if (statusFilter) {
-        filtered = filtered.filter(input => input.status === statusFilter);
-      }
-      
-      setFilteredInputs(filtered);
       setModerationNote('');
       
       alert(`Input has been ${status === 'approved' ? 'approved' : 'rejected'}.`);
@@ -589,155 +692,50 @@ export function CommunityInputMap() {
     }
   };
   
-  // Render markers and geometries
-  const renderInputGeometries = () => {
-    return filteredInputs.map(input => {
-      const color = getCategoryColor(input.category);
-      
-      if (input.type === 'point') {
-        return (
-          <Marker 
-            key={input.id}
-            position={[input.geometry.lat, input.geometry.lng]}
-            icon={L.divIcon({
-              className: 'custom-marker',
-              html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
-              iconSize: [16, 16],
-              iconAnchor: [8, 8]
-            })}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-medium mb-1">{input.title}</h3>
-                <p className="text-sm text-gray-600 mb-2">{input.description}</p>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge style={{ backgroundColor: color, color: 'white' }}>
-                    {inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
-                  </Badge>
-                  <Badge variant="outline">
-                    {input.status}
-                  </Badge>
+  // Custom popup for marker points
+  const customMarkerPopup = (marker: MarkerData) => {
+    const properties = marker.properties || {};
+    const categoryName = inputCategories.find(cat => cat.id === properties.category)?.name || 'General';
+    
+    return `
+      <div class="p-2">
+        <h3 class="font-medium mb-1">${marker.title || ''}</h3>
+        <p class="text-sm text-gray-600 mb-2">${marker.description || ''}</p>
+        <div class="flex items-center gap-2 mb-2">
+          <span style="background-color: ${marker.color}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+            ${categoryName}
+          </span>
+          <span style="border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+            ${properties.status || ''}
+          </span>
+        </div>
+        <div class="flex items-center gap-1 text-xs text-gray-500">
+          <span>${properties.username || ''}</span>
+        </div>
+        ${properties.images && properties.images.length > 0 ? `
+          <div class="mt-2">
+            <div class="flex flex-wrap gap-1">
+              ${properties.images.map((img: string, idx: number) => `
+                <div key="${idx}" class="w-16 h-16 bg-gray-200 rounded overflow-hidden">
+                  <img src="${img}" alt="User upload" class="w-full h-full object-cover" />
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <UserIcon size={12} />
-                  <span>{input.username}</span>
-                </div>
-                {input.images.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex flex-wrap gap-1">
-                      {input.images.map((img, idx) => (
-                        <div key={idx} className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-                          <img src={img} alt="User upload" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        );
-      } else if (input.type === 'line') {
-        const positions = input.geometry.map((point: any) => [point.lat, point.lng]);
-        
-        return (
-          <React.Fragment key={input.id}>
-            {leafletLoaded && (
-              <Polyline 
-                positions={positions}
-                pathOptions={{ 
-                  color: color,
-                  weight: 4,
-                  opacity: 0.7
-                }}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-medium mb-1">{input.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{input.description}</p>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge style={{ backgroundColor: color, color: 'white' }}>
-                        {inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {input.status}
-                      </Badge>
-                    </div>
-                    {input.images.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex flex-wrap gap-1">
-                          {input.images.map((img: string, idx: number) => (
-                            <div key={idx} className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-                              <img src={img} alt="User upload" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Polyline>
-            )}
-          </React.Fragment>
-        );
-      } else if (input.type === 'polygon') {
-        const positions = input.geometry.map((point: any) => [point.lat, point.lng]);
-        
-        return (
-          <React.Fragment key={input.id}>
-            {leafletLoaded && (
-              <Polygon 
-                positions={[positions]}
-                pathOptions={{ 
-                  color: color,
-                  weight: 2,
-                  opacity: 0.7,
-                  fillColor: color,
-                  fillOpacity: 0.4
-                }}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-medium mb-1">{input.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{input.description}</p>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge style={{ backgroundColor: color, color: 'white' }}>
-                        {inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {input.status}
-                      </Badge>
-                    </div>
-                    {input.images.length > 0 && (
-                      <div className="mt-2">
-                        <div className="flex flex-wrap gap-1">
-                          {input.images.map((img: string, idx: number) => (
-                            <div key={idx} className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-                              <img src={img} alt="User upload" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Polygon>
-            )}
-          </React.Fragment>
-        );
-      }
-      
-      return null;
-    });
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
   };
   
-  // Component for handling map clicks
-  const MapClickHandler = () => {
-    const _map = useMapEvents({
-      click: handleMapClick
-    });
+  // Get category color
+  const getCategoryColor = (categoryId: string): string => {
+    if (currentAgency) {
+      const category = currentAgency.categories.find(cat => cat.id === categoryId);
+      if (category) return category.color;
+    }
     
-    return null;
+    const category = inputCategories.find(cat => cat.id === categoryId);
+    return category ? category.color : '#3b82f6'; // Default blue
   };
   
   // Render admin panel
@@ -748,39 +746,21 @@ export function CommunityInputMap() {
     const pendingInputs = communityInputs.filter(input => input.status === 'pending');
     
     return (
-      <div className="absolute z-10 right-4 top-4 w-80 bg-white rounded-lg shadow-lg p-4 max-h-[70vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Admin Controls</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAdminPanel(false)}
-          >
-            <XIcon className="h-4 w-4" />
-          </Button>
-        </div>
+      <Card className="max-w-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CogIcon className="h-5 w-5" />
+            Moderation Panel
+          </CardTitle>
+          <CardDescription>
+            Review and manage community inputs
+          </CardDescription>
+        </CardHeader>
         
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="autoApprove">Auto-approve submissions</Label>
-            <Switch
-              id="autoApprove"
-              checked={autoApprove}
-              onCheckedChange={setAutoApprove}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="useLlm">Use LLM for categorization</Label>
-            <Switch
-              id="useLlm"
-              checked={useLlmModeration}
-              onCheckedChange={setUseLlmModeration}
-            />
-          </div>
-          
-          <div className="mt-2">
-            <Label htmlFor="agencySelect">Current Agency</Label>
+        <CardContent>
+          {/* Agency selection */}
+          <div className="mb-4">
+            <Label htmlFor="agency">Agency</Label>
             <Select
               value={currentAgency?.id || ''}
               onValueChange={(value) => {
@@ -800,93 +780,163 @@ export function CommunityInputMap() {
               </SelectContent>
             </Select>
           </div>
-        </div>
-        
-        <h4 className="font-medium mb-2">Pending Inputs ({pendingInputs.length})</h4>
-        {pendingInputs.length === 0 ? (
-          <p className="text-sm text-gray-500">No pending inputs</p>
-        ) : (
-          <div className="space-y-3">
-            {pendingInputs.map(input => (
-              <Card key={input.id} className="p-3">
-                <h5 className="font-medium">{input.title}</h5>
-                <p className="text-sm text-gray-700 line-clamp-2 mb-2">{input.description}</p>
-                <div className="flex gap-1 mb-2">
-                  <Badge variant="outline">
-                    {input.type}
-                  </Badge>
-                  <Badge
-                    style={{ backgroundColor: getCategoryColor(input.category) }}
-                    className="text-white"
-                  >
-                    {input.category}
-                  </Badge>
-                </div>
-                
-                <div className="mb-2">
-                  <Label htmlFor={`note-${input.id}`} className="text-xs">Moderation Note</Label>
-                  <Textarea
-                    id={`note-${input.id}`}
-                    placeholder="Add a note (optional)"
-                    className="h-16 text-sm"
-                    value={moderationNote}
-                    onChange={(e) => setModerationNote(e.target.value)}
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => updateInputStatus(input.id, 'rejected')}
-                    disabled={isProcessing}
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => updateInputStatus(input.id, 'approved')}
-                    disabled={isProcessing}
-                  >
-                    Approve
-                  </Button>
-                </div>
-              </Card>
-            ))}
+          
+          {/* Settings */}
+          <div className="space-y-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="auto-approve" className="mb-1 block">Auto-approve</Label>
+                <span className="text-sm text-gray-500">Automatically approve new submissions</span>
+              </div>
+              <Switch 
+                id="auto-approve" 
+                checked={autoApprove}
+                onCheckedChange={setAutoApprove}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="llm-moderation" className="mb-1 block">AI classification</Label>
+                <span className="text-sm text-gray-500">Use AI to classify submissions</span>
+              </div>
+              <Switch 
+                id="llm-moderation" 
+                checked={useLlmModeration}
+                onCheckedChange={setUseLlmModeration}
+              />
+            </div>
           </div>
-        )}
-      </div>
+          
+          {/* Pending inputs */}
+          <div>
+            <h3 className="text-md font-medium mb-2">Pending Review ({pendingInputs.length})</h3>
+            {pendingInputs.length === 0 ? (
+              <p className="text-sm text-gray-500">No pending inputs</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingInputs.map(input => (
+                  <div key={input.id} className="border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{input.title}</h4>
+                      <Badge variant="outline">
+                        {input.type}
+                      </Badge>
+                    </div>
+                    <p className="text-sm mb-2 text-gray-600">{input.description}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge style={{ backgroundColor: getCategoryColor(input.category), color: 'white' }}>
+                        {currentAgency?.categories.find(cat => cat.id === input.category)?.name || 
+                          inputCategories.find(cat => cat.id === input.category)?.name || 'General'}
+                      </Badge>
+                      <span className="text-xs text-gray-500">{input.username}</span>
+                    </div>
+                    
+                    <div className="mt-3">
+                      <Label htmlFor={`moderation-note-${input.id}`} className="text-xs">Moderation note (optional)</Label>
+                      <Textarea 
+                        id={`moderation-note-${input.id}`}
+                        value={moderationNote} 
+                        onChange={(e) => setModerationNote(e.target.value)}
+                        className="h-20 mt-1"
+                        placeholder="Add a note about this input..."
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        onClick={() => updateInputStatus(input.id, 'approved')}
+                        disabled={isProcessing}
+                      >
+                        Approve
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => updateInputStatus(input.id, 'rejected')}
+                        disabled={isProcessing}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     );
   };
   
-  const getCategoryColor = (categoryId: string): string => {
-    const category = inputCategories.find(cat => cat.id === categoryId);
-    return category?.color || '#3b82f6';
-  };
-  
-  // Render the map with controls
   return (
-    <div className="relative w-full h-full">
-      {leafletLoaded && (
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+    <div className="relative h-[80vh] w-full">
+      {/* Main map container */}
+      <BaseMap 
+        initialCenter={mapCenter}
+        initialZoom={zoom}
+        onMapLoad={handleMapLoad}
+        className="h-full w-full"
+      >
+        {/* Marker layer for points */}
+        {mapRef.current && (
+          <MarkerLayer
+            map={mapRef.current}
+            markers={markers}
+            usePopup={true}
+            customPopup={customMarkerPopup}
+          />
+        )}
+
+        {/* GeoJSON layer for lines */}
+        {mapRef.current && geoJsonData.features.filter(f => f.geometry.type === 'LineString').length > 0 && (
+          <GeoJSONLayer
+            map={mapRef.current}
+            sourceId="community-lines-source"
+            layerId="community-lines"
+            data={geoJsonData}
+            layerType="line"
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 4,
+              'line-opacity': 0.7
+            }}
+          />
+        )}
+
+        {/* GeoJSON layer for polygons */}
+        {mapRef.current && geoJsonData.features.filter(f => f.geometry.type === 'Polygon').length > 0 && (
+          <GeoJSONLayer
+            map={mapRef.current}
+            sourceId="community-polygons-source"
+            layerId="community-polygons"
+            data={geoJsonData}
+            layerType="fill"
+            paint={{
+              'fill-color': ['get', 'color'],
+              'fill-opacity': 0.4,
+              'fill-outline-color': ['get', 'color']
+            }}
+          />
+        )}
+      </BaseMap>
+        
+      {/* Drawing tools */}
+      <div className="absolute top-4 left-4 bg-white rounded-md shadow-md p-2 z-10">
+        <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={enablePointMode}
+                  variant={drawingMode === 'point' ? "default" : "outline"}
                   size="icon"
-                  variant={drawingMode === 'point' ? 'default' : 'outline'}
-                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                  onClick={enablePointMode}
                 >
-                  <MapPin className="h-5 w-5" />
+                  <MapPinIcon className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Add Point</p>
-              </TooltipContent>
+              <TooltipContent>Add Point</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           
@@ -894,17 +944,14 @@ export function CommunityInputMap() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={enableLineMode}
+                  variant={drawingMode === 'line' ? "default" : "outline"}
                   size="icon"
-                  variant={drawingMode === 'line' ? 'default' : 'outline'}
-                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                  onClick={enableLineMode}
                 >
                   <PenLineIcon className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Draw Line</p>
-              </TooltipContent>
+              <TooltipContent>Draw Line</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           
@@ -912,186 +959,152 @@ export function CommunityInputMap() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={enablePolygonMode}
+                  variant={drawingMode === 'polygon' ? "default" : "outline"}
                   size="icon"
-                  variant={drawingMode === 'polygon' ? 'default' : 'outline'}
-                  className="h-10 w-10 rounded-full bg-white shadow-md"
+                  onClick={enablePolygonMode}
                 >
                   <SquareIcon className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Draw Area</p>
-              </TooltipContent>
+              <TooltipContent>Draw Area</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-      )}
+      </div>
       
-      {isAdmin && (
-        <div className="absolute top-4 right-4 z-10">
-          <Button 
-            variant="default"
-            size="sm"
-            onClick={() => setShowAdminPanel(!showAdminPanel)}
-            className="shadow-md"
+      {/* Category filter */}
+      <div className="absolute top-4 right-4 bg-white rounded-md shadow-md p-2 z-10">
+        <div className="flex items-center gap-2">
+          <FilterIcon className="h-4 w-4 text-gray-500" />
+          <Select
+            value={categoryFilter || ''}
+            onValueChange={(value) => setCategoryFilter(value || null)}
           >
-            <CogIcon className="h-4 w-4 mr-2" />
-            Admin Controls
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All categories</SelectItem>
+              {(currentAgency?.categories || inputCategories).map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {/* Admin panel toggle */}
+      {isAdmin && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <Button
+            variant={showAdminPanel ? "default" : "outline"}
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className="flex items-center gap-2"
+          >
+            <CogIcon className="h-4 w-4" />
+            {showAdminPanel ? "Hide Panel" : "Admin Panel"}
           </Button>
         </div>
       )}
       
-      {renderAdminPanel()}
-      
-      {leafletLoaded && (
-        <MapContainer
-          center={mapCenter}
-          zoom={zoom}
-          className="w-full h-full"
-          whenCreated={handleSetMap}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {/* Map controls */}
-          <div className="leaflet-top leaflet-right">
-            <div className="leaflet-control leaflet-bar">
-              <GeolocateControl />
-              <SearchControl />
-            </div>
-          </div>
-          
-          {/* User inputs on map */}
-          {renderInputGeometries()}
-          
-          {/* Drawing controls */}
-          <FeatureGroup>
-            <EditControl
-              position="topleft"
-              onCreated={handleDrawingCreated}
-              draw={{
-                rectangle: false,
-                circle: false,
-                circlemarker: false,
-                marker: drawingMode === 'point',
-                polyline: drawingMode === 'line',
-                polygon: drawingMode === 'polygon',
-              }}
-              edit={{
-                edit: false,
-                remove: false,
-              }}
-            />
-          </FeatureGroup>
-          
-          {/* Map click handler */}
-          <MapClickHandler />
-        </MapContainer>
+      {/* Admin panel */}
+      {showAdminPanel && (
+        <div className="absolute top-20 right-4 z-20">
+          {renderAdminPanel()}
+        </div>
       )}
       
       {/* Input form dialog */}
       <Dialog open={showInputForm} onOpenChange={setShowInputForm}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add Community Input</DialogTitle>
+            <DialogTitle>Submit Community Input</DialogTitle>
             <DialogDescription>
-              Provide details about the location you've selected
+              Add details about this location or feature
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+            <div>
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="Brief title for your input"
                 value={currentInput.title}
-                onChange={(e) => setCurrentInput({...currentInput, title: e.target.value})}
+                onChange={(e) => setCurrentInput({ ...currentInput, title: e.target.value })}
+                placeholder="Enter a title for your input"
               />
             </div>
             
-            <div className="grid gap-2">
+            <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Describe the issue or suggestion in detail"
-                className="min-h-[100px]"
                 value={currentInput.description}
-                onChange={(e) => setCurrentInput({...currentInput, description: e.target.value})}
+                onChange={(e) => setCurrentInput({ ...currentInput, description: e.target.value })}
+                placeholder="Describe the issue or suggestion"
+                className="h-24"
               />
             </div>
             
-            <div className="grid gap-2">
+            <div>
               <Label htmlFor="category">Category</Label>
               <Select
                 value={currentInput.category}
-                onValueChange={(value) => setCurrentInput({...currentInput, category: value})}
+                onValueChange={(value) => setCurrentInput({ ...currentInput, category: value })}
               >
-                <SelectTrigger id="category">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(currentAgency?.categories || inputCategories).map((category) => (
+                  {(currentAgency?.categories || inputCategories).map(category => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {useLlmModeration && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Leave as "General" for automatic categorization
-                </p>
-              )}
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="images">Upload Images (optional)</Label>
-              <div className="flex items-center gap-2">
-                <Label 
-                  htmlFor="image-upload" 
-                  className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium cursor-pointer"
-                >
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                  Choose Files
-                </Label>
+            <div>
+              <Label htmlFor="images">Attachments (optional)</Label>
+              <div className="flex items-center gap-2 mt-1">
                 <Input
-                  id="image-upload"
+                  id="images"
                   type="file"
-                  multiple
-                  className="hidden"
                   accept="image/*"
+                  multiple
                   onChange={handleFileUpload}
+                  className="hidden"
                 />
+                <Label htmlFor="images" className="cursor-pointer flex items-center gap-2 text-sm text-gray-600 border rounded-md px-3 py-2 hover:bg-gray-50">
+                  <ImageIcon className="h-4 w-4" />
+                  Add Images
+                </Label>
+                
                 <span className="text-sm text-gray-500">
                   {uploadedFiles.length} file(s) selected
                 </span>
               </div>
               
               {uploadedFiles.length > 0 && (
-                <div className="flex gap-2 mt-2 flex-wrap">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="relative h-16 w-16 rounded overflow-hidden">
-                      <img 
-                        src={URL.createObjectURL(file)} 
-                        alt={`Preview ${index}`}
-                        className="h-full w-full object-cover"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-0 right-0 h-5 w-5 rounded-full p-0"
-                        onClick={() => {
-                          const newFiles = [...uploadedFiles];
-                          newFiles.splice(index, 1);
-                          setUploadedFiles(newFiles);
-                        }}
+                    <div key={index} className="relative bg-gray-100 rounded-md p-1">
+                      <div className="w-16 h-16 overflow-hidden rounded">
+                        <img 
+                          src={URL.createObjectURL(file)}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <button
+                        className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md"
+                        onClick={() => removeFile(index)}
                       >
                         <XIcon className="h-3 w-3" />
-                      </Button>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1100,11 +1113,35 @@ export function CommunityInputMap() {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInputForm(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowInputForm(false);
+                setDrawingMode(null);
+                
+                // Clear any drawn features
+                if (mapRef.current && drawRef.current) {
+                  drawRef.current.deleteAll();
+                  mapRef.current.removeControl(drawRef.current);
+                  drawRef.current = null;
+                }
+                
+                // Reset cursor
+                if (mapRef.current) {
+                  mapRef.current.getCanvas().style.cursor = '';
+                }
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSubmitInput} disabled={isProcessing}>
-              {isProcessing ? 'Processing...' : 'Submit'}
+            <Button 
+              type="submit" 
+              onClick={handleSubmitInput}
+              disabled={isProcessing || !currentInput.title || !currentInput.description}
+              className="flex items-center gap-2"
+            >
+              <SendIcon className="h-4 w-4" />
+              Submit
             </Button>
           </DialogFooter>
         </DialogContent>

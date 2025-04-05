@@ -3,6 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 
+// Add Mapbox imports
+import { MapboxProvider } from '@/contexts/mapbox-context';
+import MapboxMap from '@/components/ui/mapbox-map';
+import { MapboxSource } from '@/components/ui/mapbox-source';
+import { MapboxLayer } from '@/components/ui/mapbox-layer';
+
 interface TimeScenario {
   id: string;
   name: string;
@@ -521,6 +527,115 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
             </CardHeader>
             <CardContent>
               {/* Content */}
+            </CardContent>
+          </Card>
+          
+          {/* Add Spatial Benefit Distribution Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Geographic Benefit Distribution</CardTitle>
+              <CardDescription>
+                Spatial distribution of project benefits across the region
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[400px] relative rounded-md overflow-hidden">
+              <div className="absolute top-2 right-2 z-10 bg-white/90 dark:bg-black/80 p-2 rounded shadow-md text-xs space-y-1">
+                <div className="font-medium">Benefit Intensity</div>
+                <div className="flex items-center">
+                  <div className="w-full h-2 bg-gradient-to-r from-blue-200 via-blue-500 to-blue-800 rounded-full"></div>
+                </div>
+                <div className="flex justify-between">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+              <MapboxProvider>
+                <MapboxMap 
+                  initialViewState={{
+                    longitude: -122.4194,
+                    latitude: 37.7749,
+                    zoom: 10
+                  }}
+                  mapStyle="mapbox://styles/mapbox/light-v11"
+                  className="w-full h-full"
+                >
+                  <MapboxSource
+                    id="benefit-distribution"
+                    source={{
+                      type: 'geojson',
+                      data: {
+                        type: 'FeatureCollection',
+                        features: Array.from({ length: 20 }).map((_, i) => {
+                          // Create random polygons for demo visualization
+                          const centerLon = -122.4194 + (Math.random() * 0.1 - 0.05);
+                          const centerLat = 37.7749 + (Math.random() * 0.1 - 0.05);
+                          const size = 0.01 + Math.random() * 0.01;
+                          
+                          return {
+                            type: 'Feature',
+                            properties: {
+                              benefitValue: Math.random(),
+                              benefitCategory: ["Travel Time Savings", "Vehicle Operating Costs", "Emissions", "Safety"][Math.floor(Math.random() * 4)],
+                              zoneName: `Zone ${i + 1}`
+                            },
+                            geometry: {
+                              type: 'Polygon',
+                              coordinates: [[
+                                [centerLon - size, centerLat - size],
+                                [centerLon + size, centerLat - size],
+                                [centerLon + size, centerLat + size],
+                                [centerLon - size, centerLat + size],
+                                [centerLon - size, centerLat - size]
+                              ]]
+                            }
+                          };
+                        })
+                      }
+                    }}
+                  />
+                  <MapboxLayer
+                    id="benefit-fill"
+                    type="fill"
+                    source="benefit-distribution"
+                    paint={{
+                      'fill-color': [
+                        'interpolate',
+                        ['linear'],
+                        ['get', 'benefitValue'],
+                        0, '#bfdbfe',
+                        0.5, '#3b82f6',
+                        1, '#1e40af'
+                      ],
+                      'fill-opacity': 0.7
+                    }}
+                  />
+                  <MapboxLayer
+                    id="benefit-line"
+                    type="line"
+                    source="benefit-distribution"
+                    paint={{
+                      'line-color': '#1e293b',
+                      'line-width': 1,
+                      'line-opacity': 0.5
+                    }}
+                  />
+                  <MapboxLayer
+                    id="benefit-labels"
+                    type="symbol"
+                    source="benefit-distribution"
+                    layout={{
+                      'text-field': ['get', 'zoneName'],
+                      'text-size': 10,
+                      'text-allow-overlap': false
+                    }}
+                    paint={{
+                      'text-color': '#1e293b',
+                      'text-halo-color': '#ffffff',
+                      'text-halo-width': 1
+                    }}
+                  />
+                </MapboxMap>
+              </MapboxProvider>
             </CardContent>
           </Card>
         </>

@@ -2,62 +2,58 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useContext } from 'react';
-import { AuthContext } from '@/contexts/AuthContext';
+import { useAuth } from "@/hooks/useAuth";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  adminOnly?: boolean;
   requiredRole?: string;
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, adminOnly = false, requiredRole }: ProtectedRouteProps) {
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  
-  // Get auth context but don't throw if not available
-  const context = useContext(AuthContext);
-  
-  // If context is undefined, we're outside an AuthProvider
-  const isAuthenticated = context?.isAuthenticated || false;
-  const isLoading = context?.isLoading || false;
-  const user = context?.user || null;
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // If we don't have an auth context, redirect to login
-    if (!context) {
-      router.push('/login');
-      return;
-    }
-    
-    // If authentication check is complete
-    if (!isLoading) {
-      // If not authenticated, redirect to login
-      if (!isAuthenticated) {
-        router.push('/login');
-      } 
-      // If authenticated but role is required and user doesn't have it
-      else if (requiredRole && user?.role !== requiredRole) {
-        router.push('/homepage');
-      }
-      // User is authenticated and has required role (or no role required)
-      else {
-        setIsAuthorized(true);
-      }
-    }
-  }, [isAuthenticated, isLoading, requiredRole, router, user?.role, context]);
+    setIsClient(true);
 
-  // If no auth context or loading/unauthorized, show loading state
-  if (!context || isLoading || !isAuthorized) {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else if (adminOnly && user?.role !== "admin") {
+        router.push("/dashboard");
+      } else if (requiredRole && user?.role !== requiredRole) {
+        router.push("/homepage");
+      }
+    }
+  }, [isAuthenticated, isLoading, router, adminOnly, requiredRole, user]);
+
+  // During server-side rendering or loading, show a loading spinner
+  if (!isClient || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-          <p>Loading...</p>
-        </div>
+        <Spinner size="lg" />
       </div>
     );
   }
 
-  // Render children only if authenticated and authorized
+  // On the client, if not authenticated, don't render children (router will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // If admin only and user is not admin, don't render children (router will redirect)
+  if (adminOnly && user?.role !== "admin") {
+    return null;
+  }
+
+  // If required role is specified and user doesn't have that role, don't render children
+  if (requiredRole && user?.role !== requiredRole) {
+    return null;
+  }
+
+  // User is authenticated and has required permissions, render the protected content
   return <>{children}</>;
 } 
