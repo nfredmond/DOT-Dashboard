@@ -44,8 +44,8 @@ import { MapboxLayer } from '@/components/ui/mapbox-layer';
 export default function GreenChampAnalysisPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("corridor");
-  const [corridor, setCorridor] = useState("corridor1");
-  const [scenario, setScenario] = useState("scenario1");
+  const [_corridor, setCorridor] = useState<string>('corridor1');
+  const [_scenario, setScenario] = useState<string>('scenario1');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRunAnalysis = (analysisType) => {

@@ -89,7 +89,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self' https://planningmanager.ai; img-src 'self' data: https://i.imgur.com https://planningmanager.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';`
+            value: `default-src 'self' https://planningmanager.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com blob:; worker-src 'self' blob:; img-src 'self' data: blob: https://i.imgur.com https://planningmanager.ai https://*.mapbox.com https://*.tiles.mapbox.com; style-src 'self' 'unsafe-inline';`
           }
         ]
       }

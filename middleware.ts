@@ -1,80 +1,39 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/middleware';
 
-// Get the app domain from environment variables
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'planningmanager.ai';
-
-// This function can be marked `async` if using `await` inside
-export async function middleware(request: NextRequest) {
-  // Get the pathname from the URL
-  const { pathname } = request.nextUrl;
-  
-  // Check if the request is for our domain
-  const hostname = request.headers.get('host') || '';
-  const isPrimaryDomain = hostname.includes(APP_DOMAIN);
-  
-  // Create Supabase client to check auth
-  const { supabase, response } = createClient(request);
-  
-  // Check auth status
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // Protected routes that require authentication
-  const protectedRoutes = [
-    '/dashboard',
-    '/homepage',
-    '/projects',
-    '/reports',
-    '/settings',
-    '/user-management',
-    '/project-scoring',
-    '/project-mapping',
-    '/community',
-    '/admin-panel',
-    '/llm-assistant',
-    '/scenarios'
-  ];
-  
-  // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/register'];
-  
-  // Handle root path redirect based on authentication status
-  if (pathname === '/') {
-    if (session) {
-      // User is authenticated, redirect to homepage
-      console.log('Redirecting authenticated user from root to homepage');
+export function middleware(request: NextRequest) {
+  try {
+    const { pathname } = request.nextUrl;
+    
+    // Log the request for debugging
+    console.log(`Middleware: Processing request for ${pathname}`);
+    
+    // Handle root path redirect
+    if (pathname === '/') {
+      console.log('Middleware: Redirecting from / to /homepage');
       return NextResponse.redirect(new URL('/homepage', request.url));
-    } else {
-      // User is not authenticated, redirect directly to login
-      console.log('Redirecting unauthenticated user from root to login');
-      return NextResponse.redirect(new URL('/login', request.url));
     }
+    
+    // Allow all other requests to proceed
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // On error, just continue with the request
+    return NextResponse.next();
   }
-  
-  // If the user is not authenticated and trying to access a protected route
-  if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
-    console.log(`Redirecting unauthenticated user from ${pathname} to login`);
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  
-  // If the user is authenticated and trying to access login/register
-  if (session && publicRoutes.includes(pathname)) {
-    console.log(`Redirecting authenticated user from ${pathname} to homepage`);
-    return NextResponse.redirect(new URL('/homepage', request.url));
-  }
-  
-  return response;
 }
 
-// See "Matching Paths" below to learn more
+// Configure which paths the middleware runs on
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones we want to exclude
-     * NOTE: Explicitly match root path '/'
+     * Match all request paths except:
+     * - api routes
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - public folder
      */
-    '/',
-    '/((?!_next/static|_next/image|favicon.ico|favicons|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|public).*)',
   ],
 } 

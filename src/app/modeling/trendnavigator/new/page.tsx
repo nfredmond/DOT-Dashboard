@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Card, 
@@ -11,7 +11,6 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,23 +25,108 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ArrowLeftIcon, SaveIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { TrendNavigatorEngine, TrendScenario, TrendDefinition } from "@/lib/trend-navigator/engine";
+
+const engine = new TrendNavigatorEngine();
 
 export default function NewTrendNavigatorScenarioPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingTrends, setIsLoadingTrends] = useState(true);
+
+  const [scenarioName, setScenarioName] = useState("");
+  const [description, setDescription] = useState("");
+  const [horizonYear, setHorizonYear] = useState("2035");
+  const [baseModelId, setBaseModelId] = useState("latest");
+  const [scenarioType, setScenarioType] = useState("trend");
+  
+  const [availableTrends, setAvailableTrends] = useState<TrendDefinition[]>([]);
+  const [scenarioTrendValues, setScenarioTrendValues] = useState<Record<string, Record<number, number>>>({});
+
+  useEffect(() => {
+    async function fetchAndInitializeTrends() {
+      setIsLoadingTrends(true);
+      try {
+        const fetchedDefinitions = await engine.getTrendDefinitions();
+        setAvailableTrends(fetchedDefinitions);
+        
+        const initialValues: Record<string, Record<number, number>> = {};
+        fetchedDefinitions.forEach(trend => {
+          initialValues[trend.id] = {};
+          const yearsToInitialize = trend.predictionYears && trend.predictionYears.length > 0 
+                                    ? trend.predictionYears 
+                                    : [parseInt(horizonYear, 10)];
+          
+          if (trend.inputType === 'select' && trend.options && trend.options.length > 0) {
+            const firstOptionValues = trend.options[0].values;
+            yearsToInitialize.forEach(year => {
+              initialValues[trend.id][year] = firstOptionValues[year] !== undefined 
+                                              ? firstOptionValues[year] 
+                                              : trend.defaultValue;
+            });
+          } else {
+            yearsToInitialize.forEach(year => {
+              initialValues[trend.id][year] = trend.defaultValue;
+            });
+          }
+        });
+        setScenarioTrendValues(initialValues);
+      } catch (error) {
+        console.error("Error fetching trend definitions for new scenario:", error);
+        toast({
+          title: "Error loading trend configurations",
+          description: "Could not load available trends. Please try again.",
+          variant: "destructive",
+        });
+      }
+      setIsLoadingTrends(false);
+    }
+    fetchAndInitializeTrends();
+  }, [horizonYear]);
+
+  const handleScenarioTrendSliderChange = (trendId: string, year: number, newValue: number) => {
+    setScenarioTrendValues(prev => ({
+      ...prev,
+      [trendId]: {
+        ...(prev[trendId] || {}),
+        [year]: newValue,
+      },
+    }));
+  };
+
+  const handleScenarioTrendSelectChange = (trendId: string, selectedOptionValue: string) => {
+    const trend = availableTrends.find(t => t.id === trendId);
+    if (!trend || !trend.options) return;
+
+    const selectedOption = trend.options.find(opt => opt.label === selectedOptionValue);
+    if (!selectedOption) return;
+
+    setScenarioTrendValues(prev => ({
+      ...prev,
+      [trendId]: { ...(selectedOption.values) },
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const scenarioData: TrendScenario = {
+      name: scenarioName,
+      description: description,
+      horizonYear: parseInt(horizonYear, 10),
+      baseModelId: baseModelId,
+      scenarioType: scenarioType,
+      trendValues: scenarioTrendValues,
+    };
+
     try {
       setIsSubmitting(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const savedScenario = await engine.saveScenario(scenarioData);
       
       toast({
         title: "Scenario created successfully",
-        description: "Your trend scenario has been created.",
+        description: `Scenario "${savedScenario.name}" has been created. ID: ${savedScenario.id}`,
       });
       
       router.push("/modeling/trendnavigator/scenarios");
@@ -89,12 +173,14 @@ export default function NewTrendNavigatorScenarioPage() {
                     id="scenarioName" 
                     placeholder="e.g., High Telecommuting 2035" 
                     required
+                    value={scenarioName}
+                    onChange={(e) => setScenarioName(e.target.value)}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="baseModel">Base Travel Model</Label>
-                  <Select defaultValue="latest">
+                  <Select value={baseModelId} onValueChange={setBaseModelId}>
                     <SelectTrigger id="baseModel">
                       <SelectValue placeholder="Select base model" />
                     </SelectTrigger>
@@ -113,13 +199,15 @@ export default function NewTrendNavigatorScenarioPage() {
                   id="description" 
                   placeholder="Describe the purpose and assumptions of this scenario" 
                   rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="horizonYear">Horizon Year</Label>
-                  <Select defaultValue="2035">
+                  <Select value={horizonYear} onValueChange={setHorizonYear}>
                     <SelectTrigger id="horizonYear">
                       <SelectValue placeholder="Select horizon year" />
                     </SelectTrigger>
@@ -133,7 +221,7 @@ export default function NewTrendNavigatorScenarioPage() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="scenarioType">Scenario Type</Label>
-                  <Select defaultValue="trend">
+                  <Select value={scenarioType} onValueChange={setScenarioType}>
                     <SelectTrigger id="scenarioType">
                       <SelectValue placeholder="Select scenario type" />
                     </SelectTrigger>
@@ -153,152 +241,105 @@ export default function NewTrendNavigatorScenarioPage() {
             <CardHeader>
               <CardTitle>Trend Configuration</CardTitle>
               <CardDescription>
-                Configure the trends and variables for this scenario
+                Configure the values for relevant trends in this scenario. These will modify the base model assumptions.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Telecommuting</h3>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="telecommuting-rate">Telecommuting Rate</Label>
-                      <span className="text-sm font-medium">35%</span>
-                    </div>
-                    <Slider 
-                      id="telecommuting-rate"
-                      defaultValue={[35]} 
-                      max={100} 
-                      step={1}
-                    />
+              {isLoadingTrends ? (
+                <p>Loading trend configurations...</p>
+              ) : availableTrends.length === 0 ? (
+                <p>No trend definitions available. Please add some in the Trend Library.</p>
+              ) : (
+                availableTrends.map((trend) => (
+                  <div key={trend.id} className="space-y-3 pt-4 pb-4 border-b last:border-b-0">
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">{trend.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Percentage of office workers who telecommute at least 3 days per week
+                      {trend.description}
                     </p>
+                    
+                    {trend.inputType === 'select' ? (
+                      <div className="space-y-2">
+                        <Label htmlFor={`trend-select-${trend.id}`}>Select {trend.name} Scenario</Label>
+                        <Select 
+                          onValueChange={(value) => handleScenarioTrendSelectChange(trend.id, value)}
+                          value={trend.options?.find(opt => 
+                            JSON.stringify(opt.values) === JSON.stringify(scenarioTrendValues[trend.id]))?.label || (trend.options && trend.options.length > 0 ? trend.options[0].label : '')
+                          }
+                        >
+                          <SelectTrigger id={`trend-select-${trend.id}`}>
+                            <SelectValue placeholder={`Choose a ${trend.name} option`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {trend.options?.map(option => (
+                              <SelectItem key={option.label} value={option.label}>
+                                {option.label} {option.description ? `(${option.description})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {scenarioTrendValues[trend.id] && (
+                           <div className="mt-2 p-2 border rounded-md bg-slate-50 text-xs">
+                            <p className="font-medium mb-1">Applied values for this option:</p>
+                            {trend.predictionYears?.map(year => (
+                                <p key={year}>{year}: {scenarioTrendValues[trend.id][year]} {trend.unit}</p>
+                            ))}
+                           </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Slider input type (per prediction year)
+                      (trend.predictionYears && trend.predictionYears.length > 0 
+                        ? trend.predictionYears 
+                        : [parseInt(horizonYear, 10)]
+                      ).map(year => (
+                        <div key={year} className="space-y-2 pt-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor={`trend-slider-${trend.id}-${year}`}>{trend.name} ({year}) - {trend.unit}</Label>
+                            <span className="text-sm font-medium w-20 text-right">
+                              {(scenarioTrendValues[trend.id] && scenarioTrendValues[trend.id][year] !== undefined) 
+                                ? scenarioTrendValues[trend.id][year] 
+                                : trend.defaultValue}
+                              {trend.unit === '%' ? '%' : ''}
+                            </span>
+                          </div>
+                          <Slider 
+                            id={`trend-slider-${trend.id}-${year}`}
+                            defaultValue={[trend.defaultValue]}
+                            value={[(scenarioTrendValues[trend.id] && scenarioTrendValues[trend.id][year] !== undefined) 
+                                     ? scenarioTrendValues[trend.id][year] 
+                                     : trend.defaultValue]}
+                            onValueChange={(value) => handleScenarioTrendSliderChange(trend.id, year, value[0])}
+                            max={trend.maxValue} 
+                            min={trend.minValue}
+                            step={1}
+                          />
+                        </div>
+                      ))
+                    )}
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="telecommuting-vmt-reduction">VMT Reduction per Telecommuter</Label>
-                      <span className="text-sm font-medium">70%</span>
-                    </div>
-                    <Slider 
-                      id="telecommuting-vmt-reduction"
-                      defaultValue={[70]} 
-                      max={100} 
-                      step={1}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Percentage reduction in vehicle miles traveled per telecommuting worker
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">E-commerce</h3>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="ecommerce-share">E-commerce Market Share</Label>
-                      <span className="text-sm font-medium">45%</span>
-                    </div>
-                    <Slider 
-                      id="ecommerce-share"
-                      defaultValue={[45]} 
-                      max={100} 
-                      step={1}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Percentage of retail sales conducted online
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="delivery-efficiency">Delivery Vehicle Efficiency</Label>
-                      <span className="text-sm font-medium">Medium</span>
-                    </div>
-                    <Select defaultValue="medium">
-                      <SelectTrigger id="delivery-efficiency">
-                        <SelectValue placeholder="Select efficiency level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low (Current patterns)</SelectItem>
-                        <SelectItem value="medium">Medium (Enhanced logistics)</SelectItem>
-                        <SelectItem value="high">High (Optimized routes + EVs)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Efficiency of package delivery logistics and vehicle technology
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Autonomous Vehicles</h3>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="av-adoption">AV Fleet Adoption</Label>
-                      <span className="text-sm font-medium">25%</span>
-                    </div>
-                    <Slider 
-                      id="av-adoption"
-                      defaultValue={[25]} 
-                      max={100} 
-                      step={1}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Percentage of vehicle fleet that is fully autonomous (L4/L5)
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="av-mode">Primary AV Deployment Model</Label>
-                      <span className="text-sm font-medium">Mixed</span>
-                    </div>
-                    <Select defaultValue="mixed">
-                      <SelectTrigger id="av-mode">
-                        <SelectValue placeholder="Select deployment model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="private">Primarily Private Ownership</SelectItem>
-                        <SelectItem value="mixed">Mixed Ownership + Fleet Services</SelectItem>
-                        <SelectItem value="fleet">Primarily Fleet Services (MaaS)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      Primary deployment model for autonomous vehicles
-                    </p>
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
             </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="mr-2 animate-spin">⟳</span>
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <SaveIcon className="mr-2 h-4 w-4" />
-                    Create Scenario
-                  </>
-                )}
-              </Button>
-            </CardFooter>
           </Card>
+          
+          <CardFooter className="flex justify-end">
+            <Button 
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="mr-2 animate-spin">⟳</span>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Create Scenario
+                </>
+              )}
+            </Button>
+          </CardFooter>
         </form>
       </div>
     </ProtectedRoute>

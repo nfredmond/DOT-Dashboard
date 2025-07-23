@@ -257,6 +257,12 @@ CREATE TABLE IF NOT EXISTS trend_definitions (
 -- Create indexes for trend definitions
 CREATE INDEX IF NOT EXISTS idx_trend_definitions_organization_id ON trend_definitions(organization_id);
 
+-- Add new columns for multi-year predictions and input types to trend_definitions
+ALTER TABLE trend_definitions
+ADD COLUMN IF NOT EXISTS prediction_years INTEGER[],
+ADD COLUMN IF NOT EXISTS input_type TEXT DEFAULT 'slider' CHECK (input_type IN ('slider', 'select')),
+ADD COLUMN IF NOT EXISTS options JSONB;
+
 -- Create trend_scenarios table for GreenChAMP TrendNavigator
 CREATE TABLE IF NOT EXISTS trend_scenarios (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

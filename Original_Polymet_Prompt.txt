@@ -12,7 +12,7 @@ Community Input Responses: Integrated LLM capabilities help draft replies to com
 Customization per Agency: An admin panel enables agencies to configure LLM settings, choose providers, store API keys securely (routed through the backend), and adjust prompt templates.
 GIS and Mapping Integration:
 
-Interactive Mapping: The application uses Leaflet.js with optional layers from Mapbox or Google Maps. Users can pan/zoom and toggle overlays (e.g., road networks, transit lines, bike lanes) to visualize project extents.
+Interactive Mapping: The application uses Mapbox GL JS.js with optional layers from Mapbox or Google Maps. Users can pan/zoom and toggle overlays (e.g., road networks, transit lines, bike lanes) to visualize project extents.
 Project Layers: Agencies can plot project markers and draw polygons or polylines to depict transit routes or road segments. Imported GeoJSON or shapefiles enrich the spatial display.
 Multiple Basemap Options: Clients can choose between Google Maps for detailed imagery, MapLibre GL for open-source vector maps, or QGIS services for custom styling.
 User-Friendly Tools: Even non-GIS experts benefit from intuitive interactions (e.g., pin drops, address geocoding) and an “Add Project” wizard that simplifies spatial data input.
@@ -37,7 +37,7 @@ Interactive Dashboard: Real-time dashboards visualize KPIs (project statuses, fu
 LLM-Generated Reports: Agencies can generate comprehensive reports (transportation plans, grant summaries) in formats like Markdown, HTML, or PDF, complete with embedded maps and charts. Customizable templates let each agency meet its reporting needs.
 Technical Stack and Implementation
 
-Frontend: Developed with Next.js (React) using TypeScript and UI libraries (Material UI/Chakra UI, Tailwind CSS) for responsive, accessible design. Mapping is implemented via React-Leaflet.
+Frontend: Developed with Next.js (React) using TypeScript and UI libraries (Material UI/Chakra UI, Tailwind CSS) for responsive, accessible design. Mapping is implemented via React-Mapbox GL JS.
 Backend: Built on Node.js with Next.js API routes, utilizing Supabase for PostgreSQL data management, authentication, storage, and RLS. RESTful endpoints handle projects, feedback, scoring, and report generation.
 LLM & ML Integration:
 Abstracted LLM service interfaces support multiple providers. API keys are stored securely, and usage is logged for cost management.

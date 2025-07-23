@@ -88,8 +88,11 @@ interface Agency {
 
 export function CommunityInputMap() {
   // Map state
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-122.4194, 37.7749]);
-  const [zoom, setZoom] = useState(12);
+  const [mapCenter, _setMapCenter] = useState<[number, number]>([
+    -118.2437,
+    34.0522,
+  ]);
+  const [zoom, _setZoom] = useState(10);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
   
@@ -108,7 +111,7 @@ export function CommunityInputMap() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   // Admin state
-  const [isAdmin, setIsAdmin] = useState(true); // Set to true by default for testing
+  const [isAdmin, _setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [autoApprove, setAutoApprove] = useState(false);
   const [useLlmModeration, setUseLlmModeration] = useState(true);
@@ -121,7 +124,7 @@ export function CommunityInputMap() {
   const [communityInputs, setCommunityInputs] = useState<CommunityInput[]>([]);
   const [filteredInputs, setFilteredInputs] = useState<CommunityInput[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, _setStatusFilter] = useState<string | null>(null);
   
   // Marker and GeoJSON data
   const [markers, setMarkers] = useState<MarkerData[]>([]);

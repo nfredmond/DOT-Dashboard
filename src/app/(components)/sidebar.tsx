@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,14 +19,25 @@ import {
   MonitorIcon,
   WrenchIcon,
   ActivityIcon,
+  TrendingUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  LineChartIcon,
+  BarChart3Icon,
+  LineChartIcon as LineChart,
+  ScaleIcon,
+  UsersIcon,
+  LeafIcon,
 } from "lucide-react";
 import { AuthContext } from "@/contexts/AuthContext";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface MenuItem {
   id: string;
   label: string;
   icon: any;
   path: string;
+  subItems?: MenuItem[];
 }
 
 interface SidebarProps {
@@ -37,6 +48,11 @@ interface SidebarProps {
 export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
   const router = useRouter();
   const authContext = useContext(AuthContext);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    modeling: false,
+    scenarios: false,
+    projects: false,
+  });
   
   // Handle the case when auth context isn't available
   const user = authContext?.user || null;
@@ -46,11 +62,56 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
   
   const menuItems: MenuItem[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboardIcon, path: "/homepage" },
-    { id: "projects", label: "Projects", icon: ClipboardListIcon, path: "/projects" },
+    { 
+      id: "projects", 
+      label: "Projects", 
+      icon: ClipboardListIcon, 
+      path: "/projects",
+      subItems: [
+        { id: "project-list", label: "All Projects", icon: ClipboardListIcon, path: "/projects" },
+        { id: "benefit-cost", label: "Benefit/Cost Analysis", icon: ScaleIcon, path: "/projects/benefit-cost" },
+        { id: "project-scoring", label: "Project Scoring", icon: BarChartIcon, path: "/projects/scoring" },
+      ]
+    },
     { id: "project-mapping", label: "Project Mapping", icon: MapIcon, path: "/project-mapping-wrapper" },
-    { id: "scoring", label: "Project Scoring", icon: BarChartIcon, path: "/project-scoring" },
-    { id: "scenarios", label: "Scenarios", icon: GitBranchIcon, path: "/scenarios" },
-    { id: "modeling", label: "Modeling", icon: ActivityIcon, path: "/modeling" },
+    { 
+      id: "scenarios", 
+      label: "Scenarios", 
+      icon: GitBranchIcon, 
+      path: "/scenarios",
+      subItems: [
+        { id: "scenario-list", label: "All Scenarios", icon: GitBranchIcon, path: "/scenarios" },
+        { id: "scenario-comparison", label: "Compare Scenarios", icon: BarChart3Icon, path: "/scenarios/compare" },
+        { id: "scenario-generator", label: "Scenario Generator", icon: LineChart, path: "/scenarios/generator" },
+        { id: "scenario-visualization", label: "Spatial Visualization", icon: MapIcon, path: "/scenarios/visualization" },
+      ]
+    },
+    { 
+      id: "modeling", 
+      label: "Modeling", 
+      icon: ActivityIcon, 
+      path: "/modeling",
+      subItems: [
+        { id: "greenchamp", label: "GreenChAMP", icon: ActivityIcon, path: "/modeling/greenchamp/runs" },
+        { id: "trendnavigator", label: "TrendNavigator", icon: TrendingUpIcon, path: "/modeling/trendnavigator" },
+        { id: "integrated-analysis", label: "Integrated Analysis", icon: GitBranchIcon, path: "/modeling/integrated-analysis" },
+        { id: "network-analysis", label: "Network Analysis", icon: LineChartIcon, path: "/modeling/network" },
+        { id: "benefit-cost-modeling", label: "Benefit/Cost Tools", icon: ScaleIcon, path: "/modeling/benefit-cost" },
+      ]
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: LineChartIcon,
+      path: "/analytics",
+      subItems: [
+        { id: "greenchamp-dashboard", label: "GreenChAMP Dashboard", icon: ActivityIcon, path: "/analytics/greenchamp" },
+        { id: "trendnav-dashboard", label: "TrendNavigator Dashboard", icon: TrendingUpIcon, path: "/analytics/trendnavigator" },
+        { id: "benefit-cost-dashboard", label: "Benefit/Cost Dashboard", icon: ScaleIcon, path: "/analytics/benefit-cost" },
+        { id: "equity-dashboard", label: "Equity Analysis", icon: UsersIcon, path: "/analytics/equity" },
+        { id: "environmental-dashboard", label: "Environmental Impact", icon: LeafIcon, path: "/analytics/environmental" },
+      ]
+    },
     { id: "reports", label: "Reports", icon: FileTextIcon, path: "/reports" },
     { id: "maintenance", label: "Maintenance", icon: WrenchIcon, path: "/maintenance" },
     { id: "public-records", label: "Public Records", icon: FileTextIcon, path: "/public-records" },
@@ -65,9 +126,78 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
     router.push(path);
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setOpenCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
   const handleLogout = () => {
     logout();
     router.push("/login");
+  };
+
+  const renderMenuItem = (item: MenuItem) => {
+    if (item.subItems && item.subItems.length > 0) {
+      const isOpen = openCategories[item.id] || false;
+      return (
+        <Collapsible key={item.id} open={isOpen} onOpenChange={() => toggleCategory(item.id)}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant={currentPage === item.id ? "secondary" : "ghost"}
+              className={`w-full justify-between ${
+                currentPage === item.id
+                  ? "bg-gray-100 dark:bg-gray-700"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+              id={`nav-item-${item.id}`}
+            >
+              <div className="flex items-center">
+                <item.icon className="mr-2 h-5 w-5" />
+                {item.label}
+              </div>
+              {isOpen ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pl-8 space-y-1 mt-1">
+            {item.subItems.map(subItem => (
+              <Button
+                key={subItem.id}
+                variant={currentPage === subItem.id ? "secondary" : "ghost"}
+                className={`w-full justify-start text-sm ${
+                  currentPage === subItem.id
+                    ? "bg-gray-100 dark:bg-gray-700"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+                onClick={() => handleNavigation(subItem.id, subItem.path)}
+                id={`nav-item-${subItem.id}`}
+              >
+                <subItem.icon className="mr-2 h-4 w-4" />
+                {subItem.label}
+              </Button>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      );
+    }
+    
+    return (
+      <Button
+        key={item.id}
+        variant={currentPage === item.id ? "secondary" : "ghost"}
+        className={`w-full justify-start ${
+          currentPage === item.id
+            ? "bg-gray-100 dark:bg-gray-700"
+            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+        }`}
+        onClick={() => handleNavigation(item.id, item.path)}
+        id={`nav-item-${item.id}`}
+      >
+        <item.icon className="mr-2 h-5 w-5" />
+        {item.label}
+      </Button>
+    );
   };
 
   return (
@@ -93,24 +223,9 @@ export function Sidebar({ setCurrentPage, currentPage }: SidebarProps) {
         </div>
       </div>
 
-      <div className="flex-1 py-4 flex flex-col justify-between">
+      <div className="flex-1 py-4 flex flex-col justify-between overflow-y-auto">
         <nav className="px-2 space-y-1">
-          {menuItems.map((item) => (
-            <Button
-              key={item.id}
-              variant={currentPage === item.id ? "secondary" : "ghost"}
-              className={`w-full justify-start ${
-                currentPage === item.id
-                  ? "bg-gray-100 dark:bg-gray-700"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-              onClick={() => handleNavigation(item.id, item.path)}
-              id={`nav-item-${item.id}`}
-            >
-              <item.icon className="mr-2 h-5 w-5" />
-              {item.label}
-            </Button>
-          ))}
+          {menuItems.map((item) => renderMenuItem(item))}
         </nav>
 
         <div className="px-2 space-y-1 mt-auto">

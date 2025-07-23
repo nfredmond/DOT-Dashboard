@@ -2,6 +2,8 @@
 
 This project implements an interactive spatial visualization system for transportation planning, project management, and travel demand modeling. It provides comprehensive tools for managing transportation projects, analyzing benefits and costs, developing scenarios, and visualizing spatial data using the GreenChAMP (Green DOT Chained Activity Modelling Process) framework and TrendNavigator scenario planning tools.
 
+> **📋 For a comprehensive overview of the application's current status, features, and deployment requirements, please see [README-COMPREHENSIVE.md](README-COMPREHENSIVE.md)**
+
 ## 🆕 Recent Updates
 
 ### Mapbox GL JS Integration
@@ -125,18 +127,7 @@ The system consists of:
    - Row-level security for multi-tenant isolation
    - GeoJSON storage for project and community input geometries
 
-## Getting Started
-
-1. Set up environment variables:
-   ```
-   NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
-   NEXT_PUBLIC_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   OPENAI_API_KEY=your_openai_key
-   ```
-
-2. Install dependencies:
+## Getting Started1. Set up environment variables:   - Copy `env.example` to `.env.local`   - Fill in your API keys and configuration values   - See [env.example](env.example) for complete list of required and optional variables2. Install dependencies:
    ```
    npm install
    ```

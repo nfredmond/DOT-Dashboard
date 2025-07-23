@@ -8,68 +8,103 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import logger from '@/lib/logger';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 
 /**
  * GET /api/scenarios
  * 
  * Retrieves all scenarios for the authenticated user's organization
  */
-export async function GET(_req: NextRequest) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookies());
     
-    // Get the user's session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Get organization ID from user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('agency_id')
-      .eq('user_id', session.user.id)
-      .single();
-    
-    if (!profile?.agency_id) {
-      return NextResponse.json(
-        { error: 'User not associated with an organization' },
-        { status: 400 }
-      );
+
+    // Get organization from user metadata
+    const organizationId = user.user_metadata?.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 403 });
     }
-    
-    // Get organization's TrendNavigator config
-    const { data: config } = await supabase
-      .from('trend_navigator_configs')
-      .select('id')
-      .eq('agency_id', profile.agency_id)
-      .limit(1)
-      .single();
-    
-    if (!config) {
-      return NextResponse.json(
-        { error: 'No TrendNavigator configuration found for your organization' },
-        { status: 400 }
-      );
-    }
-    
-    // Get scenarios for the organization
-    const { data: scenarios } = await supabase
+
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const includeResults = searchParams.get('includeResults') === 'true';
+    const status = searchParams.get('status');
+    const greenchampModelId = searchParams.get('greenchampModelId');
+    const tag = searchParams.get('tag');
+
+    // Build query
+    let query = supabase
       .from('scenarios')
-      .select('*')
-      .eq('organization_id', profile.agency_id)
-      .order('updated_at', { ascending: false });
-    
-    return NextResponse.json(scenarios || []);
-  } catch (error: any) {
-    console.error('Error retrieving scenarios:', error.message);
-    
+      .select(`
+        *,
+        greenchamp_model:greenchamp_model_configs(*),
+        scenario_results(
+          id,
+          status,
+          completedAt,
+          metrics,
+          spatialResults
+        )
+      `)
+      .eq('organizationId', organizationId)
+      .order('createdAt', { ascending: false });
+
+    // Apply filters
+    if (status) {
+      query = query.eq('status', status);
+    }
+    if (greenchampModelId) {
+      query = query.eq('greenchampModelId', greenchampModelId);
+    }
+    if (tag) {
+      query = query.contains('tags', [tag]);
+    }
+
+    const { data: scenarios, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching scenarios:', error);
+      return NextResponse.json({ error: 'Failed to fetch scenarios' }, { status: 500 });
+    }
+
+    // Optionally include full results
+    if (includeResults && scenarios) {
+      for (const scenario of scenarios) {
+        if (scenario.scenario_results?.length > 0) {
+          const latestResult = scenario.scenario_results[0];
+          const { data: fullResult } = await supabase
+            .from('scenario_results')
+            .select('*')
+            .eq('id', latestResult.id)
+            .single();
+          
+          if (fullResult) {
+            scenario.latestResult = fullResult;
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: scenarios || [],
+      count: scenarios?.length || 0
+    });
+
+  } catch (error) {
+    logger.error('Error in GET /api/scenarios:', error);
     return NextResponse.json(
-      { error: 'Failed to retrieve scenarios' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -80,71 +115,115 @@ export async function GET(_req: NextRequest) {
  * 
  * Creates a new scenario
  */
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = createClient(cookies());
     
-    // Get the user's session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get organization from user metadata
+    const organizationId = user.user_metadata?.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 403 });
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validationResult = createScenarioSchema.safeParse(body);
     
-    // Get organization ID from user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, agency_id')
-      .eq('user_id', session.user.id)
-      .single();
-    
-    if (!profile?.agency_id) {
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'User not associated with an organization' },
+        { error: 'Invalid request data', details: validationResult.error.format() },
         { status: 400 }
       );
     }
-    
-    // Parse request body
-    const body = await req.json();
-    
-    // Create new scenario
-    const scenarioData = {
-      name: body.name,
-      description: body.description || '',
-      base_year: body.baseYear || new Date().getFullYear(),
-      horizon_years: body.horizonYears || [new Date().getFullYear() + 10],
-      assumptions: body.assumptions || [],
-      policy_packages: body.policyPackages || [],
-      tags: body.tags || [],
-      created_by: profile.id,
-      organization_id: profile.agency_id,
-      baseline_scenario_id: body.baselineScenarioId || null
+
+    const scenarioData = validationResult.data;
+
+    // Check if GreenChAMP model exists and belongs to organization
+    if (scenarioData.greenchampModelId) {
+      const { data: model, error: modelError } = await supabase
+        .from('greenchamp_model_configs')
+        .select('id')
+        .eq('id', scenarioData.greenchampModelId)
+        .eq('organizationId', organizationId)
+        .single();
+
+      if (modelError || !model) {
+        return NextResponse.json(
+          { error: 'Invalid GreenChAMP model ID' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create scenario
+    const newScenario = {
+      id: uuidv4(),
+      organizationId,
+      createdBy: user.id,
+      status: 'draft',
+      ...scenarioData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    
-    const { data: scenario, error } = await supabase
+
+    const { data: scenario, error: insertError } = await supabase
       .from('scenarios')
-      .insert([scenarioData])
+      .insert(newScenario)
       .select()
       .single();
-    
-    if (error) {
-      console.error('Error creating scenario:', error);
+
+    if (insertError) {
+      logger.error('Error creating scenario:', insertError);
       return NextResponse.json(
         { error: 'Failed to create scenario' },
         { status: 500 }
       );
     }
-    
-    return NextResponse.json(scenario, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating scenario:', error.message);
-    
+
+    // If this is based on a GreenChAMP model, copy relevant data
+    if (scenarioData.greenchampModelId) {
+      const { data: modelConfig } = await supabase
+        .from('greenchamp_model_configs')
+        .select('zoneSystem, networkConfig, parameters')
+        .eq('id', scenarioData.greenchampModelId)
+        .single();
+
+      if (modelConfig) {
+        // Initialize scenario with GreenChAMP baseline data
+        await supabase
+          .from('scenarios')
+          .update({
+            metadata: {
+              ...scenario.metadata,
+              greenchampBaseline: {
+                zoneSystem: modelConfig.zoneSystem,
+                networkConfig: modelConfig.networkConfig,
+                parameters: modelConfig.parameters
+              }
+            }
+          })
+          .eq('id', scenario.id);
+      }
+    }
+
+    // Log activity
+    logger.info(`Scenario created: ${scenario.id} by user ${user.id}`);
+
+    return NextResponse.json({ 
+      success: true, 
+      data: scenario 
+    });
+
+  } catch (error) {
+    logger.error('Error in POST /api/scenarios:', error);
     return NextResponse.json(
-      { error: 'Failed to create scenario' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -189,7 +268,7 @@ export async function PUT(req: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error comparing scenarios:', error);
+    logger.error('Error comparing scenarios:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while comparing scenarios' },
       { status: 500 }
@@ -236,9 +315,125 @@ export async function PATCH(req: NextRequest) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error refining scenario:', error);
+    logger.error('Error refining scenario:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An error occurred while refining the scenario' },
+      { status: 500 }
+    );
+  }
+}
+
+// Schema validation for scenario creation
+const createScenarioSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().optional(),
+  baseYear: z.number().int().min(2000).max(2100),
+  horizonYears: z.array(z.number().int().min(2000).max(2100)),
+  assumptions: z.record(z.any()).optional(),
+  policyPackages: z.array(z.any()).optional(),
+  greenchampModelId: z.string().uuid().optional(),
+  tags: z.array(z.string()).optional(),
+  isPublic: z.boolean().optional().default(false),
+  metadata: z.record(z.any()).optional()
+});
+
+// Update the scenario
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'You must be signed in to access this endpoint' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await req.json();
+    const { id, updateData } = body;
+    
+    if (!id || !updateData) {
+      return NextResponse.json(
+        { error: 'ID and update data are required' },
+        { status: 400 }
+      );
+    }
+    
+    const supabase = createClient(cookies());
+    
+    // Update the scenario
+    const { data: updatedScenario, error: updateError } = await supabase
+      .from('scenarios')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: 'Failed to update scenario', details: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: updatedScenario 
+    });
+  } catch (error) {
+    logger.error('Error in PUT /api/scenarios:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Delete the scenario
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'You must be signed in to access this endpoint' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await req.json();
+    const { id } = body;
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    const supabase = createClient(cookies());
+    
+    // Delete the scenario
+    const { error: deleteError } = await supabase
+      .from('scenarios')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: 'Failed to delete scenario', details: deleteError.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: { id } 
+    });
+  } catch (error) {
+    logger.error('Error in DELETE /api/scenarios:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

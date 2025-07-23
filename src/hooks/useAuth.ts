@@ -40,7 +40,7 @@ export function useAuth(): AuthState {
             id: '123',
             name: 'Demo User',
             email: 'user@example.com',
-            role: 'user',
+            role: 'global_admin',
           },
         });
       } catch (error) {

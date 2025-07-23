@@ -2,7 +2,7 @@ Next-Gen Transportation Planning Web App
 A Comprehensive Vision & Feature Set
 
 1. Introduction / Overview
-This Next.js application with Tailwind CSS is designed for Regional Transportation Planning Agencies (RTPAs) and Metropolitan Planning Organizations (MPOs) to manage, analyze, and prioritize transportation projects. It integrates advanced technologies—such as Large Language Models (LLMs) for intelligent project assessments and reporting, robust Leaflet.js-based GIS mapping for spatial analysis, and data-driven scoring aligned with California and federal guidelines—to reduce manual work and standardize evaluations. The system is modular and secure, using Next.js for a modern, responsive UI and Node.js with Supabase for scalable backend services (authentication, database, storage). Data governance ensures that each agency’s data remains isolated while still allowing the solution to be adapted for use beyond California.
+This Next.js application with Tailwind CSS is designed for Regional Transportation Planning Agencies (RTPAs) and Metropolitan Planning Organizations (MPOs) to manage, analyze, and prioritize transportation projects. It integrates advanced technologies—such as Large Language Models (LLMs) for intelligent project assessments and reporting, robust Mapbox GL JS.js-based GIS mapping for spatial analysis, and data-driven scoring aligned with California and federal guidelines—to reduce manual work and standardize evaluations. The system is modular and secure, using Next.js for a modern, responsive UI and Node.js with Supabase for scalable backend services (authentication, database, storage). Data governance ensures that each agency’s data remains isolated while still allowing the solution to be adapted for use beyond California.
 
 Building on the existing platform and incorporating recent client feedback, this document outlines both the foundational features and the new enhancements—especially around AI-driven tools, enriched GIS capabilities, and automated reporting. The goal is to minimize manual tasks, advance community engagement, and future-proof the application for evolving policies and technologies.
 
@@ -28,8 +28,8 @@ Customization per Agency
 
 An admin panel allows agencies to configure LLM settings, choose providers, securely store API keys, and adjust prompt templates.
 Usage logging supports cost management and accountability.
-2.2 GIS and Mapping Integration (Leaflet.js)
-Leaflet.js is the primary mapping library, chosen for its lightweight performance, extensive plugin ecosystem, and ease of customization. The application uses React-Leaflet to integrate Leaflet maps seamlessly into the Next.js frontend, ensuring a modern, responsive, and highly interactive spatial experience. Key features include:
+2.2 GIS and Mapping Integration (Mapbox GL JS.js)
+Mapbox GL JS.js is the primary mapping library, chosen for its lightweight performance, extensive plugin ecosystem, and ease of customization. The application uses React-Mapbox GL JS to integrate Mapbox GL JS maps seamlessly into the Next.js frontend, ensuring a modern, responsive, and highly interactive spatial experience. Key features include:
 
 Interactive Mapping
 
@@ -47,38 +47,38 @@ User-Friendly Tools
 
 “Add Project” wizard for placing project markers or shapes.
 Geocoding and address search features for precise location input without requiring coordinate knowledge.
-2.2.1 Leaflet.js Implementation and Add-Ons
-To further enrich the mapping experience, the application can leverage the following Leaflet add-ons. These plugins and extensions offer powerful capabilities for community engagement, project monitoring, data analytics, user-friendly features, and map aesthetics.
+2.2.1 Mapbox GL JS.js Implementation and Add-Ons
+To further enrich the mapping experience, the application can leverage the following Mapbox GL JS add-ons. These plugins and extensions offer powerful capabilities for community engagement, project monitoring, data analytics, user-friendly features, and map aesthetics.
 
 A. Community Input Add‑Ons
-Leaflet.draw / Leaflet-Geoman (Drawing & Editing)
+Mapbox GL JS.draw / Mapbox GL JS-Geoman (Drawing & Editing)
 
 Allows users to draw and edit map features—points, lines, polygons—directly on the map.
 Community members can mark locations, sketch routes, or outline areas of concern, attaching comments or suggestions to drawn features.
-Leaflet-Geoman extends editing with advanced tools (drag, rotate, snap), ideal for detailed planning feedback.
-Leaflet.Illustrate (Annotations)
+Mapbox GL JS-Geoman extends editing with advanced tools (drag, rotate, snap), ideal for detailed planning feedback.
+Mapbox GL JS.Illustrate (Annotations)
 
-Works with Leaflet.draw to add text labels on the map.
+Works with Mapbox GL JS.draw to add text labels on the map.
 Users can label drawn shapes with descriptive comments (e.g., “Needs sidewalk repair”), enabling more context-rich feedback.
-Leaflet.Comment (Marker Comments)
+Mapbox GL JS.Comment (Marker Comments)
 
 Lightweight plugin for dropping comment pop-ups on the map.
 Empowers participatory mapping where users click a spot and leave a note or vote on an issue.
 If stability is a concern, a custom popup form could be developed instead.
 B. Project Monitoring Add‑Ons
-Leaflet Realtime (Live Data)
+Mapbox GL JS Realtime (Live Data)
 
 Continuously fetches and updates map layers with live data (e.g., GeoJSON feeds, sensor outputs).
 Perfect for displaying real-time construction updates, transit vehicle locations, or dynamic conditions.
-Leaflet.TimeDimension (Time Slider & Playback)
+Mapbox GL JS.TimeDimension (Time Slider & Playback)
 
 Provides a timeline control to load and animate time-based data.
 Visualize project phases or historical traffic data by dragging a slider or pressing play to watch changes over time.
-Leaflet.timeline / Timeline Slider
+Mapbox GL JS.timeline / Timeline Slider
 
 Animates time-stamped GeoJSON features with a customizable playback slider.
 Useful for illustrating how network conditions or funding allocations evolve over a specified period.
-Leaflet Playback / TrackPlayBack (Moving Object Playback)
+Mapbox GL JS Playback / TrackPlayBack (Moving Object Playback)
 
 Replays GPS tracks or other moving objects (e.g., buses or project equipment).
 Great for visualizing the progression of a vehicle or milestone over time.
@@ -87,61 +87,61 @@ Progress & Status Overlays
 Combine multiple tools (e.g., color-coded markers, Gantt charts in a sidebar) to display project phases and funding cycles.
 A custom control (using D3.js, Chart.js, etc.) can show timelines alongside the map for a holistic project overview.
 C. Data Analytics Add‑Ons
-Leaflet.markercluster (Clustering)
+Mapbox GL JS.markercluster (Clustering)
 
 Automatically groups nearby markers into clusters for improved map clarity.
 Especially handy for large volumes of community feedback or incident data.
-Leaflet.heat (Heatmaps)
+Mapbox GL JS.heat (Heatmaps)
 
 Visualizes point data densities via smooth color gradients.
 Ideal for identifying hotspots (e.g., accident-prone intersections or high comment density).
-Leaflet.Canvas-Flowmap-Layer (Origin-Destination Flows)
+Mapbox GL JS.Canvas-Flowmap-Layer (Origin-Destination Flows)
 
 Draws animated flow lines (Bézier curves) to represent traffic or commuter patterns.
 Efficient canvas rendering, useful for analyzing large-scale origin-destination data.
 Traffic Flow Visualization (AntPath & Polyline Animation)
 
-Leaflet.AntPath creates a “marching ants” effect on polylines, highlighting movement or directions.
-Leaflet.AnimatedMarker animates a marker along a route, simulating a moving vehicle.
+Mapbox GL JS.AntPath creates a “marching ants” effect on polylines, highlighting movement or directions.
+Mapbox GL JS.AnimatedMarker animates a marker along a route, simulating a moving vehicle.
 Great for illustrating congestion patterns or highlighting planned transit routes.
-Leaflet Routing Machine (Network Analysis & Routing)
+Mapbox GL JS Routing Machine (Network Analysis & Routing)
 
 Integrates routing engines (OSRM, GraphHopper, or Mapbox Directions) to compute routes and display turn-by-turn directions.
 Useful for travel-time analysis, detour scenarios, or evaluating the impact of construction.
-Leaflet Data Visualization Framework (DVF)
+Mapbox GL JS Data Visualization Framework (DVF)
 
-Adds thematic mapping and charting within Leaflet (e.g., proportional symbols, choropleths, or embedded pie charts).
+Adds thematic mapping and charting within Mapbox GL JS (e.g., proportional symbols, choropleths, or embedded pie charts).
 Assists in visualizing complex metrics like funding sources or project performance.
 Grant Scoring & Thematic Overlays
 
 Tools for data classification (Jenks, quantile) and color-coding to represent scores or funding levels.
 Simplifies the display of advanced grant metrics, highlighting high-priority projects.
 D. User-Friendly Features
-Leaflet Control Search
+Mapbox GL JS Control Search
 
 Client-side search with auto-completion for map features.
 Speeds navigation by allowing users to find projects or addresses by name.
-Leaflet Control Geocoder
+Mapbox GL JS Control Geocoder
 
 Extensible geocoding for address search and reverse-geocoding.
 Lets users locate a project by street address instead of manually finding coordinates.
-Leaflet.LocateControl (Geolocation)
+Mapbox GL JS.LocateControl (Geolocation)
 
 Finds the user’s device location and zooms the map accordingly.
 Ideal for community feedback, enabling residents to note issues in their immediate vicinity.
-Accessibility Enhancements (Leaflet.a11y)
+Accessibility Enhancements (Mapbox GL JS.a11y)
 
 Improves keyboard navigation and screen reader compatibility with ARIA attributes.
 Ensures the map meets accessibility standards, benefitting all users.
-Leaflet.StyleEditor (Dynamic Styling)
+Mapbox GL JS.StyleEditor (Dynamic Styling)
 
 Lets users adjust colors, strokes, and opacity for drawn features on the fly.
 Helpful for visually distinguishing specific projects or scenarios.
-Leaflet.sidebar (Interactive Panels)
+Mapbox GL JS.sidebar (Interactive Panels)
 
 A collapsible sidebar for displaying richer content than popups can hold (e.g., project details, images, charts).
 Ideal for showing extended information when a user selects a map feature.
-Leaflet.MiniMap
+Mapbox GL JS.MiniMap
 
 Displays a small overview map in a corner.
 Helps users keep track of their zoomed-in location within a broader region.
@@ -222,7 +222,7 @@ Frontend:
 
 Next.js (React) with TypeScript.
 Tailwind CSS for responsive, modern UI.
-React-Leaflet for map components integrating Leaflet.js.
+React-Mapbox GL JS for map components integrating Mapbox GL JS.js.
 Backend:
 
 Node.js with Next.js API routes.
@@ -283,7 +283,7 @@ Minimizes manual data entry. Planners can upload PDFs, Excel files, or scans, wh
 Auto-population of key fields drastically reduces labor and error rates.
 Cost Efficiency & Self-Hosting
 
-Leverages open-source libraries (Leaflet, MapLibre, etc.) and allows on-premise or cloud hosting.
+Leverages open-source libraries (Mapbox GL JS, MapLibre, etc.) and allows on-premise or cloud hosting.
 Avoids expensive licensing; minimal reliance on paid third-party APIs.
 Integration with Existing Systems
 
@@ -320,10 +320,10 @@ Industry-Leading Innovation and Security
 Continuous integration of the latest machine learning techniques, GIS advancements, and best-practice security protocols.
 Upholds government data privacy requirements, ensuring ongoing trust and compliance.
 7. Conclusion
-By merging a proven foundation with advanced AI capabilities and an extensive Leaflet.js-based mapping ecosystem, this Next.js and Tailwind CSS application is poised to transform how RTPAs plan and prioritize transportation projects. Key benefits include:
+By merging a proven foundation with advanced AI capabilities and an extensive Mapbox GL JS.js-based mapping ecosystem, this Next.js and Tailwind CSS application is poised to transform how RTPAs plan and prioritize transportation projects. Key benefits include:
 
 AI/ML & LLMs for automated scoring, recommendations, and detailed report generation.
-Robust Leaflet Maps featuring drawing tools for public engagement, real-time data layers, time-based visualizations, and thematic overlays.
+Robust Mapbox GL JS Maps featuring drawing tools for public engagement, real-time data layers, time-based visualizations, and thematic overlays.
 Data-Driven Scoring with both default guidelines and flexible customizations.
 Efficient Reporting that drastically reduces workload and fosters consistent documentation.
 Multi-Tenant Security ensuring data isolation for each agency, with robust role-based access.

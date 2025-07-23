@@ -17,6 +17,7 @@ import { ModelProvider } from '@/lib/models/model-context';
 import { ProjectsProvider } from '@/contexts/ProjectsContext';
 import { MapboxProvider } from '@/contexts/mapbox-context';
 import { MapboxScripts } from '@/components/MapboxScripts';
+import { MapSettingsProvider } from '@/contexts/MapSettingsContext';
 
 export default function AppLayout({
   children,
@@ -100,20 +101,22 @@ export default function AppLayout({
                 <ModelProvider>
                   <VoiceProvider>
                     <LLMProvider>
-                      <MapboxProvider>
-                        <div className="flex flex-col min-h-screen">
-                          <Header />
-                          <div className="flex flex-1">
-                            <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
-                            <main className="flex-1 p-6 overflow-auto">
-                              {children}
-                            </main>
+                      <MapSettingsProvider>
+                        <MapboxProvider>
+                          <div className="flex flex-col min-h-screen">
+                            <Header />
+                            <div className="flex flex-1">
+                              <Sidebar setCurrentPage={setCurrentPage} currentPage={currentPage} />
+                              <main className="flex-1 p-6 overflow-auto">
+                                {children}
+                              </main>
+                            </div>
                           </div>
-                        </div>
-                        <Toaster />
-                        <OnboardingDialog />
-                        <MapboxScripts />
-                      </MapboxProvider>
+                          <Toaster />
+                          <OnboardingDialog />
+                          <MapboxScripts />
+                        </MapboxProvider>
+                      </MapSettingsProvider>
                     </LLMProvider>
                   </VoiceProvider>
                 </ModelProvider>

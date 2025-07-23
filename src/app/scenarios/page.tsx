@@ -52,7 +52,7 @@ interface ScenarioDefinition {
 
 export default function ScenariosPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated: _isAuthenticated } = useAuth();
   const [scenarios, setScenarios] = useState<ScenarioDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);

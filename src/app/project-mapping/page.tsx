@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { ProjectMapping } from '../components/ProjectMapping';
+import { MapboxProjectMappingWrapper } from '@/app/components/MapboxProjectMappingWrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -295,13 +295,7 @@ export default function ProjectMappingPage() {
           <div className="flex-1 flex overflow-hidden">
             {/* Map container */}
             <div className={cn("flex-grow overflow-hidden relative", sidebarOpen ? "" : "w-full")}>
-              <ProjectMapping 
-                projects={filteredProjects} 
-                selectedProject={selectedProject}
-                onMarkerClick={handleMarkerClick}
-                testingMode={true}
-                initialZoom={13}
-              />
+                            <MapboxProjectMappingWrapper                 projects={filteredProjects}                 selectedProject={selectedProject}                onMarkerClick={handleMarkerClick}              />
               
               {/* Collapsed sidebar toggle */}
               {!sidebarOpen && (

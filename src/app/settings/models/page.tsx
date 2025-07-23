@@ -53,7 +53,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function ModelSettingsPage() {
   const {
     selectedModel,
-    availableModels,
+    availableModels: _availableModels,
     standardModels,
     customModels,
     setSelectedModel,

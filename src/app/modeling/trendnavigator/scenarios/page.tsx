@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeftIcon, 
-  BarChart3Icon, 
   FileIcon, 
   MoreHorizontalIcon, 
   PlusIcon, 
@@ -44,30 +43,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { toast } from "@/components/ui/use-toast";
+import { TrendNavigatorEngine, TrendScenario } from "@/lib/trend-navigator/engine";
 
-interface BenefitCostResult {
-  bcr: number;
-  npv: number;
-  benefits: { category: string; value: number }[];
-  costs: { category: string; value: number }[];
+// New interface for the output metrics from applyTrendsToModel
+interface TrendOutputMetric {
+  outputMetricId: "VMT_PER_CAPITA_PCT_2019" | "TRANSIT_TRIPS_PER_CAPITA_PCT_2019" | "GHG_EMISSIONS_PCT_CHANGE" | "CONGESTION_LEVEL_PCT_CHANGE" | string; // Allow other string for flexibility
+  displayName: string; // e.g., "VMT Per Capita (% of 2019)"
+  yearValues: Record<number, number>; // {2025: 95, 2030: 90}
 }
 
-interface AiInsights {
-  summary: string;
-  benefitCost: BenefitCostResult;
-  recommendations: string[];
+// Updated AiInsights to use the new output metric structure
+interface AiScenarioAnalysisResults {
+  summaryText: string;
+  outputMetrics: TrendOutputMetric[];
+  equityImpactStatement?: string; // Placeholder for qualitative equity assessment
+  safetyConsiderations?: string; // Placeholder for qualitative safety assessment
+  recommendations?: string[]; 
 }
 
-interface ScenarioData {
-  id: string;
-  name: string;
-  description: string;
-  status: string;
-  createdAt: string;
-}
+const engine = new TrendNavigatorEngine();
 
 function RunWithGreenChAMPDialog({ 
   isOpen, 
@@ -76,57 +72,86 @@ function RunWithGreenChAMPDialog({
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  selectedScenario: ScenarioData | null;
+  selectedScenario: TrendScenario | null;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [aiInsights, setAiInsights] = useState<AiInsights | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<AiScenarioAnalysisResults | null>(null);
   
-  useState(() => {
+  useEffect(() => {
     if (isOpen && selectedScenario) {
-      // Simulate a progressive AI analysis
       setIsGenerating(true);
       setProgress(0);
-      setAiInsights(null);
+      setAnalysisResults(null);
       
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = prev + 5;
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            setIsGenerating(false);
-            
-            // Generate mock insights
-            setAiInsights({
-              summary: `Analysis of "${selectedScenario.name}" shows significant changes in travel patterns with a 12.3% reduction in VMT and 15.7% decrease in emissions compared to baseline.`,
-              benefitCost: {
-                bcr: 2.4,
-                npv: 183500000,
-                benefits: [
-                  { category: "Travel Time Savings", value: 124000000 },
-                  { category: "Vehicle Operating Costs", value: 47000000 },
-                  { category: "Emissions Reduction", value: 31000000 },
-                  { category: "Safety Improvements", value: 35000000 }
-                ],
-                costs: [
-                  { category: "Capital Costs", value: 75000000 },
-                  { category: "Operations & Maintenance", value: 28000000 }
+      // Simulate call to engine.applyTrendsToModel and processing
+      const performAnalysis = async () => {
+        try {
+          // Actual call (can be uncommented when ready to test integration)
+          // const modelOutputs = await engine.applyTrendsToModel(selectedScenario.id, {}); 
+          
+          // Mock data for applyTrendsToModel output
+          const mockModelOutputs: TrendOutputMetric[] = [
+            {
+              outputMetricId: "VMT_PER_CAPITA_PCT_2019",
+              displayName: "VMT Per Capita (% of 2019)",
+              yearValues: { 2025: 95, 2030: 90, 2035: 88, 2040: 85 }
+            },
+            {
+              outputMetricId: "TRANSIT_TRIPS_PER_CAPITA_PCT_2019",
+              displayName: "Transit Trips Per Capita (% of 2019)",
+              yearValues: { 2025: 105, 2030: 110, 2035: 112, 2040: 115 }
+            },
+            {
+              outputMetricId: "GHG_EMISSIONS_PCT_CHANGE",
+              displayName: "GHG Emissions (% Change from Baseline)",
+              yearValues: { 2025: -5, 2030: -8, 2035: -10, 2040: -12 }
+            },
+            {
+              outputMetricId: "CONGESTION_LEVEL_PCT_CHANGE",
+              displayName: "Congestion Level (% Change from Baseline)",
+              yearValues: { 2025: 2, 2030: 5, 2035: 7, 2040: 10 }
+            }
+          ];
+
+          // Simulate AI processing delay & progress
+          let currentProgress = 0;
+          const progressInterval = setInterval(() => {
+            currentProgress += 10;
+            setProgress(currentProgress);
+            if (currentProgress >= 100) {
+              clearInterval(progressInterval);
+              setIsGenerating(false);
+              setAnalysisResults({
+                summaryText: `Scenario "${selectedScenario.name}" analysis complete. Key transportation metrics have been forecasted across multiple years. Review the detailed metrics below.`,
+                outputMetrics: mockModelOutputs, // Use the (mocked) model outputs
+                equityImpactStatement: "The configured trends may lead to moderate improvements in accessibility for low-income communities due to enhanced transit options, but potential increases in VMT could disproportionately affect air quality in already burdened areas if not mitigated.",
+                safetyConsiderations: "Increased transit usage generally correlates with improved overall system safety. However, changes in VMT and congestion require monitoring for potential impacts on road safety metrics.",
+                recommendations: [
+                  "Consider infrastructure improvements to support transit growth.",
+                  "Evaluate demand management strategies if VMT reduction targets are not met.",
+                  "Conduct targeted equity analysis for specific corridors or communities."
                 ]
-              },
-              recommendations: [
-                "Increase transit investment to further improve mode share in urban areas",
-                "Implement coordinated traffic signal timing along congested corridors",
-                "Focus on first/last mile connections to increase transit effectiveness"
-              ]
-            });
-          }
-          return newProgress >= 100 ? 100 : newProgress;
-        });
-      }, 400);
-      
-      return () => clearInterval(interval);
+              });
+            }
+          }, 200); // Faster simulation for dialog
+
+        } catch (error) {
+          console.error("Error during scenario analysis:", error);
+          setIsGenerating(false);
+          toast({
+            title: "Analysis Error",
+            description: "Could not analyze the scenario with GreenChAMP.",
+            variant: "destructive"
+          });
+          // Potentially call onClose() here if the error is critical
+        }
+      };
+
+      performAnalysis();
+
     }
-  });
+  }, [isOpen, selectedScenario]);
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -139,7 +164,7 @@ function RunWithGreenChAMPDialog({
           <DialogDescription>
             {isGenerating ? 
               "Generating comprehensive scenario analysis..." :
-              aiInsights ? 
+              analysisResults ? 
                 "Analysis complete. Here are the key insights." :
                 "Run this scenario through GreenChAMP for detailed transportation analysis."
             }
@@ -179,48 +204,52 @@ function RunWithGreenChAMPDialog({
           </div>
         )}
         
-        {!isGenerating && aiInsights && (
+        {!isGenerating && analysisResults && (
           <div className="space-y-4 py-2">
             <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
               <CardContent className="pt-6">
-                <p className="text-sm">{aiInsights.summary}</p>
+                <p className="text-sm">{analysisResults.summaryText}</p>
               </CardContent>
             </Card>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Benefit-Cost Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Benefit-Cost Ratio:</span>
-                    <span className="text-lg font-bold text-green-600">{aiInsights.benefitCost.bcr}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Net Present Value:</span>
-                    <span className="text-lg font-bold">${(aiInsights.benefitCost.npv / 1000000).toFixed(1)}M</span>
-                  </div>
-                  <Separator />
-                  <div>
-                    <div className="text-sm font-medium mb-2">Key Benefits:</div>
-                    {aiInsights.benefitCost.benefits.map((benefit, i) => (
-                      <div key={i} className="flex justify-between text-sm mb-1">
-                        <span>{benefit.category}</span>
-                        <span>${(benefit.value / 1000000).toFixed(1)}M</span>
-                      </div>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Forecasted Output Metrics</CardTitle>
+                <CardDescription>Key performance indicators based on the configured trends for scenario: {selectedScenario?.name}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      {/* Dynamically create year headers from the first metric's years */}
+                      {analysisResults.outputMetrics[0] && Object.keys(analysisResults.outputMetrics[0].yearValues).map(year => (
+                        <TableHead key={year} className="text-right">{year}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analysisResults.outputMetrics.map((metric) => (
+                      <TableRow key={metric.outputMetricId}>
+                        <TableCell className="font-medium">{metric.displayName}</TableCell>
+                        {Object.keys(metric.yearValues).map(year => (
+                          <TableCell key={year} className="text-right">{metric.yearValues[parseInt(year)]}</TableCell>
+                        ))}
+                      </TableRow>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-              
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            
+            {analysisResults.recommendations && analysisResults.recommendations.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Recommendations</CardTitle>
+                  <CardTitle className="text-base">AI Recommendations</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {aiInsights.recommendations.map((rec, i) => (
+                    {analysisResults.recommendations.map((rec, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <SparklesIcon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                         <span>{rec}</span>
@@ -229,7 +258,29 @@ function RunWithGreenChAMPDialog({
                   </ul>
                 </CardContent>
               </Card>
-            </div>
+            )}
+            
+            {analysisResults.equityImpactStatement && (
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Equity Impact Assessment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{analysisResults.equityImpactStatement}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {analysisResults.safetyConsiderations && (
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Safety Considerations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{analysisResults.safetyConsiderations}</p>
+                </CardContent>
+              </Card>
+            )}
             
             <div className="flex justify-between mt-4">
               <Button variant="outline" onClick={onClose}>
@@ -249,99 +300,124 @@ function RunWithGreenChAMPDialog({
 
 export default function TrendNavigatorScenariosPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortField, setSortField] = useState("createdAt");
-  const [sortDirection, setSortDirection] = useState("desc");
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioData | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
-  // Add dialog state for GreenChAMP integration
-  const [runWithGreenChAMPOpen, setRunWithGreenChAMPOpen] = useState(false);
+  const [scenarios, setScenarios] = useState<TrendScenario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedScenarioForDialog, setSelectedScenarioForDialog] = useState<TrendScenario | null>(null);
+  const [isDialogRunWithGreenChAMPOpen, setIsDialogRunWithGreenChAMPOpen] = useState(false);
 
-  // Mock data for scenarios
-  const mockScenarios: ScenarioData[] = [
-    {
-      id: "scenario1",
-      name: "Future Growth - 2035",
-      status: "completed",
-      description: "Base scenario for 2035 planning horizon",
-      createdAt: "2023-05-15T10:30:00Z",
-    },
-    {
-      id: "scenario2",
-      name: "High Transit Investment",
-      status: "draft",
-      description: "Increased transit funding and service improvements",
-      createdAt: "2023-06-22T14:15:00Z",
-    },
-    {
-      id: "scenario3",
-      name: "Autonomous Vehicle Adoption",
-      status: "in_progress",
-      description: "Rapid AV adoption with mobility as a service",
-      createdAt: "2023-07-10T09:45:00Z",
+  useEffect(() => {
+    async function fetchScenarios() {
+      setIsLoading(true);
+      try {
+        const fetchedScenarios = await engine.listScenarios();
+        setScenarios(fetchedScenarios);
+      } catch (error) {
+        console.error("Error fetching scenarios:", error);
+        toast({
+          title: "Error fetching scenarios",
+          description: "Could not load the list of scenarios. Please try again later.",
+          variant: "destructive",
+        });
+      }
+      setIsLoading(false);
     }
-  ];
+    fetchScenarios();
+  }, []);
 
-  const handleRunWithGreenChAMP = (scenario: ScenarioData) => {
-    setSelectedScenario(scenario);
-    setRunWithGreenChAMPOpen(true);
+  const handleDeleteScenario = async (scenarioId: string) => {
+    // Placeholder: Implement actual delete logic with engine.deleteScenario(scenarioId)
+    toast({
+      title: "Delete Scenario (Not Implemented)",
+      description: `Scenario ${scenarioId} would be deleted.`,
+    });
+    // Refetch or filter list locally
+    setScenarios(prev => prev.filter(s => s.id !== scenarioId)); 
+  };
+
+  const handleViewScenario = (scenarioId: string) => {
+    // Placeholder: Navigate to a scenario detail page or open a view dialog
+    toast({
+      title: "View Scenario (Not Implemented)",
+      description: `Viewing details for scenario ${scenarioId}.`,
+    });
+    // router.push(`/modeling/trendnavigator/scenarios/${scenarioId}`);
+  };
+
+  const handleRunWithGreenChAMP = (scenario: TrendScenario) => {
+    setSelectedScenarioForDialog(scenario);
+    setIsDialogRunWithGreenChAMPOpen(true);
   };
 
   return (
     <ProtectedRoute>
       <div className="container py-6 space-y-6">
-        <div className="flex items-center">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="mr-2"
-            onClick={() => router.push("/modeling")}
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">TrendNavigator Scenarios</h1>
-            <p className="text-muted-foreground">
-              Manage and compare scenario plans
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="mr-2"
+              onClick={() => router.push("/modeling")}
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight">Future Scenarios</h1>
           </div>
           <Button onClick={() => router.push("/modeling/trendnavigator/new")}>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            New Scenario
+            <PlusIcon className="mr-2 h-4 w-4" /> Create New Scenario
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Scenarios</CardTitle>
+            <CardTitle>Scenario Library</CardTitle>
             <CardDescription>
-              Your created scenarios for future planning
+              Manage and analyze your future transportation scenarios.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-md">
+            {isLoading ? (
+              <p>Loading scenarios...</p>
+            ) : scenarios.length === 0 ? (
+              <div className="text-center py-8">
+                <FileIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No scenarios found</h3>
+                <p className="mt-1 text-sm text-gray-500">Get started by creating a new scenario.</p>
+                <div className="mt-6">
+                  <Button onClick={() => router.push("/modeling/trendnavigator/new")}>
+                    <PlusIcon className="mr-2 h-4 w-4" /> Create New Scenario
+                  </Button>
+                </div>
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Horizon</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockScenarios.map((scenario) => (
+                  {scenarios.map((scenario) => (
                     <TableRow key={scenario.id}>
                       <TableCell className="font-medium">{scenario.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-xs">
+                        {scenario.description}
+                      </TableCell>
+                      <TableCell>{scenario.horizonYear}</TableCell>
                       <TableCell>
-                        <Badge variant={scenario.status === 'completed' ? 'default' : 
-                                        scenario.status === 'in_progress' ? 'secondary' : 'outline'}>
+                        <Badge 
+                          variant={scenario.status === "Analyzed" ? "default" : "secondary"}
+                          className={scenario.status === "Analyzed" ? "bg-green-100 text-green-700" : ""}
+                        >
                           {scenario.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(scenario.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(scenario.createdAt || Date.now()).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -349,31 +425,20 @@ export default function TrendNavigatorScenariosPage() {
                               <MoreHorizontalIcon className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleViewScenario(scenario.id!)}>
+                              <EyeIcon className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleRunWithGreenChAMP(scenario)}>
+                              <BrainIcon className="mr-2 h-4 w-4" /> Run with GreenChAMP
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
-                              onClick={() => router.push(`/modeling/trendnavigator/scenarios/${scenario.id}`)}
+                              onClick={() => handleDeleteScenario(scenario.id!)} 
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
                             >
-                              <EyeIcon className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/modeling/trendnavigator/scenarios/${scenario.id}/edit`)}>
-                              <FileIcon className="mr-2 h-4 w-4" />
-                              Edit Scenario
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleRunWithGreenChAMP(scenario)}
-                            >
-                              <BarChart3Icon className="mr-2 h-4 w-4" />
-                              Run with GreenChAMP
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedScenario(scenario);
-                              setDeleteDialogOpen(true);
-                            }}>
-                              <Trash2Icon className="mr-2 h-4 w-4" />
-                              Delete
+                              <Trash2Icon className="mr-2 h-4 w-4" /> Delete Scenario
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -382,39 +447,14 @@ export default function TrendNavigatorScenariosPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Scenario</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete {selectedScenario?.name}? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => {
-                toast({
-                  title: "Scenario deleted",
-                  description: "The scenario has been permanently deleted.",
-                });
-                setDeleteDialogOpen(false);
-              }}>
-                Delete
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        
         <RunWithGreenChAMPDialog 
-          isOpen={runWithGreenChAMPOpen}
-          onClose={() => setRunWithGreenChAMPOpen(false)}
-          selectedScenario={selectedScenario}
+          isOpen={isDialogRunWithGreenChAMPOpen}
+          onClose={() => setIsDialogRunWithGreenChAMPOpen(false)}
+          selectedScenario={selectedScenarioForDialog}
         />
       </div>
     </ProtectedRoute>

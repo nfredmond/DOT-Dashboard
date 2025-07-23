@@ -29,6 +29,7 @@ import {
   Volume2
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
+import { useVoiceRecognition } from "@/contexts/VoiceRecognitionContext"
 
 export default function Settings() {
   const router = useRouter()
@@ -40,9 +41,15 @@ export default function Settings() {
     voiceSettings, 
     updateVoiceSettings, 
     speak,
-    startListening,
-    stopListening 
+    startListening: _startListening,
+    stopListening: _stopListening 
   } = useVoice()
+  const {
+    isListening,
+    transcript,
+    startListening: _startListening,
+    stopListening: _stopListening,
+  } = useVoiceRecognition()
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
   
   const [profileData, setProfileData] = useState({

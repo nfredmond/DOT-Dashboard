@@ -24,10 +24,15 @@ import {
   UsersIcon,
   GitBranchIcon,
   ActivityIcon,
+  Route,
+  TrendingUp,
+  CalculatorIcon,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function ModelingPage() {
-  const [activeTab, setActiveTab] = useState("greenchamp");
+  const [_activeTab, setActiveTab] = useState("greenchamp");
+  const router = useRouter();
 
   return (
     <ProtectedRoute>
@@ -40,9 +45,10 @@ export default function ModelingPage() {
         </div>
 
         <Tabs defaultValue="greenchamp" onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="greenchamp">GreenChAMP Travel Demand</TabsTrigger>
             <TabsTrigger value="trendnavigator">TrendNavigator Scenarios</TabsTrigger>
+            <TabsTrigger value="network">Network Analysis</TabsTrigger>
           </TabsList>
           
           <TabsContent value="greenchamp" className="space-y-4">
@@ -346,8 +352,275 @@ export default function ModelingPage() {
                 </div>
               </div>
             </div>
+
+            <div className="mt-8 border-t pt-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">Integrated Analysis Tools</h3>
+                  <p className="text-muted-foreground">
+                    Combine GreenChAMP, TrendNavigator, and benefit-cost analysis in one unified workflow
+                  </p>
+                </div>
+                <Button className="mt-2 md:mt-0" asChild>
+                  <Link href="/modeling/integrated-analysis">
+                    Open Integrated Analysis
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-muted/40 rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <Route className="mr-2 h-4 w-4 text-primary" />
+                    GreenChAMP
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Advanced transportation modeling with Mapbox visualization
+                  </p>
+                </div>
+                <div className="bg-muted/40 rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <TrendingUp className="mr-2 h-4 w-4 text-primary" />
+                    TrendNavigator
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Scenario planning with travel behavior trends and future projections
+                  </p>
+                </div>
+                <div className="bg-muted/40 rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <CalculatorIcon className="mr-2 h-4 w-4 text-primary" />
+                    Benefit-Cost Analysis
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Economic analysis with timeline visualization and AI-powered insights
+                  </p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="network" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="flex flex-col h-full">
+                <CardHeader>
+                  <CardTitle>Interactive Network Analysis</CardTitle>
+                  <CardDescription>
+                    Analyze transportation networks and accessibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative h-40 w-40">
+                      <Route className="h-40 w-40 text-primary/30" />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Explore transportation networks with isochrones, travel time analysis, and visualization.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" asChild>
+                    <Link href="/modeling/network">
+                      Open Network Analysis
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="flex flex-col h-full">
+                <CardHeader>
+                  <CardTitle>Congestion Analysis</CardTitle>
+                  <CardDescription>
+                    Visualize and analyze congestion patterns
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative h-40 w-40">
+                      <LineChartIcon className="h-40 w-40 text-primary/30" />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Identify congestion hotspots, analyze traffic patterns, and evaluate mitigation measures.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" variant="outline" asChild>
+                    <Link href="/modeling/network/congestion">
+                      View Congestion Analysis
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="flex flex-col h-full">
+                <CardHeader>
+                  <CardTitle>Accessibility Mapping</CardTitle>
+                  <CardDescription>
+                    Map and analyze transportation accessibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex justify-center mb-4">
+                    <div className="relative h-40 w-40">
+                      <MapIcon className="h-40 w-40 text-primary/30" />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Calculate and visualize access to opportunities across different transportation modes.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" variant="outline" asChild>
+                    <Link href="/modeling/network/accessibility">
+                      View Accessibility Maps
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+            
+            <div className="bg-muted/50 rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-medium">About Network Analysis</h3>
+              <p className="text-muted-foreground">
+                Our network analysis tools utilize Mapbox's advanced spatial capabilities to provide detailed insights into transportation networks.
+              </p>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="bg-background rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <Route className="mr-2 h-4 w-4 text-primary" />
+                    Isochrone Analysis
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Map areas accessible within specified travel times from points of interest.
+                  </p>
+                </div>
+                <div className="bg-background rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <MapIcon className="mr-2 h-4 w-4 text-primary" />
+                    Multi-modal Networks
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Analyze travel times across different transportation modes including walking, cycling, transit, and driving.
+                  </p>
+                </div>
+                <div className="bg-background rounded-md p-4 shadow-sm">
+                  <h4 className="font-medium flex items-center mb-2">
+                    <LineChartIcon className="mr-2 h-4 w-4 text-primary" />
+                    Performance Metrics
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Calculate and visualize key network performance indicators and reliability metrics.
+                  </p>
+                </div>
+              </div>
+              
+              <Button variant="outline" className="mt-4" asChild>
+                <Link href="/help/network-analysis">
+                  Learn more about Network Analysis
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>GreenChAMP</CardTitle>
+              <CardDescription>Green DOT Chained Activity Modelling Process</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Travel demand modeling framework for activity-based simulation of travel patterns.
+                </p>
+                <div className="flex justify-end">
+                  <Button onClick={() => router.push('/modeling/greenchamp/runs')}>Open GreenChAMP</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>TrendNavigator</CardTitle>
+              <CardDescription>Future Scenario Planning Tool</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Model transportation future trends and policy impacts with AI-assisted scenario development.
+                </p>
+                <div className="flex justify-end">
+                  <Button onClick={() => router.push('/modeling/trendnavigator')}>Open TrendNavigator</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary border-2">
+            <CardHeader className="bg-primary/5">
+              <CardTitle>Integrated Analysis</CardTitle>
+              <CardDescription>Combined Modeling Platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Unified analysis combining GreenChAMP, TrendNavigator, and Benefit/Cost tools with Mapbox visualization.
+                </p>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => router.push('/modeling/integrated-analysis')}
+                    variant="default"
+                  >
+                    Open Integrated Platform
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Network Analysis</CardTitle>
+              <CardDescription>Transportation Network Tools</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Analyze connectivity, accessibility, and performance of transportation networks.
+                </p>
+                <div className="flex justify-end">
+                  <Button onClick={() => router.push('/modeling/network')}>Open Network Tools</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Benefit/Cost Tools</CardTitle>
+              <CardDescription>Economic Analysis Framework</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Comprehensive benefit-cost analysis with customizable parameters and visualizations.
+                </p>
+                <div className="flex justify-end">
+                  <Button onClick={() => router.push('/modeling/benefit-cost')}>Open B/C Tools</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </ProtectedRoute>
   );

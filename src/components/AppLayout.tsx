@@ -81,6 +81,49 @@ export function AppLayout({ children, userRole }: AppLayoutProps) {
             <div className="px-4 mt-3">
               <a 
                 href="#" 
+                onClick={(e) => { e.preventDefault(); router.push('/modeling/greenchamp'); }} 
+                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname?.startsWith('/modeling/greenchamp') ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-3">
+                  <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5c0-6-4-9-10-9C6 3 2 6 2 12Z" />
+                  <path d="M12 19c-5-1-7-6-7-12" />
+                  <path d="M12 19c5-1 7-6 7-12" />
+                </svg>
+                GreenChAMP
+              </a>
+            </div>
+
+            <div className="px-4 mt-3">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); router.push('/modeling/trendnavigator'); }} 
+                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname?.startsWith('/modeling/trendnavigator') ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-3">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                TrendNavigator
+              </a>
+            </div>
+
+            <div className="px-4 mt-3">
+              <a 
+                href="#" 
+                onClick={(e) => { e.preventDefault(); router.push('/benefit-cost'); }} 
+                className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname?.startsWith('/benefit-cost') ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-3">
+                  <path d="M3 3v18h18" />
+                  <rect x="7" y="10" width="4" height="8" />
+                  <rect x="15" y="6" width="4" height="12" />
+                </svg>
+                Benefit-Cost
+              </a>
+            </div>
+
+            <div className="px-4 mt-3">
+              <a 
+                href="#" 
                 onClick={(e) => { e.preventDefault(); router.push('/llm-assistant'); }} 
                 className={`flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-400 dark:hover:bg-gray-700 ${pathname === '/llm-assistant' ? 'text-gray-800 bg-gray-100 dark:bg-gray-700 dark:text-white' : ''}`}
               >

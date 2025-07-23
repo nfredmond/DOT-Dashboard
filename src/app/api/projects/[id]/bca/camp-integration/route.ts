@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 // POST /api/projects/[id]/bca/camp-integration - Import data from CAMP/TrendNavigator
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

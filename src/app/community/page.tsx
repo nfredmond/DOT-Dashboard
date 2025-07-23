@@ -30,7 +30,7 @@ const MapboxCommunityInputMap = dynamic(
 );
 
 export default function Community() {
-  const [activeTab, setActiveTab] = useState("community-map");
+  const [activeTab, setActiveTab] = useState("mapping");
 
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
@@ -47,17 +47,18 @@ export default function Community() {
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
             <TabsList>
-              <TabsTrigger value="community-map">Map View</TabsTrigger>
-              <TabsTrigger value="community-list">List View</TabsTrigger>
-              <TabsTrigger value="community-form">Submit Feedback</TabsTrigger>
+              <TabsTrigger value="mapping">Mapping</TabsTrigger>
+              <TabsTrigger value="list">List View</TabsTrigger>
+              <TabsTrigger value="statistics">Statistics</TabsTrigger>
+              <TabsTrigger value="submit">Submit Feedback</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="community-map" className="space-y-4">
+            <TabsContent value="mapping" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Community Input Map</CardTitle>
                   <CardDescription>
-                    View community feedback on the map. Click on the map to add your own feedback.
+                    Click on the map to add feedback with points, lines, or polygons. You can upload photos and categorize your input.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -68,7 +69,7 @@ export default function Community() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="community-list" className="space-y-4">
+            <TabsContent value="list" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Community Feedback List</CardTitle>
@@ -84,18 +85,34 @@ export default function Community() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="community-form" className="space-y-4">
+            <TabsContent value="statistics" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Submit Feedback</CardTitle>
+                  <CardTitle>Feedback Statistics</CardTitle>
                   <CardDescription>
-                    Share your ideas and concerns about transportation in your community
+                    View analytics and trends from community input
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-center py-8">
-                    We recommend using the map view to submit location-based feedback.
-                    For general feedback, a form will be available here soon.
+                    Statistics and analytics dashboard coming soon
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="submit" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Submit General Feedback</CardTitle>
+                  <CardDescription>
+                    For location-specific feedback, please use the Mapping tab
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-center py-8">
+                    We recommend using the mapping tab to submit location-based feedback.
+                    For general feedback without a specific location, a form will be available here soon.
                   </p>
                 </CardContent>
               </Card>

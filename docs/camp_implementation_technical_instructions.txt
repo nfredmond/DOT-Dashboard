@@ -246,12 +246,12 @@ await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + '/functions/v1/run-camp', {
 
 return res.status(202).json({ message: 'Simulation started', jobId: job.id });
 Here we insert a record into a jobs table (with columns like id, scenario_id, status, etc.) and then call a Supabase Edge Function (run-camp) to actually perform the model computation (passing the job ID). The response status 202 indicates the request is accepted for processing. The client can then poll a GET /api/scenarios/{id}/status or similar endpoint to check if the job is done, or use realtime subscriptions to get notified. Note on API Security: By using Supabase's auth and RLS in tandem with these API checks, we ensure only the rightful owners can modify or view data. Supabase will automatically apply RLS policies when we use user tokens. For admin tasks (like initiating a job), we carefully verify permissions in code. TypeScript Types: It’s good practice to define TypeScript types or interfaces for your database tables (e.g., using Supabase’s generated types or tools like @supabase/postgrest-js). This ensures your API handlers have type-safe request and response structures.
-3. GIS Mapping & Visualization (Leaflet.js + PostGIS)
-Integrating a GIS map into the Planning Manager enables users to visualize the model inputs and outputs geographically. We use Leaflet.js on the frontend for interactive maps, and PostGIS on the backend for spatial data queries. Interactive Maps with Leaflet: On the client side, set up a Leaflet map component (e.g. using React-Leaflet if the app is React-based). You can display multiple layers corresponding to different aspects of the CAMP results:
+3. GIS Mapping & Visualization (Mapbox GL JS.js + PostGIS)
+Integrating a GIS map into the Planning Manager enables users to visualize the model inputs and outputs geographically. We use Mapbox GL JS.js on the frontend for interactive maps, and PostGIS on the backend for spatial data queries. Interactive Maps with Mapbox GL JS: On the client side, set up a Mapbox GL JS map component (e.g. using React-Mapbox GL JS if the app is React-based). You can display multiple layers corresponding to different aspects of the CAMP results:
 Zones and Trip Patterns: Plot zone centroids or polygons with proportional symbols or coloring to represent trip origins/destinations. For example, a chloropleth map of zones where color intensity corresponds to number of trips produced in that zone. You can also draw desire lines (lines connecting origins to destinations) for selected zones or aggregate flows to show movement patterns.
 Congestion Heatmaps: Use the network links geometry and assignment results to show congestion. For instance, draw each road link with a color or thickness based on volume or volume-to-capacity ratio. High congestion links might be red and thicker, while free-flow links are green. This effectively creates a heatmap of congestion on the network.
 Mode Share Visualization: To show mode share changes across scenarios, you might color zones or draw pie charts on each zone (though pie charts on a map can be cluttered). A simpler approach is to have multiple layers that the user can toggle: e.g., one layer shows auto mode share by zone (color by percentage of trips by car) and another shows transit mode share. Alternatively, use side-by-side maps to compare scenarios: one map showing Scenario A mode shares, another showing Scenario B.
-GeoJSON Data Exchange: The results from PostGIS can be sent to the frontend in GeoJSON format for easy ingestion by Leaflet​
+GeoJSON Data Exchange: The results from PostGIS can be sent to the frontend in GeoJSON format for easy ingestion by Mapbox GL JS​
 GIS.STACKEXCHANGE.COM
 . PostGIS provides functions like ST_AsGeoJSON to transform geometries to GeoJSON​
 POSTGIS.NET
@@ -277,7 +277,7 @@ SELECT json_build_object(
 FROM network_links l
 JOIN assignment_results r ON l.id = r.link_id
 WHERE r.scenario_id = '<scenario-id>';
-This query joins network_links and assignment_results for a given scenario and aggregates them into a GeoJSON FeatureCollection, with each feature having the link geometry and properties like volume and congestion level. The API can return this JSON directly. On the frontend, use Leaflet's L.geoJSON() to add it to the map. Similarly, you can produce GeoJSON for zone polygons with scenario data (e.g., attach trip generation or mode share as properties of each zone feature). Example GeoJSON Structure: For clarity, here is an example of a GeoJSON Feature representing a network link result and a zone result:
+This query joins network_links and assignment_results for a given scenario and aggregates them into a GeoJSON FeatureCollection, with each feature having the link geometry and properties like volume and congestion level. The API can return this JSON directly. On the frontend, use Mapbox GL JS's L.geoJSON() to add it to the map. Similarly, you can produce GeoJSON for zone polygons with scenario data (e.g., attach trip generation or mode share as properties of each zone feature). Example GeoJSON Structure: For clarity, here is an example of a GeoJSON Feature representing a network link result and a zone result:
 json
 Copy
 Edit
@@ -314,7 +314,7 @@ Edit
     }
   ]
 }
-In this snippet, the first feature is a road link with a given volume and a calculated congestion index (perhaps volume/capacity). The second feature is a zone polygon with some scenario-specific results (total productions/attractions and mode shares). The frontend can style the link features by their congestion (e.g., red if >1.0) and the zone features by their transit_share (e.g., bluer color for higher transit share). Implementing the Map Layers: Use Leaflet’s layers control to toggle different result layers. For example:
+In this snippet, the first feature is a road link with a given volume and a calculated congestion index (perhaps volume/capacity). The second feature is a zone polygon with some scenario-specific results (total productions/attractions and mode shares). The frontend can style the link features by their congestion (e.g., red if >1.0) and the zone features by their transit_share (e.g., bluer color for higher transit share). Implementing the Map Layers: Use Mapbox GL JS’s layers control to toggle different result layers. For example:
 js
 Copy
 Edit
@@ -341,7 +341,7 @@ fetch('/api/scenarios/abc123/zones-geojson')
   });
 
 // Add network links layer similarly
-Ensure to adjust the above for your framework (in Next.js with React, you'd likely load GeoJSON via a data fetching hook and use <GeoJSON> component from React Leaflet). The map allows planners to visually inspect scenario outcomes, which is critical for understanding spatial patterns. Spatial Queries and Performance: PostGIS enables complex spatial queries for advanced analysis:
+Ensure to adjust the above for your framework (in Next.js with React, you'd likely load GeoJSON via a data fetching hook and use <GeoJSON> component from React Mapbox GL JS). The map allows planners to visually inspect scenario outcomes, which is critical for understanding spatial patterns. Spatial Queries and Performance: PostGIS enables complex spatial queries for advanced analysis:
 Proximity searches: e.g., find all trips within X distance of a transit line (to analyze transit accessibility).
 Clipping by region: e.g., aggregate trips or congestion within a certain district polygon.
 Spatial joins: e.g., join the trip distribution with a grid to create a heatmap density of trips.
@@ -354,7 +354,7 @@ Edit
 SELECT * FROM network_links 
 WHERE org_id = <org> 
   AND geom && ST_MakeEnvelope(minLon, minLat, maxLon, maxLat, 4326);
-This quickly fetches links within the current map viewport, which you can send as GeoJSON for dynamic loading as the user pans the map. By combining Leaflet for client-side interactivity and PostGIS for server-side spatial computation, the application can provide rich GIS visualizations of the CAMP model results.
+This quickly fetches links within the current map viewport, which you can send as GeoJSON for dynamic loading as the user pans the map. By combining Mapbox GL JS for client-side interactivity and PostGIS for server-side spatial computation, the application can provide rich GIS visualizations of the CAMP model results.
 4. Model Execution & Computation (Real-time & Batch Processing)
 CAMP model runs can be computationally intensive. We implement a hybrid execution model to balance responsiveness and capability:
 Real-time processing (Synchronous): For small-scale scenarios or quick adjustments, the model (or parts of it) can run in near real-time. This could apply when a user is tweaking a single input (e.g., adjusting trip generation for one zone) and wants to instantly see the localized effect. For example, if the system supports interactive adjustments, you might re-run just the trip generation and distribution steps on a subset of zones on the fly and update a chart or map. These computations can be done directly in the API route (if they complete in a couple of seconds) or in the browser for very lightweight calculations. Real-time mode enhances user experience by providing immediate feedback for minor changes.
@@ -638,7 +638,7 @@ Final Deliverables
 By following this guide, the Planning Manager will be enhanced with CAMP functionality. The key deliverables and artifacts from the implementation include:
 Database Migration SQL – A complete schema (PostgreSQL + PostGIS) supporting multi-tenancy, with tables for zones, trip generation, distribution, mode choice, network links, assignment results, etc., and appropriate indexes and constraints (as provided in Section 1).
 API Route Code (Next.js + Supabase) – Implementations of endpoints for input submission, running simulations, and retrieving results. This includes TypeScript code examples for authentication and data handling (see Section 2’s snippets).
-GeoJSON Data Structures & Spatial Queries – Examples of how model results are converted to GeoJSON and served to the frontend, plus sample PostGIS queries (Section 3) to retrieve spatial data efficiently. This ensures the mapping components can visualize trips and congestion on interactive Leaflet maps.
+GeoJSON Data Structures & Spatial Queries – Examples of how model results are converted to GeoJSON and served to the frontend, plus sample PostGIS queries (Section 3) to retrieve spatial data efficiently. This ensures the mapping components can visualize trips and congestion on interactive Mapbox GL JS maps.
 Background Processing Scripts – A sample worker script (Python/Node.js) or Supabase Edge Function code for executing the CAMP model asynchronously (as illustrated in Section 4). This shows how to trigger computations, update job status, and store outputs in the database.
 AI Integration Blueprint – Documentation or code for integrating Claude and the OpenAI Agent SDK (Section 5). This includes example prompt templates for scenario suggestions and results summarization, and outlines how external data tools can be connected for AI-driven scenario planning.
 Interactive Scenario UI – Design specifications or example code for the scenario management interface (Section 6). This covers how users input data, adjust assumptions in real time, and compare multiple scenarios side-by-side. It ensures scenario data is stored versioned in Supabase for historical comparison.

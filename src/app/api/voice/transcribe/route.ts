@@ -36,7 +36,7 @@ export const maxDuration = 60; // 60 seconds
 export const revalidate = 0; // Don't cache results
 
 // Define CORS headers
-const corsHeaders = {
+const _corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',

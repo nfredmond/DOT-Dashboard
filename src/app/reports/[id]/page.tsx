@@ -178,8 +178,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   };
   
   // Get icon for report type
-  const getReportTypeIcon = () => {
-    switch (report.type) {
+  const _getReportTypeIcon = (type: string) => {
+    switch (type) {
       case 'project-summary':
         return <FileTextIcon className="h-5 w-5" />;
       case 'financial-analysis':

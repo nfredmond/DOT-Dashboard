@@ -94,7 +94,7 @@ export function MapboxProjectMapping({
   // References and state
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [localProjects, setLocalProjects] = useState<Project[]>(projects);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [_mapLoaded, setMapLoaded] = useState(false);
   
   // Marker and GeoJSON data
   const [markers, setMarkers] = useState<MarkerData[]>([]);
@@ -210,7 +210,7 @@ export function MapboxProjectMapping({
       
       if (selectedProject.geometry) {
         // Create GeoJSON feature for fitting bounds
-        const geoJsonFeature = {
+        const _geoJsonFeature = {
           type: 'Feature',
           properties: {},
           geometry: selectedProject.geometry

@@ -159,6 +159,13 @@ export default function ProjectScoring() {
     loadData();
   }, [user]);
   
+  useEffect(() => {
+    if (projects && projects.length > 0) {
+      loadProjectScores();
+      loadScenarios();
+    }
+  }, [projects]);
+  
   const loadProjectScores = async () => {
     if (!projects || projects.length === 0) return;
     

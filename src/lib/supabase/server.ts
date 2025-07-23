@@ -1,57 +1,45 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export const createClient = async (cookieStore?: ReturnType<typeof cookies>) => {
-  // If cookieStore is not provided, use an empty implementation to prevent crashes
-  if (!cookieStore) {
-    return createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            console.warn("No cookieStore provided when trying to get cookie:", name);
-            return undefined;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            console.warn("No cookieStore provided when trying to set cookie:", name);
-          },
-          remove(name: string, options: CookieOptions) {
-            console.warn("No cookieStore provided when trying to remove cookie:", name);
-          },
-        },
-      }
+export const createClient = async (cookieStore?: Awaited<ReturnType<typeof cookies>>) => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Supabase URL and Key are required. Please check your environment variables: " +
+      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY"
     );
   }
   
-  // Resolve the Promise to get the actual ReadonlyRequestCookies
-  const resolvedCookieStore = await cookieStore;
+  // If no cookieStore is provided, await cookies()
+  const store = cookieStore || (await cookies());
   
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {
           try {
-            return resolvedCookieStore.get(name)?.value;
+            return store.get(name)?.value;
           } catch (error) {
-            console.warn("Error getting cookie:", name);
+            console.warn("Error getting cookie:", name, error);
             return undefined;
           }
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            resolvedCookieStore.set({ name, value, ...options });
+            store.set({ name, value, ...options });
           } catch (error) {
-            console.warn("Error setting cookie:", name);
+            console.warn("Error setting cookie:", name, error);
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            resolvedCookieStore.set({ name, value: '', ...options });
+            store.set({ name, value: '', ...options });
           } catch (error) {
-            console.warn("Error removing cookie:", name);
+            console.warn("Error removing cookie:", name, error);
           }
         },
       },

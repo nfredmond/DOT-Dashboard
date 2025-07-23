@@ -11,6 +11,9 @@ import { formatNumber } from '@/lib/utils';
 import { Loader2, Clock, Play, Pause, RotateCcw, Download, FileDown, Users, Filter } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { useOrganization } from '@/contexts/organization-context';
 
 // Set your Mapbox access token here
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -236,7 +239,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
         }
         
       } catch (err) {
-        logger.error('Error fetching spatial data:', err);
+        console.error('Error fetching spatial data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load spatial data');
       } finally {
         setLoading(false);
@@ -254,7 +257,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
     
     // Only initialize if we have a Mapbox token
     if (!mapboxgl.accessToken) {
-      logger.warn('Mapbox token not found. Using placeholder map.');
+      console.warn('Mapbox token not found. Using placeholder map.');
       setMapInitialized(true);
       return;
     }
@@ -291,7 +294,7 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
         newMap.remove();
       };
     } catch (err) {
-      logger.error('Error initializing map:', err);
+      console.error('Error initializing map:', err);
       setMapInitialized(true); // Set to true to prevent continuous retries
     }
   }, [loading, mapInitialized, activityLocations]);
@@ -378,8 +381,6 @@ export function ActivitySpatialVisualization({ simulationId, scenarioId }: Activ
     } else {
       // Start animation from current time if time filter is enabled,
       // otherwise start from beginning
-import logger from '../lib/logger';
-
       if (enableTimeFilter) {
         setCurrentAnimationTime(timeFilter[0]);
       } else {

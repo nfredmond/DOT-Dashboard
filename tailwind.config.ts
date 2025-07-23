@@ -87,6 +87,14 @@ const config: Config = {
   					height: '0'
   				}
   			},
+  			'shimmer': {
+  				'0%': {
+  					transform: 'translateX(-100%)',
+  				},
+  				'100%': {
+  					transform: 'translateX(200%)',
+  				},
+  			},
             'fade-in': {
                 '0%': {
                     opacity: '0'
@@ -107,6 +115,7 @@ const config: Config = {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'shimmer': 'shimmer 2s linear infinite',
             'fade-in': 'fade-in 1s ease-out',
             'pulse': 'pulse-slow 2s infinite'
   		}

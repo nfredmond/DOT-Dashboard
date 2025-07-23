@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -25,13 +25,26 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Map, MessageSquare, Settings, Check, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useMapSettings } from "@/contexts/MapSettingsContext";
 
 export default function MapSettingsPage() {
-  // Map configuration
-  const [mapboxToken, setMapboxToken] = useState(process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "");
-  const [defaultMapStyle, setDefaultMapStyle] = useState("streets-v12");
+  const { mapSettings, updateMapSettings, isLoading } = useMapSettings();
+  
+  // Map configuration - initialize from context
+  const [mapboxToken, setMapboxToken] = useState("");
+  const [defaultMapStyle, setDefaultMapStyle] = useState("");
   const [initialCenter, setInitialCenter] = useState({ lat: 37.7749, lng: -122.4194 });
   const [initialZoom, setInitialZoom] = useState(12);
+  
+  // Initialize settings from context when loaded
+  useEffect(() => {
+    if (!isLoading && mapSettings) {
+      setMapboxToken(mapSettings.mapboxToken || "");
+      setDefaultMapStyle(mapSettings.defaultMapStyle || "mapbox://styles/mapbox/streets-v12");
+      setInitialCenter(mapSettings.initialCenter || { lat: 37.7749, lng: -122.4194 });
+      setInitialZoom(mapSettings.initialZoom || 12);
+    }
+  }, [mapSettings, isLoading]);
   
   // Community input settings
   const [moderationEnabled, setModerationEnabled] = useState(true);
@@ -62,23 +75,32 @@ export default function MapSettingsPage() {
   const [newModerator, setNewModerator] = useState({ email: '', role: 'Moderator' });
   
   // Handle save settings
-  const handleSaveSettings = () => {
-    // In a real implementation, this would save to an API
-    console.log('Saving map settings:', {
-      mapboxToken,
-      defaultMapStyle,
-      initialCenter,
-      initialZoom,
-      moderationEnabled,
-      aiModerationEnabled,
-      allowAnonymousSubmissions,
-      notifyOnNewSubmission,
-      maxImagesPerSubmission,
-      categories,
-      moderators,
-    });
-    
-    toast.success('Map settings saved successfully');
+  const handleSaveSettings = async () => {
+    try {
+      // Save map settings to context
+      await updateMapSettings({
+        mapboxToken,
+        defaultMapStyle,
+        initialCenter,
+        initialZoom,
+      });
+      
+      // In a real implementation, save other settings to API
+      console.log('Saving community input settings:', {
+        moderationEnabled,
+        aiModerationEnabled,
+        allowAnonymousSubmissions,
+        notifyOnNewSubmission,
+        maxImagesPerSubmission,
+        categories,
+        moderators,
+      });
+      
+      toast.success('Map settings saved successfully');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
+    }
   };
   
   // Handle adding a new category
@@ -134,6 +156,12 @@ export default function MapSettingsPage() {
   const handleDeleteModerator = (id: string) => {
     setModerators(moderators.filter(m => m.id !== id));
     toast.success('Moderator removed successfully');
+  };
+
+  // Extract style name from full URL
+  const getStyleValue = (fullStyle: string) => {
+    const match = fullStyle.match(/mapbox:\/\/styles\/mapbox\/(.+)/);
+    return match ? match[1] : 'streets-v12';
   };
 
   return (
@@ -200,8 +228,8 @@ export default function MapSettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="default-style">Default Map Style</Label>
                     <Select
-                      value={defaultMapStyle}
-                      onValueChange={setDefaultMapStyle}
+                      value={getStyleValue(defaultMapStyle)}
+                      onValueChange={(value) => setDefaultMapStyle(`mapbox://styles/mapbox/${value}`)}
                     >
                       <SelectTrigger id="default-style">
                         <SelectValue placeholder="Select map style" />

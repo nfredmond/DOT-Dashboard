@@ -1,19 +1,69 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapboxProvider } from '@/contexts/mapbox-context';
-import { useMapbox } from '@/contexts/mapbox-context';
-import MapboxMap from '@/components/ui/mapbox-map';
-import MapboxSource from '@/components/ui/mapbox-source';
-import MapboxLayer from '@/components/ui/mapbox-layer';
+import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  MapPin,
+  Minus,
+  Square,
+  Upload,
+  X,
+  Settings,
+  Filter,
+  Send,
+  Loader2,
+  Eye,
+  EyeOff,
+  Check,
+  XCircle,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Search,
+  Navigation,
+  ZoomIn,
+  ZoomOut,
+  Layers,
+  Calendar
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useOrganization } from '@/contexts/organization-context';
+import { formatDistanceToNow } from 'date-fns';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -28,343 +78,319 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  MapPin,
-  Minus,
-  Square,
-  Upload,
-  X,
-  Settings,
-  Filter,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 // Type definitions
 interface CommunityInput {
   id: string;
-  type: string; // point, line, polygon
+  type: 'point' | 'line' | 'polygon';
   geometry: any;
   title: string;
   description: string;
-  category: string;
+  category_key: string;
+  category: {
+    id: string;
+    key: string;
+    name: string;
+    color: string;
+    icon?: string;
+  };
   username: string;
-  timestamp: string;
-  status: string; // pending, approved, rejected
-  images: string[];
-  agencyId?: string; // Agency that owns this input
-  llmClassification?: string; // Classification provided by LLM
-  moderationNote?: string; // Note from moderator
+  user_email?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'archived';
+  llm_category?: string;
+  llm_confidence?: number;
+  moderation_note?: string;
+  agency_response?: string;
+  upvotes: number;
+  downvotes: number;
+  view_count: number;
+  images: CommunityInputImage[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface CommunityInputImage {
+  id: string;
+  url: string;
+  thumbnail_url?: string;
+  caption?: string;
 }
 
 interface InputCategory {
   id: string;
+  key: string;
   name: string;
   color: string;
+  icon?: string;
+  is_active: boolean;
 }
 
-interface Agency {
-  id: string;
-  name: string;
-  logoUrl?: string;
-  primaryColor: string;
-  categories: InputCategory[];
-  requiresApproval: boolean;
-  useLlmModeration: boolean;
+interface OrganizationSettings {
+  requires_approval: boolean;
+  use_llm_moderation: boolean;
+  show_pending_to_public: boolean;
+  allow_voting: boolean;
 }
 
-// The main MapboxCommunityInputMap component
+// The main MapboxCommunityInputMap component content
 function MapboxCommunityInputMapContent() {
-  // Map state
-  const { map, flyTo } = useMapbox();
+  const { map, mapInitialized } = useMapbox();
+  const { organization } = useOrganization();
+  const { toast } = useToast();
+  const supabase = createClient();
   const drawRef = useRef<MapboxDraw | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Input state
+  // User state
+  const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('viewer');
+  
+  // Map controls
+  const [mapStyle, _setMapStyle] = useState('streets');
+  const [_showLabels, _setShowLabels] = useState(true);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Drawing state
   const [drawingMode, setDrawingMode] = useState<'point' | 'line' | 'polygon' | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
-  const [currentInput, setCurrentInput] = useState<Partial<CommunityInput>>({
-    type: 'point',
-    title: '',
-    description: '',
-    category: 'general',
-    status: 'pending',
-    images: []
-  });
   const [selectedGeometry, setSelectedGeometry] = useState<any>(null);
+  
+  // Form state
+  const [inputTitle, setInputTitle] = useState('');
+  const [inputDescription, setInputDescription] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Admin state
-  const [isAdmin, setIsAdmin] = useState(true); // Set to true by default for testing
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [autoApprove, setAutoApprove] = useState(false);
-  const [useLlmModeration, setUseLlmModeration] = useState(true);
-  const [currentAgency, setCurrentAgency] = useState<Agency | null>(null);
-  const [agencies, setAgencies] = useState<Agency[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [_selectedStatus, _setSelectedStatus] = useState<string | null>(null);
   const [moderationNote, setModerationNote] = useState('');
+  const [selectedInputForModeration, setSelectedInputForModeration] = useState<CommunityInput | null>(null);
   
-  // Community input data
+  // Data state
   const [communityInputs, setCommunityInputs] = useState<CommunityInput[]>([]);
-  const [filteredInputs, setFilteredInputs] = useState<CommunityInput[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [categories, setCategories] = useState<InputCategory[]>([]);
+  const [orgSettings, setOrgSettings] = useState<OrganizationSettings>({
+    requires_approval: true,
+    use_llm_moderation: true,
+    show_pending_to_public: false,
+    allow_voting: true
+  });
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Categories for input - in real app, these would be configurable
-  const inputCategories: InputCategory[] = [
-    { id: 'general', name: 'General', color: '#3b82f6' },
-    { id: 'safety', name: 'Safety', color: '#ef4444' },
-    { id: 'transportation', name: 'Active Transportation', color: '#22c55e' },
-    { id: 'maintenance', name: 'Maintenance', color: '#f59e0b' },
-    { id: 'traffic', name: 'Traffic', color: '#8b5cf6' },
-  ];
-
-  // Initialize Mapbox Draw when map is available
-  useEffect(() => {
-    if (map && !drawRef.current) {
-      const draw = new MapboxDraw({
-        displayControlsDefault: false,
-        controls: {
-          point: true,
-          line_string: true,
-          polygon: true,
-          trash: true
-        },
-        defaultMode: 'simple_select',
-        styles: [
-          // Points
-          {
-            'id': 'gl-draw-point',
-            'type': 'circle',
-            'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'feature']],
-            'paint': {
-              'circle-radius': 6,
-              'circle-color': '#3b82f6'
-            }
-          },
-          // Lines
-          {
-            'id': 'gl-draw-line',
-            'type': 'line',
-            'filter': ['all', ['==', '$type', 'LineString'], ['==', 'meta', 'feature']],
-            'layout': {
-              'line-cap': 'round',
-              'line-join': 'round'
-            },
-            'paint': {
-              'line-color': '#3b82f6',
-              'line-width': 3
-            }
-          },
-          // Polygons
-          {
-            'id': 'gl-draw-polygon-fill',
-            'type': 'fill',
-            'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'meta', 'feature']],
-            'paint': {
-              'fill-color': '#3b82f6',
-              'fill-opacity': 0.3
-            }
-          },
-          {
-            'id': 'gl-draw-polygon-stroke',
-            'type': 'line',
-            'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'meta', 'feature']],
-            'layout': {
-              'line-cap': 'round',
-              'line-join': 'round'
-            },
-            'paint': {
-              'line-color': '#3b82f6',
-              'line-width': 2
-            }
-          },
-          // Vertex points
-          {
-            'id': 'gl-draw-point-active',
-            'type': 'circle',
-            'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex']],
-            'paint': {
-              'circle-radius': 4,
-              'circle-color': '#fff',
-              'circle-stroke-color': '#3b82f6',
-              'circle-stroke-width': 2
-            }
-          }
-        ]
-      });
-      
-      map.addControl(draw);
-      drawRef.current = draw;
-      
-      // Handle create events
-      map.on('draw.create', handleDrawCreate);
-      map.on('draw.delete', handleDrawDelete);
-      
-      // Clean up on unmount
-      return () => {
-        if (map && drawRef.current) {
-          map.off('draw.create', handleDrawCreate);
-          map.off('draw.delete', handleDrawDelete);
-          map.removeControl(drawRef.current);
-          drawRef.current = null;
-        }
-      };
-    }
-  }, [map]);
-
-  // Load agencies (in real app, fetch from API)
-  useEffect(() => {
-    // Mock data for agencies
-    const mockAgencies: Agency[] = [
-      {
-        id: 'dot',
-        name: 'Department of Transportation',
-        primaryColor: '#3b82f6',
-        categories: [
-          { id: 'general', name: 'General', color: '#3b82f6' },
-          { id: 'safety', name: 'Safety', color: '#ef4444' },
-          { id: 'transportation', name: 'Active Transportation', color: '#22c55e' },
-          { id: 'maintenance', name: 'Maintenance', color: '#f59e0b' },
-          { id: 'traffic', name: 'Traffic', color: '#8b5cf6' },
-        ],
-        requiresApproval: true,
-        useLlmModeration: true
-      },
-      {
-        id: 'planning',
-        name: 'City Planning Department',
-        primaryColor: '#22c55e',
-        categories: [
-          { id: 'general', name: 'General', color: '#3b82f6' },
-          { id: 'zoning', name: 'Zoning', color: '#ef4444' },
-          { id: 'housing', name: 'Housing', color: '#22c55e' },
-          { id: 'parks', name: 'Parks & Recreation', color: '#f59e0b' },
-        ],
-        requiresApproval: true,
-        useLlmModeration: false
-      }
-    ];
-    
-    setAgencies(mockAgencies);
-    setCurrentAgency(mockAgencies[0]); // Default to first agency
-  }, []);
+  // Filter state
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Update input categories when agency changes
-  useEffect(() => {
-    if (currentAgency) {
-      // Update auto-approve setting based on agency preferences
-      setAutoApprove(!currentAgency.requiresApproval);
-      setUseLlmModeration(currentAgency.useLlmModeration);
-    }
-  }, [currentAgency]);
+  // Batch moderation state
+  const [selectedBatchInputs, setSelectedBatchInputs] = useState<string[]>([]);
   
-  // Load community inputs
+  // Initialize user and fetch data
   useEffect(() => {
-    // In a real implementation, fetch from API
-    const fetchCommunityInputs = async () => {
-      try {
-        // Mock data for now
-        const mockData: CommunityInput[] = [
-          {
-            id: '1',
-            type: 'point',
-            geometry: {
-              type: 'Point',
-              coordinates: [-122.4194, 37.7749]
-            },
-            title: 'Need crosswalk here',
-            description: 'This intersection is dangerous for pedestrians',
-            category: 'safety',
-            username: 'user123',
-            timestamp: new Date().toISOString(),
-            status: 'approved',
-            images: ['/mock-image-1.jpg']
-          },
-          {
-            id: '2',
-            type: 'line',
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [-122.4294, 37.7849],
-                [-122.4154, 37.7859]
-              ]
-            },
-            title: 'Bike lane needed',
-            description: 'This corridor needs a protected bike lane',
-            category: 'transportation',
-            username: 'cyclist2022',
-            timestamp: new Date().toISOString(),
-            status: 'pending',
-            images: []
-          }
-        ];
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user && organization) {
+        // Check user role
+        const { data: membership } = await supabase
+          .from('organization_members')
+          .select('role')
+          .eq('organization_id', organization.id)
+          .eq('user_id', user.id)
+          .single();
         
-        setCommunityInputs(mockData);
-        setFilteredInputs(mockData);
-      } catch (error) {
-        console.error('Error fetching community inputs:', error);
+        if (membership) {          setUserRole(membership.role as string);        }
       }
     };
     
-    fetchCommunityInputs();
-  }, []);
+    initializeUser();
+  }, [organization]);
 
-  // Filter inputs when category or status filters change
+  // Load organization settings and categories
   useEffect(() => {
-    let filtered = [...communityInputs];
+    if (!organization) return;
     
-    if (categoryFilter) {
-      filtered = filtered.filter(input => input.category === categoryFilter);
-    }
+    const loadOrganizationData = async () => {
+      try {
+        // Load categories
+        const { data: categoriesData } = await supabase
+          .from('community_input_categories')
+          .select('*')
+          .eq('organization_id', organization.id)
+          .eq('is_active', true)
+          .order('display_order');
+        
+                if (categoriesData && categoriesData.length > 0) {          setCategories(categoriesData as unknown as InputCategory[]);          if (!selectedCategory && categoriesData[0]) {            setSelectedCategory((categoriesData[0] as unknown as InputCategory).key);          }        }
+        
+        // Load settings
+        const { data: settingsData } = await supabase
+          .from('organization_community_settings')
+          .select('*')
+          .eq('organization_id', organization.id)
+          .single();
+        
+                if (settingsData) {          setOrgSettings(settingsData as unknown as OrganizationSettings);        }
+      } catch (error) {
+        console.error('Error loading organization data:', error);
+      }
+    };
     
-    if (statusFilter) {
-      filtered = filtered.filter(input => input.status === statusFilter);
-    }
-    
-    setFilteredInputs(filtered);
-  }, [communityInputs, categoryFilter, statusFilter]);
+    loadOrganizationData();
+  }, [organization]);
 
-  // Drawing handlers
+  // Load community inputs
+  const loadCommunityInputs = useCallback(async () => {
+    if (!organization) return;
+    
+    setIsLoading(true);
+    try {
+      let statusToFilter = statusFilter === 'all' ? null : statusFilter;
+      
+      // For non-admin users, only show approved inputs unless settings allow pending
+      if (userRole !== 'admin' && userRole !== 'editor') {
+        if (!orgSettings.show_pending_to_public && statusToFilter !== 'approved') {
+          statusToFilter = 'approved';
+        }
+      }
+      
+      const params = new URLSearchParams({
+        organizationId: organization.id,
+        ...(statusToFilter && { status: statusToFilter }),
+        ...(categoryFilter !== 'all' && { category: categoryFilter })
+      });
+      
+      const response = await fetch(`/api/community-inputs?${params}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setCommunityInputs(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading community inputs:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load community feedback',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [organization, categoryFilter, statusFilter, userRole, orgSettings.show_pending_to_public, toast]);
+
+  useEffect(() => {
+    loadCommunityInputs();
+  }, [loadCommunityInputs]);
+
+  // Initialize Mapbox Draw
+  useEffect(() => {
+    if (!map || !mapInitialized || drawRef.current) return;
+    
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      defaultMode: 'simple_select',
+      styles: [
+        // Custom styles for drawing
+        {
+          'id': 'gl-draw-point',
+          'type': 'circle',
+          'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'feature']],
+          'paint': {
+            'circle-radius': 8,
+            'circle-color': '#3b82f6',
+            'circle-stroke-color': '#fff',
+            'circle-stroke-width': 2
+          }
+        },
+        {
+          'id': 'gl-draw-line',
+          'type': 'line',
+          'filter': ['all', ['==', '$type', 'LineString'], ['==', 'meta', 'feature']],
+          'layout': {
+            'line-cap': 'round',
+            'line-join': 'round'
+          },
+          'paint': {
+            'line-color': '#3b82f6',
+            'line-width': 3
+          }
+        },
+        {
+          'id': 'gl-draw-polygon-fill',
+          'type': 'fill',
+          'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'meta', 'feature']],
+          'paint': {
+            'fill-color': '#3b82f6',
+            'fill-opacity': 0.2
+          }
+        },
+        {
+          'id': 'gl-draw-polygon-stroke',
+          'type': 'line',
+          'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'meta', 'feature']],
+          'layout': {
+            'line-cap': 'round',
+            'line-join': 'round'
+          },
+          'paint': {
+            'line-color': '#3b82f6',
+            'line-width': 2
+          }
+        }
+      ]
+    });
+    
+    map.addControl(draw, 'top-left');
+    drawRef.current = draw;
+    
+    // Handle draw events
+    map.on('draw.create', handleDrawCreate);
+    map.on('draw.delete', handleDrawDelete);
+    map.on('draw.update', handleDrawUpdate);
+    
+    return () => {
+      map.off('draw.create', handleDrawCreate);
+      map.off('draw.delete', handleDrawDelete);
+      map.off('draw.update', handleDrawUpdate);
+      if (drawRef.current) {
+        map.removeControl(drawRef.current);
+        drawRef.current = null;
+      }
+    };
+  }, [map, mapInitialized]);
+
+  // Map event handlers
   const handleDrawCreate = useCallback((e: any) => {
     if (!e.features || e.features.length === 0) return;
     
     const feature = e.features[0];
     setSelectedGeometry(feature.geometry);
-    
-    // Set the appropriate type based on geometry
-    if (feature.geometry.type === 'Point') {
-      setCurrentInput(prev => ({ ...prev, type: 'point' }));
-    } else if (feature.geometry.type === 'LineString') {
-      setCurrentInput(prev => ({ ...prev, type: 'line' }));
-    } else if (feature.geometry.type === 'Polygon') {
-      setCurrentInput(prev => ({ ...prev, type: 'polygon' }));
-    }
-    
-    // Show the input form
     setShowInputForm(true);
   }, []);
 
+  const handleDrawUpdate = useCallback((e: any) => {
+    if (!e.features || e.features.length === 0) return;
+    
+    const feature = e.features[0];
+    setSelectedGeometry(feature.geometry);
+  }, []);
+
   const handleDrawDelete = useCallback(() => {
-    // Clear selected geometry if form isn't open
     if (!showInputForm) {
       setSelectedGeometry(null);
     }
   }, [showInputForm]);
 
+  // Drawing controls
   const enableDrawingMode = (mode: 'point' | 'line' | 'polygon') => {
-    if (!map || !drawRef.current) return;
-    
-    // Clear existing drawings
-    if (!showInputForm && selectedGeometry) {
-      drawRef.current.deleteAll();
-      setSelectedGeometry(null);
-    }
+    if (!drawRef.current) return;
     
     setDrawingMode(mode);
     
-    // Activate the appropriate drawing mode
     if (mode === 'point') {
       drawRef.current.changeMode('draw_point');
     } else if (mode === 'line') {
@@ -374,11 +400,29 @@ function MapboxCommunityInputMapContent() {
     }
   };
 
-  // File upload handlers
+  const cancelDrawing = () => {
+    if (drawRef.current) {
+      drawRef.current.deleteAll();
+      drawRef.current.changeMode('simple_select');
+    }
+    setDrawingMode(null);
+    setSelectedGeometry(null);
+    setShowInputForm(false);
+    resetForm();
+  };
+
+  // Form handlers
+  const resetForm = () => {
+    setInputTitle('');
+    setInputDescription('');
+    setSelectedCategory(categories[0]?.key || '');
+    setUploadedFiles([]);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
-      setUploadedFiles(prev => [...prev, ...files]);
+      setUploadedFiles(prev => [...prev, ...files].slice(0, 5)); // Max 5 files
     }
   };
 
@@ -386,486 +430,691 @@ function MapboxCommunityInputMapContent() {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Mock LLM service
-  const mockClassifyText = async (prompt: string): Promise<string> => {
-    console.log('Classification prompt:', prompt);
-    
-    // Extract categories from the prompt
-    const categoriesMatch = prompt.match(/categories: (.*?)\.\\n/i);
-    const categoriesText = categoriesMatch ? categoriesMatch[1] : '';
-    const categories = categoriesText.split(',').map(cat => cat.trim().toLowerCase());
-    
-    // If no categories found, return a default
-    if (categories.length === 0 || !categories[0]) {
-      return 'general';
-    }
-    
-    // Randomly select a category for demo purposes
-    return categories[Math.floor(Math.random() * categories.length)];
-  };
-
-  // Use LLM to classify input
-  const classifyInputWithLLM = async (description: string): Promise<string> => {
-    try {
-      setIsProcessing(true);
-      // If using mock, return a random category
-      if (!currentAgency) {
-        const categories = inputCategories.map(c => c.id);
-        return categories[Math.floor(Math.random() * categories.length)];
-      }
-      
-      // In production, call LLM service
-      const categories = currentAgency.categories.map(c => c.name).join(', ');
-      const prompt = `Classify the following community input into one of these categories: ${categories}.\n\nInput: ${description}\n\nCategory:`;
-      
-      // Call mock LLM service 
-      const mockResult = await mockClassifyText(prompt);
-      
-      console.log('LLM classification result:', mockResult);
-      return mockResult;
-    } catch (error) {
-      console.error('Error classifying input with LLM:', error);
-      return 'general'; // Default to general category if classification fails
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Submit the community input
   const handleSubmitInput = async () => {
-    try {
-      if (!selectedGeometry) {
-        alert('Please draw a shape on the map first');
-        return;
-      }
-      
-      if (!currentInput.title || !currentInput.description) {
-        alert('Please provide a title and description');
-        return;
-      }
-      
-      setIsProcessing(true);
-      
-      // If LLM moderation is enabled and no category is selected, classify with LLM
-      let category = currentInput.category || 'general';
-      if (useLlmModeration && category === 'general') {
-        category = await classifyInputWithLLM(currentInput.description || '');
-      }
-      
-      // Process image uploads
-      // In a real app, this would upload to a storage service and return URLs
-      const imageUrls = uploadedFiles.map(file => URL.createObjectURL(file));
-      
-      // Create new input object
-      const newInput: CommunityInput = {
-        id: Date.now().toString(),
-        type: currentInput.type || 'point',
-        geometry: selectedGeometry,
-        title: currentInput.title || '',
-        description: currentInput.description || '',
-        category: category,
-        username: 'current_user', // This would come from auth system
-        timestamp: new Date().toISOString(),
-        status: autoApprove ? 'approved' : 'pending',
-        images: imageUrls,
-        agencyId: currentAgency?.id,
-        llmClassification: category,
-      };
-      
-      // In a real app, this would send to an API
-      // await fetch('/api/community-inputs', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(newInput)
-      // });
-      
-      // For demo, just add to local state
-      setCommunityInputs(prev => [...prev, newInput]);
-      
-      // Reset form
-      setCurrentInput({
-        type: 'point',
-        title: '',
-        description: '',
-        category: 'general',
-        status: 'pending',
-        images: []
+    if (!selectedGeometry || !inputTitle || !inputDescription) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please complete all fields and draw a location on the map',
+        variant: 'destructive'
       });
-      setSelectedGeometry(null);
-      setUploadedFiles([]);
-      setShowInputForm(false);
-      
-      // Reset drawing
-      if (drawRef.current) {
-        drawRef.current.deleteAll();
+      return;
+    }
+    
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to submit feedback',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Upload images first
+      const imageUrls: string[] = [];
+      for (const file of uploadedFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('community-input-images')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          continue;
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('community-input-images')
+          .getPublicUrl(fileName);
+        
+        imageUrls.push(publicUrl);
       }
       
-      alert('Your input has been submitted successfully' + (autoApprove ? ' and is now visible on the map.' : ' and is waiting for approval.'));
+      // Submit the input
+      const response = await fetch('/api/community-inputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedGeometry.type === 'Point' ? 'point' :
+                selectedGeometry.type === 'LineString' ? 'line' : 'polygon',
+          geometry: selectedGeometry,
+          title: inputTitle,
+          description: inputDescription,
+          category: selectedCategory,
+          images: imageUrls
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: orgSettings.requires_approval && !data.data.status.includes('approved')
+            ? 'Your feedback has been submitted and is awaiting approval'
+            : 'Your feedback has been submitted successfully'
+        });
+        
+        // Reload inputs
+        await loadCommunityInputs();
+        
+        // Reset form
+        cancelDrawing();
+      } else {
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
     } catch (error) {
       console.error('Error submitting input:', error);
-      alert('Error submitting input. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to submit feedback. Please try again.',
+        variant: 'destructive'
+      });
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Update input status
-  const updateInputStatus = async (id: string, status: string) => {
+  const handleModerateInput = async (input: CommunityInput, status: 'approved' | 'rejected') => {
     try {
-      setIsProcessing(true);
-      
-      // In a real app, this would send to an API
-      // await fetch(`/api/community-inputs/${id}/status`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ status, moderationNote })
-      // });
-      
-      // For demo, just update local state
-      const updatedInputs = communityInputs.map(input => {
-        if (input.id === id) {
-          return {
-            ...input,
-            status,
-            moderationNote: moderationNote || input.moderationNote
-          };
-        }
-        return input;
+      const response = await fetch('/api/community-inputs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: input.id,
+          status,
+          moderationNote
+        })
       });
       
-      setCommunityInputs(updatedInputs);
-      setModerationNote('');
+      const data = await response.json();
       
-      alert(`Input has been ${status === 'approved' ? 'approved' : 'rejected'}.`);
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: `Feedback ${status === 'approved' ? 'approved' : 'rejected'} successfully`
+        });
+        
+        // Reload inputs
+        await loadCommunityInputs();
+        
+        // Reset moderation state
+        setSelectedInputForModeration(null);
+        setModerationNote('');
+      } else {
+        throw new Error(data.error || 'Failed to moderate feedback');
+      }
     } catch (error) {
-      console.error(`Error updating input status to ${status}:`, error);
-      alert('Error updating input status. Please try again.');
-    } finally {
-      setIsProcessing(false);
+      console.error('Error moderating input:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to moderate feedback',
+        variant: 'destructive'
+      });
     }
   };
 
-  // Helper to get color from category
-  const getCategoryColor = (categoryId: string): string => {
-    // Look up in current agency categories first
-    if (currentAgency) {
-      const agencyCategory = currentAgency.categories.find(cat => cat.id === categoryId);
-      if (agencyCategory) return agencyCategory.color;
+  const _handleDeleteInput = async (inputId: string) => {
+    try {
+      const response = await fetch(`/api/community-inputs?id=${inputId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: 'Feedback deleted successfully'
+        });
+        
+        // Reload inputs
+        await loadCommunityInputs();
+      } else {
+        throw new Error(data.error || 'Failed to delete feedback');
+      }
+    } catch (error) {
+      console.error('Error deleting input:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete feedback',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleGeolocate = () => {
+    if (!map || !navigator.geolocation) {
+      toast({
+        title: 'Location Unavailable',
+        description: 'Geolocation is not supported by your browser',
+        variant: 'destructive'
+      });
+      return;
     }
     
-    // Fall back to default categories
-    const category = inputCategories.find(cat => cat.id === categoryId);
-    return category ? category.color : '#3b82f6'; // Default blue
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        map.flyTo({
+          center: [position.coords.longitude, position.coords.latitude],
+          zoom: 15,
+          duration: 2000
+        });
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        toast({
+          title: 'Location Error',
+          description: 'Unable to get your location. Please check browser permissions.',
+          variant: 'destructive'
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const handleZoomIn = () => {
+    if (!map) return;
+    map.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    if (!map) return;
+    map.zoomOut();
+  };
+
+  const handleLocationSearch = async () => {
+    if (!map || !locationSearchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationSearchQuery)}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const feature = data.features[0];
+        const [lng, lat] = feature.center;
+        
+        map.flyTo({
+          center: [lng, lat],
+          zoom: 14,
+          duration: 2000
+        });
+        
+        setLocationSearchQuery('');
+        toast({
+          title: 'Location Found',
+          description: `Navigated to ${feature.place_name}`,
+        });
+      } else {
+        toast({
+          title: 'Location Not Found',
+          description: 'Unable to find the specified location',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: 'Search Error',
+        description: 'Failed to search for location',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Filter inputs for display
+  const filteredInputs = communityInputs.filter(input => {
+    // Status filter
+    if (statusFilter !== 'all' && input.status !== statusFilter) return false;
+    
+    // Category filter
+    if (categoryFilter !== 'all' && input.category_key !== categoryFilter) return false;
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        input.title.toLowerCase().includes(query) ||
+        input.description.toLowerCase().includes(query) ||
+        input.username.toLowerCase().includes(query)
+      );
+    }
+    
+    return true;
+  });
+
+  // Prepare GeoJSON for map display
+  const inputsGeoJSON = {
+    type: 'FeatureCollection' as const,
+    features: filteredInputs.map(input => ({
+      type: 'Feature' as const,
+      id: input.id,
+      properties: {
+        ...input,
+        color: input.category?.color || '#3b82f6'
+      },
+      geometry: input.geometry
+    }))
+  };
+
+  // Batch moderation
+  const handleBatchModeration = async (status: 'approved' | 'rejected') => {
+    try {
+      const response = await fetch('/api/community-inputs/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedBatchInputs,
+          status
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: `Selected feedback ${status === 'approved' ? 'approved' : 'rejected'} successfully`
+        });
+        
+        // Reload inputs
+        await loadCommunityInputs();
+        
+        // Reset batch state
+        setSelectedBatchInputs([]);
+      } else {
+        throw new Error(data.error || 'Failed to batch moderate feedback');
+      }
+    } catch (error) {
+      console.error('Error batch moderating inputs:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to batch moderate feedback',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
-    <div className="relative w-full h-full">
-      {/* Map for input */}
-      <MapboxMap
-        initialViewState={{
-          longitude: -122.4194,
-          latitude: 37.7749,
-          zoom: 12
-        }}
-        mapStyle={process.env.NEXT_PUBLIC_MAPBOX_STYLE || 'mapbox://styles/mapbox/streets-v12'}
-        className="w-full h-full"
-      >
-        {/* Community input layer */}
-        {filteredInputs.length > 0 && (
-          <MapboxSource
-            id="community-inputs"
-            source={{
-              type: 'geojson',
-              data: {
-                type: 'FeatureCollection',
-                features: filteredInputs.map(input => ({
-                  type: 'Feature',
-                  geometry: input.geometry,
-                  properties: {
-                    id: input.id,
-                    title: input.title,
-                    description: input.description,
-                    category: input.category,
-                    status: input.status,
-                    username: input.username,
-                    timestamp: input.timestamp,
-                    type: input.type
-                  }
-                }))
-              }
+    <div className="relative h-full w-full">
+      <MapboxMap        initialViewState={{          longitude: -122.4194,          latitude: 37.7749,          zoom: 11        }}        mapStyle={`mapbox://styles/mapbox/${mapStyle}-v12`}        className="h-full w-full"      >
+        {/* Community inputs layer */}
+        <MapboxSource
+          id="community-inputs"
+          source={{
+            type: 'geojson',
+            data: inputsGeoJSON
+          }}
+        >
+          {/* Points */}
+          <MapboxLayer
+            id="community-input-points"
+            type="circle"
+            filter={['==', ['geometry-type'], 'Point']}
+            paint={{
+              'circle-radius': 8,
+              'circle-color': ['get', 'color'],
+              'circle-stroke-color': '#fff',
+              'circle-stroke-width': 2
             }}
-          >
-            {/* Point layer */}
-            <MapboxLayer
-              id="community-input-points"
-              type="circle"
-              filter={['==', ['geometry-type'], 'Point']}
-              paint={{
-                'circle-radius': 8,
-                'circle-color': [
-                  'match',
-                  ['get', 'category'],
-                  'safety', '#ef4444',
-                  'transportation', '#22c55e',
-                  'maintenance', '#f59e0b',
-                  'traffic', '#8b5cf6',
-                  '#3b82f6' // default color
-                ],
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#ffffff',
-                'circle-opacity': [
-                  'case',
-                  ['==', ['get', 'status'], 'pending'],
-                  0.5,
-                  0.8
-                ]
-              }}
-            />
-            
-            {/* Line layer */}
-            <MapboxLayer
-              id="community-input-lines"
-              type="line"
-              filter={['==', ['geometry-type'], 'LineString']}
-              paint={{
-                'line-color': [
-                  'match',
-                  ['get', 'category'],
-                  'safety', '#ef4444',
-                  'transportation', '#22c55e',
-                  'maintenance', '#f59e0b',
-                  'traffic', '#8b5cf6',
-                  '#3b82f6' // default color
-                ],
-                'line-width': 4,
-                'line-opacity': [
-                  'case',
-                  ['==', ['get', 'status'], 'pending'],
-                  0.5,
-                  0.8
-                ]
-              }}
-            />
-            
-            {/* Polygon layer */}
-            <MapboxLayer
-              id="community-input-polygons"
-              type="fill"
-              filter={['==', ['geometry-type'], 'Polygon']}
-              paint={{
-                'fill-color': [
-                  'match',
-                  ['get', 'category'],
-                  'safety', '#ef4444',
-                  'transportation', '#22c55e',
-                  'maintenance', '#f59e0b',
-                  'traffic', '#8b5cf6',
-                  '#3b82f6' // default color
-                ],
-                'fill-opacity': [
-                  'case',
-                  ['==', ['get', 'status'], 'pending'],
-                  0.2,
-                  0.4
-                ]
-              }}
-            />
-            
-            {/* Polygon outlines */}
-            <MapboxLayer
-              id="community-input-polygon-outlines"
-              type="line"
-              filter={['==', ['geometry-type'], 'Polygon']}
-              paint={{
-                'line-color': [
-                  'match',
-                  ['get', 'category'],
-                  'safety', '#ef4444',
-                  'transportation', '#22c55e',
-                  'maintenance', '#f59e0b',
-                  'traffic', '#8b5cf6',
-                  '#3b82f6' // default color
-                ],
-                'line-width': 2,
-                'line-opacity': [
-                  'case',
-                  ['==', ['get', 'status'], 'pending'],
-                  0.5,
-                  0.8
-                ]
-              }}
-            />
-          </MapboxSource>
-        )}
+          />
+          
+          {/* Lines */}
+          <MapboxLayer
+            id="community-input-lines"
+            type="line"
+            filter={['==', ['geometry-type'], 'LineString']}
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 3
+            }}
+          />
+          
+          {/* Polygons */}
+          <MapboxLayer
+            id="community-input-polygons"
+            type="fill"
+            filter={['==', ['geometry-type'], 'Polygon']}
+            paint={{
+              'fill-color': ['get', 'color'],
+              'fill-opacity': 0.3
+            }}
+          />
+          
+          <MapboxLayer
+            id="community-input-polygon-outlines"
+            type="line"
+            filter={['==', ['geometry-type'], 'Polygon']}
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 2
+            }}
+          />
+        </MapboxSource>
       </MapboxMap>
-      
-      {/* Drawing tool buttons */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-        <Button
-          variant={drawingMode === 'point' ? 'default' : 'outline'}
-          size="sm"
-          className="bg-white text-black hover:bg-blue-100 dark:bg-slate-800 dark:text-white hover:text-black shadow-md"
-          onClick={() => enableDrawingMode('point')}
-        >
-          <MapPin className="w-4 h-4 mr-2" />
-          Add Point
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(drawingMode === 'line' && 'bg-blue-100')}
-          onClick={() => enableDrawingMode('line')}
-        >
-          <Minus className="w-4 h-4 mr-2" />
-          Add Line
-        </Button>
-        <Button
-          variant={drawingMode === 'polygon' ? 'default' : 'outline'}
-          size="sm"
-          className="bg-white text-black hover:bg-blue-100 dark:bg-slate-800 dark:text-white hover:text-black shadow-md"
-          onClick={() => enableDrawingMode('polygon')}
-        >
-          <Square className="w-4 h-4 mr-2" />
-          Add Area
-        </Button>
-      </div>
-      
-      {/* Filter controls */}
-      <div className="absolute top-4 right-4 z-10">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white text-black hover:bg-gray-100 dark:bg-slate-800 dark:text-white shadow-md"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Filter Community Input</DialogTitle>
-              <DialogDescription>
-                Select filters to view specific community input
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Category
-                </Label>
-                <Select
-                  value={categoryFilter || ''}
-                  onValueChange={(value) => setCategoryFilter(value || null)}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
-                    {inputCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">
-                  Status
-                </Label>
-                <Select
-                  value={statusFilter || ''}
-                  onValueChange={(value) => setStatusFilter(value || null)}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCategoryFilter(null);
-                  setStatusFilter(null);
-                }}
-              >
-                Reset Filters
-              </Button>
-              <Button type="submit">Apply Filters</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      
-      {/* Admin Settings Button */}
-      {isAdmin && (
-        <div className="absolute top-4 right-20 z-10">
+
+      {/* Location Search Bar */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 w-96 max-w-[calc(100%-8rem)] z-10">
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Search for a location..."
+            value={locationSearchQuery}
+            onChange={(e) => setLocationSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleLocationSearch()}
+            className="pr-10 bg-white shadow-md"
+          />
           <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              "bg-white text-black hover:bg-gray-100 dark:bg-slate-800 dark:text-white shadow-md",
-              showAdminPanel && "bg-blue-100 border-blue-500"
+            size="icon"
+            variant="ghost"
+            onClick={handleLocationSearch}
+            disabled={isSearching}
+            className="absolute right-0 top-0 h-full"
+          >
+            {isSearching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
             )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Map Controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+        <Button
+          size="icon"
+          variant="secondary"
+          onClick={handleGeolocate}
+          className="bg-white shadow-md hover:bg-gray-100"
+          title="Go to my location"
+        >
+          <Navigation className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          onClick={handleZoomIn}
+          className="bg-white shadow-md hover:bg-gray-100"
+          title="Zoom in"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          onClick={handleZoomOut}
+          className="bg-white shadow-md hover:bg-gray-100"
+          title="Zoom out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Drawing Controls */}
+      {user && (
+        <div className="absolute top-20 left-4 bg-white rounded-lg shadow-lg p-2 z-10">
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-gray-700 px-2">Add Feedback:</p>
+            <Button
+              size="sm"
+              variant={drawingMode === 'point' ? 'default' : 'outline'}
+              onClick={() => enableDrawingMode('point')}
+              disabled={!!drawingMode && drawingMode !== 'point'}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Point
+            </Button>
+            <Button
+              size="sm"
+              variant={drawingMode === 'line' ? 'default' : 'outline'}
+              onClick={() => enableDrawingMode('line')}
+              disabled={!!drawingMode && drawingMode !== 'line'}
+            >
+              <Minus className="h-4 w-4 mr-2" />
+              Line
+            </Button>
+            <Button
+              size="sm"
+              variant={drawingMode === 'polygon' ? 'default' : 'outline'}
+              onClick={() => enableDrawingMode('polygon')}
+              disabled={!!drawingMode && drawingMode !== 'polygon'}
+            >
+              <Square className="h-4 w-4 mr-2" />
+              Area
+            </Button>
+            {drawingMode && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={cancelDrawing}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Filter Controls */}
+      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 max-w-sm z-10">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">Filters</span>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="category-filter" className="text-sm">Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger id="category-filter" className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.key} value={cat.key}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      {cat.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {(userRole === 'admin' || userRole === 'editor' || orgSettings.show_pending_to_public) && (
+            <div className="space-y-2">
+              <Label htmlFor="status-filter" className="text-sm">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter" className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="search" className="text-sm">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search feedback..."
+                className="pl-8 h-8"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Input List */}
+      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg w-96 max-h-[400px] z-10">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">Community Feedback</h3>
+            <Badge variant="secondary">{filteredInputs.length}</Badge>
+          </div>
+        </div>
+        
+        <ScrollArea className="h-[340px]">
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : filteredInputs.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No feedback found
+            </div>
+          ) : (
+            <div className="divide-y">
+              {filteredInputs.map(input => (
+                <div
+                  key={input.id}
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => {
+                    if (map && input.geometry) {
+                      const bounds = getBounds(input.geometry);
+                      if (bounds) {
+                        map.fitBounds(bounds, { padding: 50 });
+                      }
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
+                      style={{ backgroundColor: input.category?.color || '#3b82f6' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-sm truncate">{input.title}</h4>
+                        {input.status === 'pending' && (
+                          <Badge variant="outline" className="text-xs">Pending</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {input.description}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {input.username}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(input.created_at), { addSuffix: true })}
+                        </span>
+                        {orgSettings.allow_voting && (
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp className="h-3 w-3" />
+                            <span className="text-xs">{input.upvotes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {(userRole === 'admin' || userRole === 'editor') && input.status === 'pending' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedInputForModeration(input);
+                        }}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Admin Panel Toggle */}
+      {(userRole === 'admin' || userRole === 'editor') && (
+        <div className="absolute top-20 right-4 z-10">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowAdminPanel(!showAdminPanel)}
           >
-            <Settings className="w-4 h-4 mr-2" />
-            Admin
+            <Settings className="h-4 w-4 mr-2" />
+            Admin Settings
           </Button>
         </div>
       )}
-      
-      {/* Admin Panel */}
-      {isAdmin && showAdminPanel && (
-        <div className="absolute top-16 right-4 z-20 w-96 bg-white dark:bg-slate-900 p-4 rounded-md shadow-lg border border-gray-200 dark:border-slate-700">
-          <h3 className="text-lg font-semibold mb-3">Admin Settings</h3>
+
+      {/* Input Form Dialog */}
+      <Dialog open={showInputForm} onOpenChange={setShowInputForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Submit Community Feedback</DialogTitle>
+            <DialogDescription>
+              Share your thoughts about this location
+            </DialogDescription>
+          </DialogHeader>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="auto-approve">Auto-Approve Submissions</Label>
-              <Switch
-                id="auto-approve"
-                checked={autoApprove}
-                onCheckedChange={setAutoApprove}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="llm-moderation">Use AI Classification</Label>
-              <Switch
-                id="llm-moderation"
-                checked={useLlmModeration}
-                onCheckedChange={setUseLlmModeration}
+            <div className="space-y-2">
+              <Label htmlFor="input-title">Title</Label>
+              <Input
+                id="input-title"
+                value={inputTitle}
+                onChange={(e) => setInputTitle(e.target.value)}
+                placeholder="Brief description of your feedback"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="agency">Agency</Label>
-              <Select
-                value={currentAgency?.id || ''}
-                onValueChange={(value) => {
-                  const agency = agencies.find(a => a.id === value);
-                  if (agency) setCurrentAgency(agency);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Agency" />
+              <Label htmlFor="input-category">Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="input-category">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {agencies.map((agency) => (
-                    <SelectItem key={agency.id} value={agency.id}>
-                      {agency.name}
+                  {categories.map(cat => (
+                    <SelectItem key={cat.key} value={cat.key}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        {cat.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -873,185 +1122,384 @@ function MapboxCommunityInputMapContent() {
             </div>
             
             <div className="space-y-2">
-              <h4 className="font-medium">Pending Inputs</h4>
-              <div className="max-h-60 overflow-y-auto space-y-2">
-                {communityInputs.filter(input => input.status === 'pending').map(input => (
-                  <div 
-                    key={input.id} 
-                    className="border border-gray-200 dark:border-slate-700 rounded-md p-2"
-                  >
-                    <h5 className="font-medium">{input.title}</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {input.description.substring(0, 100)}
-                      {input.description.length > 100 && '...'}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Badge className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                        {input.type}
-                      </Badge>
-                      <Badge 
-                        style={{ 
-                          backgroundColor: getCategoryColor(input.category),
-                          color: 'white' 
-                        }}
-                      >
-                        {input.category}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-2">
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => updateInputStatus(input.id, 'rejected')}
-                      >
-                        Reject
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={() => updateInputStatus(input.id, 'approved')}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {communityInputs.filter(input => input.status === 'pending').length === 0 && (
-                  <p className="text-sm text-gray-500 italic">No pending inputs</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Input Form Dialog */}
-      <Dialog open={showInputForm} onOpenChange={setShowInputForm}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Community Input</DialogTitle>
-            <DialogDescription>
-              Provide details about your community input
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={currentInput.title || ''}
-                onChange={(e) => setCurrentInput({ ...currentInput, title: e.target.value })}
-                placeholder="Brief title for your input"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="input-description">Description</Label>
               <Textarea
-                id="description"
-                value={currentInput.description || ''}
-                onChange={(e) => setCurrentInput({ ...currentInput, description: e.target.value })}
-                placeholder="Detailed description of your input"
+                id="input-description"
+                value={inputDescription}
+                onChange={(e) => setInputDescription(e.target.value)}
+                placeholder="Provide more details about your feedback"
                 rows={4}
               />
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={currentInput.category || 'general'}
-                onValueChange={(value) => setCurrentInput({ ...currentInput, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(currentAgency?.categories || inputCategories).map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="images">Images (Optional)</Label>
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="image-upload"
-                  className="flex items-center gap-2 border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
+            <div className="space-y-2">
+              <Label>Photos (optional)</Label>
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadedFiles.length >= 5}
                 >
-                  <Upload size={16} />
-                  <span>Upload</span>
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    multiple
-                  />
-                </Label>
-                <span className="text-sm text-gray-500">
-                  {uploadedFiles.length} file(s) selected
-                </span>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Photos ({uploadedFiles.length}/5)
+                </Button>
+                
+                {uploadedFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Upload ${index + 1}`}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              
-              {uploadedFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {uploadedFiles.map((file, idx) => (
-                    <div key={idx} className="relative w-16 h-16 group">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Uploaded ${idx}`}
-                        className="w-full h-full object-cover rounded-md"
-                      />
-                      <button
-                        type="button"
-                        className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeFile(idx)}
-                      >
-                        <X size={12} className="text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
           
           <DialogFooter>
             <Button
-              type="button"
               variant="outline"
-              onClick={() => {
-                setShowInputForm(false);
-                if (drawRef.current) {
-                  drawRef.current.deleteAll();
-                }
-                setSelectedGeometry(null);
-              }}
+              onClick={cancelDrawing}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" onClick={handleSubmitInput} disabled={isProcessing}>
-              {isProcessing ? 'Processing...' : 'Submit Input'}
+            <Button
+              onClick={handleSubmitInput}
+              disabled={isSubmitting || !inputTitle || !inputDescription}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Moderation Dialog */}
+      <AlertDialog 
+        open={!!selectedInputForModeration} 
+        onOpenChange={() => setSelectedInputForModeration(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Moderate Community Input</AlertDialogTitle>
+            <AlertDialogDescription>
+              Review and approve or reject this community feedback.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {selectedInputForModeration && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium">{selectedInputForModeration.title}</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedInputForModeration.description}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm">
+                <span>{selectedInputForModeration.username}</span>
+                <Badge variant="outline">
+                  {selectedInputForModeration.category?.name}
+                </Badge>
+                {selectedInputForModeration.llm_category && (
+                  <Badge variant="secondary">
+                    AI: {selectedInputForModeration.llm_category} 
+                    ({Math.round((selectedInputForModeration.llm_confidence || 0) * 100)}%)
+                  </Badge>
+                )}
+              </div>
+              
+              {selectedInputForModeration.images.length > 0 && (
+                <div className="flex gap-2">
+                  {selectedInputForModeration.images.map((img, index) => (
+                    <img
+                      key={img.id}
+                      src={img.thumbnail_url || img.url}
+                      alt={`Image ${index + 1}`}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                  ))}
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="moderation-note">Moderation Note (optional)</Label>
+                <Textarea
+                  id="moderation-note"
+                  value={moderationNote}
+                  onChange={(e) => setModerationNote(e.target.value)}
+                  placeholder="Add a note about this decision..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedInputForModeration) {
+                  handleModerateInput(selectedInputForModeration, 'rejected');
+                }
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Reject
+            </Button>
+            <AlertDialogAction onClick={() => {
+              if (selectedInputForModeration) {
+                handleModerateInput(selectedInputForModeration, 'approved');
+              }
+            }}>
+              <Check className="h-4 w-4 mr-2" />
+              Approve
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Admin Settings Panel */}
+      {showAdminPanel && (userRole === 'admin' || userRole === 'editor') && (
+        <div className="absolute top-16 right-4 bg-white rounded-lg shadow-lg p-4 w-96 max-h-[500px] overflow-y-auto z-20">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Admin Settings</h3>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowAdminPanel(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <Tabs defaultValue="moderation">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="moderation">Moderation</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="moderation" className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Pending Reviews</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {communityInputs.filter(i => i.status === 'pending').length}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Batch Actions */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Batch Actions</h4>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleBatchModeration('approved')}
+                        disabled={selectedBatchInputs.length === 0}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Approve Selected ({selectedBatchInputs.length})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleBatchModeration('rejected')}
+                        disabled={selectedBatchInputs.length === 0}
+                      >
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Reject Selected ({selectedBatchInputs.length})
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Recent Submissions</h4>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {communityInputs
+                      .filter(i => i.status === 'pending')
+                      .slice(0, 10)
+                      .map(input => (
+                        <div
+                          key={input.id}
+                          className="p-2 border rounded-md hover:bg-gray-50"
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="mt-1"
+                              checked={selectedBatchInputs.includes(input.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedBatchInputs([...selectedBatchInputs, input.id]);
+                                } else {
+                                  setSelectedBatchInputs(selectedBatchInputs.filter(id => id !== input.id));
+                                }
+                              }}
+                            />
+                            <div className="flex-1 cursor-pointer" onClick={() => setSelectedInputForModeration(input)}>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium truncate">
+                                  {input.title}
+                                </span>
+                                <Eye className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {input.username} • {formatDistanceToNow(new Date(input.created_at), { addSuffix: true })}
+                              </div>
+                              {input.llm_category && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                  AI: {input.llm_category} ({Math.round((input.llm_confidence || 0) * 100)}%)
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="settings" className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="requires-approval">Require Approval</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Review submissions before they appear
+                      </p>
+                    </div>
+                    <Switch
+                      id="requires-approval"
+                      checked={orgSettings.requires_approval}
+                      disabled
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="llm-moderation">AI Auto-Categorization</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Use AI to categorize submissions
+                      </p>
+                    </div>
+                    <Switch
+                      id="llm-moderation"
+                      checked={orgSettings.use_llm_moderation}
+                      disabled
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="show-pending">Show Pending to Public</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Display pending submissions to everyone
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-pending"
+                      checked={orgSettings.show_pending_to_public}
+                      disabled
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="allow-voting">Allow Voting</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Let users vote on submissions
+                      </p>
+                    </div>
+                    <Switch
+                      id="allow-voting"
+                      checked={orgSettings.allow_voting}
+                      disabled
+                    />
+                  </div>
+                </div>
+                
+                <div className="pt-2 text-xs text-muted-foreground">
+                  Contact your administrator to change these settings
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Wrapper component with MapboxProvider
-export function MapboxCommunityInputMap() {
+// Utility function to get bounds from geometry
+function getBounds(geometry: any): [[number, number], [number, number]] | null {
+  if (!geometry) return null;
+  
+  if (geometry.type === 'Point') {
+    const [lng, lat] = geometry.coordinates;
+    return [[lng - 0.01, lat - 0.01], [lng + 0.01, lat + 0.01]];
+  } else if (geometry.type === 'LineString') {
+    const lngs = geometry.coordinates.map((c: number[]) => c[0]);
+    const lats = geometry.coordinates.map((c: number[]) => c[1]);
+    return [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)]
+    ];
+  } else if (geometry.type === 'Polygon') {
+    const coords = geometry.coordinates[0];
+    const lngs = coords.map((c: number[]) => c[0]);
+    const lats = coords.map((c: number[]) => c[1]);
+    return [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)]
+    ];
+  }
+  
+  return null;
+}
+
+// Export the component wrapped in MapboxProvider
+export default function MapboxCommunityInputMap() {
   return (
     <MapboxProvider>
       <MapboxCommunityInputMapContent />
     </MapboxProvider>
   );
-}
-
-export default MapboxCommunityInputMap; 
+} 

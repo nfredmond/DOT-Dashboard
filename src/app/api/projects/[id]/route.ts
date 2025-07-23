@@ -109,32 +109,35 @@ const demoProjects = {
 // GET /api/projects/[id] - Get a specific project
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const supabase = createClient(cookies());
+  // Extract the projectId from params
+  const { params } = context;
   const projectId = params.id;
   
-  // Get user session
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // Check for demo mode
-  const demoCookie = cookies().get('planning_manager_demo_mode');
-  const isDemo = !session && demoCookie?.value === 'true';
-  
-  if (!session && !isDemo) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  // If in demo mode, return mock data
-  if (isDemo) {
-    // Check if we have a demo project with this ID
-    if (projectId.startsWith('demo') && demoProjects[projectId as keyof typeof demoProjects]) {
-      return NextResponse.json(demoProjects[projectId as keyof typeof demoProjects]);
-    }
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-  }
+  // Initialize Supabase client
+  const cookieStore = await cookies();
+  const supabase = await createClient(cookieStore);
   
   try {
+    // Get user session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Handle demo projects directly by ID prefix
+    if (projectId.startsWith('demo')) {
+      const demoProject = demoProjects[projectId as keyof typeof demoProjects];
+      if (demoProject) {
+        return NextResponse.json(demoProject);
+      }
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+    
+    // For non-demo projects, require authentication
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Rest of the function for authenticated requests
     // Get the project with organization details
     const { data: project, error: projectError } = await supabase
       .from('projects')
@@ -167,7 +170,7 @@ export async function GET(
     }
     
     // Check if user has access to the project
-    if (project.visibility !== 'public') {
+    if (project.visibility !== 'public' && session) {
       // Check if user is a member of the organization
       const { data: _membership, error: membershipError } = await supabase
         .from('organization_members')
@@ -221,19 +224,21 @@ export async function GET(
 // PATCH /api/projects/[id] - Update a specific project
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const supabase = createClient(cookies());
+  const { params } = context;
+  const cookieStore = await cookies();
+  const supabase = await createClient(cookieStore);
   const projectId = params.id;
   
-  // Get user session
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
   try {
+    // Get user session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     // Check if user has edit access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
@@ -328,19 +333,21 @@ export async function PATCH(
 // DELETE /api/projects/[id] - Delete a specific project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const supabase = createClient(cookies());
+  const { params } = context;
+  const cookieStore = await cookies();
+  const supabase = await createClient(cookieStore);
   const projectId = params.id;
   
-  // Get user session
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
   try {
+    // Get user session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     // Check if user has admin access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')

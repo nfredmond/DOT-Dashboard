@@ -1,28 +1,28 @@
-﻿Leaflet.js implementation and Leaflet.js - add ons
+﻿Mapbox GL JS.js implementation and Mapbox GL JS.js - add ons
 Community Input Add‑Ons
-* Leaflet.draw / Leaflet-Geoman (Drawing & Editing):
- These popular open‑source plugins let users add and edit map features for feedback. They provide toolbar buttons to draw points, lines, and polygons on the map in a user‑friendly way. This enables community members to mark locations, sketch routes, or outline areas of concern. Leaflet-Geoman (also known as leaflet.pm) extends drawing with advanced edits (drag, cut, rotate, snap, etc.), which is useful for detailed input on transportation plans. Using these, users could drop a marker or draw a shape and include a comment or suggestion attached to it directly on the map interface.
+* Mapbox GL JS.draw / Mapbox GL JS-Geoman (Drawing & Editing):
+ These popular open‑source plugins let users add and edit map features for feedback. They provide toolbar buttons to draw points, lines, and polygons on the map in a user‑friendly way. This enables community members to mark locations, sketch routes, or outline areas of concern. Mapbox GL JS-Geoman (also known as Mapbox GL JS.pm) extends drawing with advanced edits (drag, cut, rotate, snap, etc.), which is useful for detailed input on transportation plans. Using these, users could drop a marker or draw a shape and include a comment or suggestion attached to it directly on the map interface.
 
-* Leaflet.Illustrate (Annotations):
- This extension works with Leaflet.draw to allow adding text labels on the map. It lets users type annotations or notes as they place markers or polygons, effectively leaving “comments” on specific locations. This is great for storytelling or feedback – for example, a citizen could label a drawn area as “Needs sidewalk repair,” providing context to their input.
+* Mapbox GL JS.Illustrate (Annotations):
+ This extension works with Mapbox GL JS.draw to allow adding text labels on the map. It lets users type annotations or notes as they place markers or polygons, effectively leaving “comments” on specific locations. This is great for storytelling or feedback – for example, a citizen could label a drawn area as “Needs sidewalk repair,” providing context to their input.
 
-* Leaflet.Comment (Marker Comments):
+* Mapbox GL JS.Comment (Marker Comments):
  A lightweight plugin designed to drop comment pop‑ups on the map. It allows users to click a location and write a comment in a popup, effectively pinning their feedback to that spot. This feature can empower participatory mapping by letting people leave notes or vote on issues directly on the map. (Note: This is a newer plugin; if stability is a concern, a custom popup form for comments might be considered.)
 
 ________________
 
 
 Project Monitoring Add‑Ons
-   * Leaflet Realtime (Live Data):
+   * Mapbox GL JS Realtime (Live Data):
  This plugin enables real‑time geodata updates on your map. It can continuously fetch data (for example, in GeoJSON format or from sensor feeds) and update markers or routes, which is ideal for live tracking of project status. It could display live transit vehicle locations or construction updates, keeping the map’s data fresh so stakeholders can monitor conditions in real time.
 
-   * Leaflet.TimeDimension (Time Slider & Playback):
- This add‑on provides time‑based capabilities to Leaflet maps, including a timeline control and the ability to load temporal data (such as project phases or historical traffic data). Users can drag a time slider or press play to animate the map through chronological data. It is particularly useful for visualizing how projects evolve over time, for example, showing the progression from planned to completed projects or changes in traffic patterns throughout the day.
+   * Mapbox GL JS.TimeDimension (Time Slider & Playback):
+ This add‑on provides time‑based capabilities to Mapbox GL JS maps, including a timeline control and the ability to load temporal data (such as project phases or historical traffic data). Users can drag a time slider or press play to animate the map through chronological data. It is particularly useful for visualizing how projects evolve over time, for example, showing the progression from planned to completed projects or changes in traffic patterns throughout the day.
 
-   * Leaflet.timeline / Timeline Slider:
+   * Mapbox GL JS.timeline / Timeline Slider:
  Similar to TimeDimension, this plugin displays time‑stamped GeoJSON features with a playback slider. It is flexible and allows you to feed any time‑based data, making it useful for visualizing changes in network conditions or funding allocations over time. A customizable slider control can animate project funding disbursements or transit ridership trends, helping users understand temporal trends.
 
-   * Leaflet Playback / TrackPlayBack (Moving Object Playback):
+   * Mapbox GL JS Playback / TrackPlayBack (Moving Object Playback):
  These plugins allow you to replay GPS tracks or other moving objects on the map with a synchronized clock. In a transportation planning app, this feature can animate the progression of a vehicle or project milestone over time. It creates an animation of markers moving along paths according to timestamps, which is useful for visualizing things like bus routes or construction progress.
 
    * Progress & Status Overlays:
@@ -32,25 +32,25 @@ ________________
 
 
 Data Analytics Add‑Ons
-      * Leaflet.markercluster (Clustering):
+      * Mapbox GL JS.markercluster (Clustering):
  A popular solution for clustering markers that automatically groups nearby point markers as you zoom out. This keeps the map clear when dealing with many data points (such as public comments or reported issues) by showing clusters with counts. Users can click a cluster to zoom in and see the details, which improves both performance and user experience.
 
-      * Leaflet.heat (Heatmaps):
+      * Mapbox GL JS.heat (Heatmaps):
  This simple and fast heatmap plugin visualizes the density or intensity of point data as a smooth color gradient overlay. It is ideal for showing hotspots (such as areas with high accident rates or dense feedback) and can be tuned (via radius or color adjustments) to clearly represent areas of interest.
 
-      * Leaflet.Canvas-Flowmap-Layer (Origin-Destination Flows):
+      * Mapbox GL JS.Canvas-Flowmap-Layer (Origin-Destination Flows):
  A custom layer that draws animated curves (using Bézier curves) to represent flows between origin and destination points. This is particularly useful for illustrating traffic flows, commuter patterns, or transit ridership between zones. The canvas-based rendering ensures efficient handling even when many lines are drawn.
 
       * Traffic Flow Visualization (AntPath & Polyline Animation):
 
-         * Leaflet.AntPath animates polylines with a “marching ants” effect, which is perfect for illustrating movement or direction on routes such as traffic flow along a highway or a proposed transit line.
-         * Leaflet.AnimatedMarker can animate a marker icon along a polyline, effectively representing a moving vehicle.
+         * Mapbox GL JS.AntPath animates polylines with a “marching ants” effect, which is perfect for illustrating movement or direction on routes such as traffic flow along a highway or a proposed transit line.
+         * Mapbox GL JS.AnimatedMarker can animate a marker icon along a polyline, effectively representing a moving vehicle.
 These animated visuals add a dynamic quality to the map and help communicate directional patterns or peak-hour traffic flows.
-            * Network Analysis & Routing (Leaflet Routing Machine):
- This add‑on integrates routing engines (such as OSRM, GraphHopper, or Mapbox Directions) into Leaflet. It allows users to compute routes between points and displays turn‑by‑turn directions on the map. This functionality is useful for scenario analysis, such as calculating shortest paths or detours during construction. It can also be used to assess travel time and distance as part of grant scoring criteria.
+            * Network Analysis & Routing (Mapbox GL JS Routing Machine):
+ This add‑on integrates routing engines (such as OSRM, GraphHopper, or Mapbox Directions) into Mapbox GL JS. It allows users to compute routes between points and displays turn‑by‑turn directions on the map. This functionality is useful for scenario analysis, such as calculating shortest paths or detours during construction. It can also be used to assess travel time and distance as part of grant scoring criteria.
 
-            * Leaflet Data Visualization Framework (DVF):
- A comprehensive toolkit for thematic mapping and charting within Leaflet. It provides new marker types and utilities to convert data values into styled visuals like proportional symbols, choropleth fills, and even pie or bar charts displayed directly on the map. This makes it easier to visualize complex datasets such as funding sources or project metrics.
+            * Mapbox GL JS Data Visualization Framework (DVF):
+ A comprehensive toolkit for thematic mapping and charting within Mapbox GL JS. It provides new marker types and utilities to convert data values into styled visuals like proportional symbols, choropleth fills, and even pie or bar charts displayed directly on the map. This makes it easier to visualize complex datasets such as funding sources or project metrics.
 
             * Grant Scoring & Thematic Overlays:
  For visualizing complex metrics like grant scores or funding allocation, consider using tools for data classification and choropleth mapping. These tools can automatically classify numerical data (using methods such as Jenks or quantile classification) and generate legends, which makes it easy to convert raw data into clear, color‑coded overlays that indicate priority or performance.
@@ -59,25 +59,25 @@ ________________
 
 
 User‑Friendly Features
-               * Leaflet Control Search:
+               * Mapbox GL JS Control Search:
  A client‑side search control that allows users to find locations or map features by name or property. It supports auto‑completion and can search through markers or GeoJSON layers by a specified attribute. This greatly improves navigation by letting users quickly locate a project, address, or point of interest without manually panning the map.
 
-               * Leaflet Control Geocoder:
+               * Mapbox GL JS Control Geocoder:
  An extensible geocoding control for address searches and reverse‑geocoding. It can be configured with various geocoding services to translate addresses or place names into map coordinates. This makes the map more accessible to users who prefer to search by addresses rather than coordinates.
 
-               * Leaflet.LocateControl (Geolocation):
+               * Mapbox GL JS.LocateControl (Geolocation):
  A simple control that finds the user’s device location and zooms the map to it. It displays the user’s location with a marker and a circle indicating accuracy. This is especially useful in community engagement scenarios, as it allows users to quickly orient themselves to their own neighborhoods and report nearby issues.
 
-               * Accessibility Enhancements (Leaflet.a11y):
+               * Accessibility Enhancements (Mapbox GL JS.a11y):
  This plugin improves accessibility for keyboard navigation and screen readers by adding ARIA attributes, focus management, and localization support. It ensures that map controls and popups are usable by people with disabilities, helping you meet accessibility standards without needing to build these features from scratch.
 
-               * Leaflet.StyleEditor (Dynamic Styling):
+               * Mapbox GL JS.StyleEditor (Dynamic Styling):
  Adds a style editing user interface to the map that allows end‑users to change the appearance of drawn features (such as color, stroke, and opacity) on the fly. This can be used both as a developer tool for quick tweaks and as a way for power users to customize the map’s display, such as highlighting specific routes or projects during scenario planning.
 
-               * Leaflet.sidebar (Interactive Panels):
+               * Mapbox GL JS.sidebar (Interactive Panels):
  A responsive sidebar plugin that provides a collapsible panel alongside the map for displaying richer content. Instead of relying solely on popups, a sidebar can show detailed information (text, images, charts) when a user selects a map feature. For example, clicking on a project might open a sidebar with its description, status, and even a feedback form.
 
-               * Leaflet.MiniMap:
+               * Mapbox GL JS.MiniMap:
  Adds a small overview map in a corner of the main map. The mini map shows a broader geographic area with a marker indicating the current view of the main map, which helps users orient themselves when zoomed in on a particular area.
 
                * 3D Visualization (OSM Buildings):
@@ -105,4 +105,4 @@ Map Aesthetics & Basemaps
 ________________
 
 
-Each of these Leaflet add‑ons contributes to a richer, more interactive web application for transportation planning. By combining drawing tools for public input, real‑time and time‑series modules for monitoring, analytical overlays for data insight, and user interface enhancements for ease of use, you can build a map that is both visually appealing and highly functional for project monitoring, funding analysis, and community engagement.
+Each of these Mapbox GL JS add‑ons contributes to a richer, more interactive web application for transportation planning. By combining drawing tools for public input, real‑time and time‑series modules for monitoring, analytical overlays for data insight, and user interface enhancements for ease of use, you can build a map that is both visually appealing and highly functional for project monitoring, funding analysis, and community engagement.

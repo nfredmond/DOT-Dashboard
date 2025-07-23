@@ -3,7 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { Measure, MeasureStatus } from '@/types/measure';
 
-interface MeasureRecord {
+interface _MeasureRecord {
   id: string;
   name: string;
   code: string;

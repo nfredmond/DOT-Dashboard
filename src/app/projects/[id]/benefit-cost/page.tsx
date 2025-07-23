@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   getBenefitCostAnalyses,
@@ -9,9 +9,12 @@ import {
   calculateBenefitCostAnalysis,
   performSensitivityAnalysis,
   generateBenefitCostInsights,
-  runMonteCarloSimulation
+  runMonteCarloSimulation,
+  updateBenefitCostAnalysis,
+  createBenefitCostAnalysis,
+  getBenefitCostTemplates
 } from '@/lib/benefit-cost-service';
-import { BenefitCostAnalysis, BenefitCostAnalysisResult } from '@/types/benefit-cost';
+import { BenefitCostAnalysis, BenefitCostAnalysisResult, BenefitCostTemplate } from '@/types/benefit-cost';
 import { BenefitCostForm } from '@/components/benefit-cost/BenefitCostForm';
 import { BenefitCostSummaryCharts, SensitivityAnalysisChart, MonteCarloChart } from '@/components/benefit-cost/BenefitCostCharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -66,6 +69,11 @@ import dynamic from 'next/dynamic';
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { TimelineVisualizer } from "@/components/benefit-cost/TimelineVisualizer";
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import BaseMap from '@/components/maps/BaseMap';
+import { visualizeBenefitCostOnMap } from '@/lib/map-utils';
+import { v4 as uuidv4 } from 'uuid';
 
 // Dynamically import the TimelineChart component to avoid import errors
 const TimelineChart = dynamic(() => import('@/components/benefit-cost/TimelineChart').then(mod => mod.TimelineChart), { 
@@ -147,6 +155,27 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
     discountRateAdjustment: 0
   });
   
+  // Add map state
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [showMapVisualization, setShowMapVisualization] = useState(false);
+  
+  // State for template selection during creation
+  const [availableTemplates, setAvailableTemplates] = useState<BenefitCostTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [selectedTemplateForNewAnalysis, setSelectedTemplateForNewAnalysis] = useState<BenefitCostTemplate | null>(null);
+  const [analysisToEdit, setAnalysisToEdit] = useState<BenefitCostAnalysisResult | null>(null);
+  
+  const [editingAnalysis, setEditingAnalysis] = useState<BenefitCostAnalysisResult | null>(null);
+  
+  const handleEditAnalysis = (analysis: BenefitCostAnalysisResult) => {
+    setAnalysisToEdit(analysis);
+    setSelectedTemplateForNewAnalysis(null); // Not using a template when editing
+    setShowCreateForm(false); // Ensure create form is hidden
+    setShowTemplateSelector(false); // Ensure template selector is hidden
+    setShowEditForm(true);
+  };
+  
   // Load analyses for this project
   useEffect(() => {
     const loadAnalyses = async () => {
@@ -203,65 +232,131 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
     loadAnalysisDetails();
   }, [selectedAnalysisId]);
   
-  // Create a new analysis
+  // Create a new analysis - Step 1: Show template selector
   const handleCreateAnalysis = async () => {
-    setShowForm(true);
+    // setSelectedAnalysisId(null); // Clear any selected analysis for editing context
+    setAnalysisToEdit(null); // Clear editing state
+    setSelectedTemplateForNewAnalysis(null); // Reset selected template
+    setShowEditForm(false); // Ensure edit form is hidden
+    setShowCreateForm(false); // Ensure create form is initially hidden until template is chosen or skipped
+    
+    setIsLoadingTemplates(true);
+    setShowTemplateSelector(true);
+    try {
+      const templates = await getBenefitCostTemplates(projectId); // Assuming projectId can scope templates, or remove if templates are global
+      setAvailableTemplates(templates);
+    } catch (err) {
+      console.error("Error fetching BCA templates:", err);
+      toast({
+        title: "Error Fetching Templates",
+        description: err instanceof Error ? err.message : "Could not load templates.",
+        variant: "destructive"
+      });
+      // Proceed without templates if fetch fails, or handle error more gracefully
+      setAvailableTemplates([]); 
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  // Step 2: Called after template is selected or skipped
+  const handleProceedToCreateForm = (template: BenefitCostTemplate | null) => {
+    setSelectedTemplateForNewAnalysis(template);
+    setShowTemplateSelector(false);
+    setAnalysisToEdit(null); // Ensure we are in create mode
+    setShowEditForm(false);
+    setShowCreateForm(true);
   };
   
   // Save a new or updated analysis
-  const handleSaveAnalysis = async (analysis: BenefitCostAnalysis) => {
+  const handleSaveAnalysis = async (analysisFromForm: BenefitCostAnalysis) => {
     try {
       setCalculating(true);
+      setError(null);
+
+      let analysisToSave = { ...analysisFromForm };
+      if (!analysisToSave.projectId) analysisToSave.projectId = projectId; // Ensure projectId is set
+
+      // Perform calculations (NPV, BCR etc.)
+      // The service function might do this, or it might expect pre-calculated values.
+      // For now, assume calculateBenefitCostAnalysis enriches the object.
+      analysisToSave = calculateBenefitCostAnalysis(analysisToSave);
       
-      // Calculate the analysis values
-      const calculatedAnalysis = calculateBenefitCostAnalysis(analysis);
-      
-      // Add sensitivity analysis if not present
-      if (!calculatedAnalysis.sensitivityAnalysis && calculatedAnalysis.benefits.length > 0) {
-        // Create sensitivity for discount rate and a few key parameters
-        const sensitivityParams = ['discountRate'];
-        
-        // Get the top benefit category if available
-        if (calculatedAnalysis.benefits[0]?.category) {
-          const topBenefitCategory = calculatedAnalysis.benefits[0].category;
-          sensitivityParams.push(`parameters.${topBenefitCategory}`);
-        }
-        
-        calculatedAnalysis.sensitivityAnalysis = performSensitivityAnalysis(
-          calculatedAnalysis,
-          sensitivityParams
-        );
-      }
-      
-      // Save to database (would normally call an update or create API)
-      // For now, just simulate the save
-      
-      // Generate insights
-      const result = await generateBenefitCostInsights(calculatedAnalysis);
-      
-      // Add the analysis to the list (as if saved to DB)
-      setAnalyses(prev => {
-        const existingIndex = prev.findIndex(a => a.id === calculatedAnalysis.id);
-        if (existingIndex >= 0) {
-          // Update existing analysis
-          const updated = [...prev];
-          updated[existingIndex] = calculatedAnalysis;
-          return updated;
+      // Generate insights (this might be better done *after* successful save)
+      // const analysisWithInsights = await generateBenefitCostInsights(analysisToSave);
+      // For now, we'll save the calculated one and then fetch with insights.
+
+      let savedAnalysis: BenefitCostAnalysisResult | null = null;
+
+      // Determine if it's an update or create based on presence of an ID that might correspond to an existing analysis
+      // A more robust way would be to check `showEditForm` vs `showCreateForm` state or if `initialAnalysis` was passed to the form.
+      const isUpdate = analyses.some(a => a.id === analysisToSave.id) || (selectedAnalysis && selectedAnalysis.id === analysisToSave.id);
+
+      if (isUpdate && analysisToSave.id) {
+        console.log("Updating existing analysis:", analysisToSave.id);
+        const updated = await updateBenefitCostAnalysis(analysisToSave.id, analysisToSave);
+        if (updated) {
+          savedAnalysis = await generateBenefitCostInsights(updated);
         } else {
-          // Add new analysis
-          return [...prev, calculatedAnalysis];
+          throw new Error("Failed to update analysis in the database.");
         }
-      });
-      
-      // Select the newly created/updated analysis
-      setSelectedAnalysisId(calculatedAnalysis.id);
-      setSelectedAnalysis(result);
-      
-      // Close the form
-      setShowForm(false);
+      } else {
+        // This is a new analysis
+        console.log("Creating new analysis:", analysisToSave.name);
+        // The analysisToSave object (from the form) now directly fits the new signature of createBenefitCostAnalysis
+        // It should contain projectId, and might contain templateId if selected in form, plus all user inputs.
+        // The service function will generate a new ID and apply defaults/template logic.
+        
+        // Get current user ID (placeholder, replace with actual user management)
+        // const userId = supabase.auth.user()?.id; // Example, ensure supabase client is available
+        const userId = "current-user-placeholder"; // Replace with actual logic
+        
+        // Assuming currentPageSelectedTemplateId holds the ID of the template selected for the new analysis, if any.
+        // This state would need to be managed in this page component, possibly synced with BenefitCostForm's selection.
+        const currentPageSelectedTemplateId = undefined; // Placeholder: This needs to be properly set from page state
+
+        const created = await createBenefitCostAnalysis(
+          analysisToSave, 
+          currentPageSelectedTemplateId, 
+          userId
+          /*, organizationId - if available */
+        );
+        
+        if (created) {
+          // The `created` object is the full analysis from the DB, including applied defaults/template logic and new ID.
+          // Now, generate insights for this newly created and fully formed analysis.
+          savedAnalysis = await generateBenefitCostInsights(created);
+        } else {
+          throw new Error("Failed to create analysis in the database.");
+        }
+      }
+
+      if (savedAnalysis) {
+        setAnalyses(prevAnalyses => {
+          const index = prevAnalyses.findIndex(a => a.id === savedAnalysis!.id);
+          if (index !== -1) {
+            const newAnalyses = [...prevAnalyses];
+            newAnalyses[index] = savedAnalysis!;
+            return newAnalyses;
+          } else {
+            return [...prevAnalyses, savedAnalysis!];
+          }
+        });
+        setSelectedAnalysisId(savedAnalysis.id);
+        setSelectedAnalysis(savedAnalysis); // Show the newly saved/updated and processed one
+        toast({ title: "Analysis Saved", description: `Benefit-cost analysis "${savedAnalysis.name}" has been saved.` });
+      } else {
+        toast({ title: "Save Error", description: "Could not save the analysis after processing.", variant: "destructive" });
+      }
+
+      setShowForm(false); // Hide form after save
+      setShowCreateForm(false);
+      setShowEditForm(false);
+
     } catch (err) {
-      setError('Failed to save analysis');
       console.error('Error saving analysis:', err);
+      setError(`Failed to save analysis: ${err.message}`);
+      toast({ title: "Save Error", description: err.message, variant: "destructive" });
     } finally {
       setCalculating(false);
     }
@@ -999,6 +1094,74 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
     }
   };
   
+  // Add a function to handle map load and visualize benefit-cost analysis
+  const handleMapLoad = (map: mapboxgl.Map) => {
+    mapRef.current = map;
+    
+    if (projectData && selectedAnalysis) {
+      visualizeBenefitCostOnMap(map, projectData.id, selectedAnalysis.id)
+        .then(success => {
+          if (success) {
+            console.log('Successfully visualized benefit-cost analysis on map');
+          } else {
+            console.warn('Failed to visualize benefit-cost analysis on map');
+          }
+        })
+        .catch(error => {
+          console.error('Error visualizing benefit-cost analysis on map:', error);
+        });
+    }
+  };
+  
+  const renderTemplateSelectorDialog = () => {
+    if (!showTemplateSelector) return null;
+
+    return (
+      <Dialog open={showTemplateSelector} onOpenChange={(isOpen) => !isOpen && setShowTemplateSelector(false)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Benefit-Cost Analysis</DialogTitle>
+            <DialogDescription>
+              Select a template to pre-fill your analysis or start from scratch.
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingTemplates ? (
+            <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>
+          ) : availableTemplates.length > 0 ? (
+            <ScrollArea className="h-[300px] my-4">
+              <div className="space-y-3 p-1">
+                {availableTemplates.map(template => (
+                  <Card key={template.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3 pt-4 px-4">
+                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      {template.grantProgram && <Badge variant="outline" className="mt-1 w-fit">{template.grantProgram.name}</Badge>}
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground pb-3 px-4">
+                      <p className="line-clamp-2">{template.description}</p>
+                    </CardContent>
+                    <CardFooter className="pb-3 pt-2 px-4">
+                      <Button variant="outline" size="sm" onClick={() => handleProceedToCreateForm(template)}>
+                        Use Template
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <p className="my-4 text-center text-muted-foreground">No templates available. You can create them in Admin Settings.</p>
+          )}
+          <DialogFooter className="mt-2">
+            <Button variant="ghost" onClick={() => setShowTemplateSelector(false)}>Cancel</Button>
+            <Button onClick={() => handleProceedToCreateForm(null)} className="font-semibold">
+              Start from Scratch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -1008,539 +1171,42 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
     );
   }
   
-  if (showForm) {
-    const initialAnalysis = selectedAnalysisId 
-      ? analyses.find(a => a.id === selectedAnalysisId) || null
-      : null;
-      
+  if (error && analyses.length === 0) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="mb-4">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowForm(false)}
-          >
-            ← Back to Analyses
-          </Button>
+      <ProtectedRoute>
+        <div className="container mx-auto p-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Loading Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-500">{error}</p>
+            </CardContent>
+          </Card>
         </div>
-        
-        <h1 className="text-2xl font-bold mb-6">
-          {initialAnalysis ? 'Edit Analysis' : 'New Benefit-Cost Analysis'}
-        </h1>
-        
-        <BenefitCostForm 
-          projectId={projectId}
-          initialAnalysis={initialAnalysis || undefined}
-          onSave={handleSaveAnalysis}
-          onCancel={() => setShowForm(false)}
-        />
-      </div>
+      </ProtectedRoute>
     );
   }
-  
+
+  if (!selectedAnalysis) {
+    return null;
+  }
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Benefit-Cost Analysis</h1>
-        
-        <div className="flex space-x-2">
-          {analyses.length > 1 && (
-            <Button
-              variant="outline"
-              onClick={toggleComparisonMode}
-              className={comparisonMode ? "bg-muted" : ""}
-            >
-              <GitCompareIcon className="mr-2 h-4 w-4" />
-              {comparisonMode ? "Exit Comparison" : "Compare Analyses"}
-            </Button>
-          )}
-          
-          <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusIcon className="mr-2 h-4 w-4" />
-                New Analysis
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Benefit-Cost Analysis</DialogTitle>
-                <DialogDescription>
-                  Create a new benefit-cost analysis for this project
-                </DialogDescription>
-              </DialogHeader>
-              <BenefitCostForm 
-                projectId={projectId}
-                onSave={handleSaveAnalysis}
-                onCancel={() => setShowCreateForm(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-      
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-[200px] w-full" />
-          <Skeleton className="h-[400px] w-full" />
-        </div>
-      ) : analyses.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Benefit-Cost Analyses</h3>
-            <p className="text-gray-500 mb-4 text-center max-w-md">
-              You haven't created any benefit-cost analyses for this project yet. 
-              Create your first analysis to evaluate the economic impacts of your project.
-            </p>
-            <Button onClick={() => setShowCreateForm(true)}>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Create Your First Analysis
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* List of analyses */}
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analyses</CardTitle>
-                <CardDescription>
-                  {comparisonMode 
-                    ? "Select analyses to compare (max 3)" 
-                    : "Select an analysis to view results"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="space-y-1">
-                  {analyses.map(analysis => (
-                    <button
-                      key={analysis.id}
-                      className={`w-full text-left p-3 hover:bg-gray-100 transition-colors ${
-                        comparisonMode 
-                          ? comparisonList.includes(analysis.id) ? 'bg-gray-100' : '' 
-                          : selectedAnalysisId === analysis.id ? 'bg-gray-100' : ''
-                      }`}
-                      onClick={() => comparisonMode 
-                        ? toggleAnalysisInComparison(analysis.id) 
-                        : setSelectedAnalysisId(analysis.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {comparisonMode && (
-                            <Checkbox 
-                              checked={comparisonList.includes(analysis.id)}
-                              onCheckedChange={() => toggleAnalysisInComparison(analysis.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium">{analysis.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {new Date(analysis.updatedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={analysis.status === 'final' ? 'default' : 'outline'}>
-                          {analysis.status}
-                        </Badge>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Analysis details */}
-          <div className="md:col-span-3">
-            {comparisonMode ? (
-              comparisonResults.length === 0 ? (
-                <Card>
-                  <CardContent className="flex items-center justify-center py-12">
-                    <p className="text-gray-500">Select analyses to compare</p>
-                  </CardContent>
-                </Card>
-              ) : calculating ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-[400px] w-full" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Comparison View</CardTitle>
-                      <CardDescription>Comparing {comparisonResults.length} benefit-cost analyses</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-full w-full">
-                        <div className="space-y-8">
-                          {/* Key Metrics Comparison */}
-                          <div>
-                            <h3 className="text-lg font-medium mb-4">Key Metrics</h3>
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[200px]">Metric</TableHead>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableHead key={index}>{analysis.name}</TableHead>
-                                    ))}
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Benefit-Cost Ratio</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index} className={analysis.benefitCostRatio >= 1 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                                        {analysis.benefitCostRatio.toFixed(2)}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Net Present Value</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index} className={analysis.netPresentValue >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                                        {formatCurrency(analysis.netPresentValue)}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Discount Rate</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index}>
-                                        {(analysis.discountRate * 100).toFixed(1)}%
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Analysis Horizon</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index}>
-                                        {analysis.analysisHorizon} years
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                  {/* Optional metrics that might not be available in all analyses */}
-                                  {comparisonResults.some(a => a.paybackPeriod) && (
-                                    <TableRow>
-                                      <TableCell className="font-medium">Payback Period</TableCell>
-                                      {comparisonResults.map((analysis, index) => (
-                                        <TableCell key={index}>
-                                          {analysis.paybackPeriod 
-                                            ? `${analysis.paybackPeriod.toFixed(1)} years` 
-                                            : 'N/A'}
-                                        </TableCell>
-                                      ))}
-                                    </TableRow>
-                                  )}
-                                  {comparisonResults.some(a => a.internalRateOfReturn) && (
-                                    <TableRow>
-                                      <TableCell className="font-medium">Internal Rate of Return</TableCell>
-                                      {comparisonResults.map((analysis, index) => (
-                                        <TableCell key={index}>
-                                          {analysis.internalRateOfReturn 
-                                            ? `${(analysis.internalRateOfReturn * 100).toFixed(1)}%` 
-                                            : 'N/A'}
-                                        </TableCell>
-                                      ))}
-                                    </TableRow>
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
-                          
-                          {/* Benefits Comparison */}
-                          <div>
-                            <h3 className="text-lg font-medium mb-4">Benefits (Present Value)</h3>
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[200px]">Category</TableHead>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableHead key={index}>{analysis.name}</TableHead>
-                                    ))}
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {/* Get all unique benefit categories */}
-                                  {Array.from(new Set(
-                                    comparisonResults.flatMap(a => a.benefits.map(b => b.category))
-                                  )).map((category, idx) => (
-                                    <TableRow key={idx}>
-                                      <TableCell className="font-medium">{category}</TableCell>
-                                      {comparisonResults.map((analysis, index) => {
-                                        const benefit = analysis.benefits.find(b => b.category === category);
-                                        return (
-                                          <TableCell key={index}>
-                                            {benefit ? formatCurrency(benefit.presentValue) : '-'}
-                                          </TableCell>
-                                        );
-                                      })}
-                                    </TableRow>
-                                  ))}
-                                  <TableRow className="bg-muted/50">
-                                    <TableCell className="font-bold">Total Benefits</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index} className="font-bold">
-                                        {formatCurrency(analysis.benefits.reduce((sum, b) => sum + b.presentValue, 0))}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
-                          
-                          {/* Costs Comparison */}
-                          <div>
-                            <h3 className="text-lg font-medium mb-4">Costs (Present Value)</h3>
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[200px]">Category</TableHead>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableHead key={index}>{analysis.name}</TableHead>
-                                    ))}
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {/* Get all unique cost categories */}
-                                  {Array.from(new Set(
-                                    comparisonResults.flatMap(a => a.costs.map(c => c.category))
-                                  )).map((category, idx) => (
-                                    <TableRow key={idx}>
-                                      <TableCell className="font-medium">{category}</TableCell>
-                                      {comparisonResults.map((analysis, index) => {
-                                        const cost = analysis.costs.find(c => c.category === category);
-                                        return (
-                                          <TableCell key={index}>
-                                            {cost ? formatCurrency(cost.presentValue) : '-'}
-                                          </TableCell>
-                                        );
-                                      })}
-                                    </TableRow>
-                                  ))}
-                                  <TableRow className="bg-muted/50">
-                                    <TableCell className="font-bold">Total Costs</TableCell>
-                                    {comparisonResults.map((analysis, index) => (
-                                      <TableCell key={index} className="font-bold">
-                                        {formatCurrency(analysis.costs.reduce((sum, c) => sum + c.presentValue, 0))}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </div>
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-              )
-            ) : (
-              !selectedAnalysis ? (
-                <Card>
-                  <CardContent className="flex items-center justify-center py-12">
-                    <p className="text-gray-500">Select an analysis to view details</p>
-                  </CardContent>
-                </Card>
-              ) : calculating ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-[400px] w-full" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{selectedAnalysis.name}</CardTitle>
-                          <CardDescription>{selectedAnalysis.description}</CardDescription>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Sheet>
-                            <SheetTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Copy className="h-4 w-4 mr-1" />
-                                Scenarios
-                              </Button>
-                            </SheetTrigger>
-                            <SheetContent className="w-[400px]">
-                              <SheetHeader>
-                                <SheetTitle>Scenario Management</SheetTitle>
-                                <SheetDescription>
-                                  Create and manage alternative scenarios for your benefit-cost analysis
-                                </SheetDescription>
-                              </SheetHeader>
-                              
-                              <div className="py-4">
-                                <div className="space-y-4 mb-6">
-                                  <h3 className="text-sm font-medium">Create New Scenario</h3>
-                                  <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
-                                    <Input 
-                                      id="name" 
-                                      value={newScenarioName} 
-                                      onChange={(e) => setNewScenarioName(e.target.value)} 
-                                      placeholder="e.g., High Growth Scenario" 
-                                    />
-                                  </div>
-                                  <div className="grid gap-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Input 
-                                      id="description" 
-                                      value={newScenarioDescription} 
-                                      onChange={(e) => setNewScenarioDescription(e.target.value)} 
-                                      placeholder="Describe this scenario" 
-                                    />
-                                  </div>
-                                  <Button onClick={handleCreateScenario} className="w-full">
-                                    <PlusCircleIcon className="h-4 w-4 mr-1" />
-                                    Create Scenario
-                                  </Button>
-                                </div>
-                                
-                                <div className="border-t pt-4">
-                                  <h3 className="text-sm font-medium mb-3">Available Scenarios</h3>
-                                  {Object.keys(scenarios).length === 0 ? (
-                                    <p className="text-sm text-gray-500">No scenarios yet. Create your first scenario above.</p>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      <Button 
-                                        variant={activeScenario === null ? "default" : "outline"} 
-                                        size="sm" 
-                                        className="w-full justify-between"
-                                        onClick={() => handleSwitchScenario(null)}
-                                      >
-                                        <span>Base Analysis</span>
-                                        {activeScenario === null && <FileOutput className="h-4 w-4" />}
-                                      </Button>
-                                      
-                                      {Object.values(scenarios).map((scenario) => (
-                                        <div key={scenario.id} className="flex items-center">
-                                          <Button 
-                                            variant={activeScenario === scenario.id ? "default" : "outline"} 
-                                            size="sm" 
-                                            className="flex-1 justify-between"
-                                            onClick={() => handleSwitchScenario(scenario.id)}
-                                          >
-                                            <span>{scenario.name}</span>
-                                            {activeScenario === scenario.id && <FileOutput className="h-4 w-4" />}
-                                          </Button>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm"
-                                            onClick={() => handleDeleteScenario(scenario.id)}
-                                          >
-                                            <Trash2Icon className="h-4 w-4 text-red-500" />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <SheetFooter>
-                                {activeScenario && (
-                                  <Button onClick={() => handleApplyScenario(activeScenario)} className="w-full">
-                                    Apply Selected Scenario
-                                  </Button>
-                                )}
-                                <SheetClose asChild>
-                                  <Button variant="outline" className="w-full">Close</Button>
-                                </SheetClose>
-                              </SheetFooter>
-                            </SheetContent>
-                          </Sheet>
-                          
-                          <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <EditIcon className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>Edit Benefit-Cost Analysis</DialogTitle>
-                                <DialogDescription>
-                                  Update the benefit-cost analysis for this project
-                                </DialogDescription>
-                              </DialogHeader>
-                              <BenefitCostForm 
-                                projectId={projectId}
-                                initialAnalysis={selectedAnalysis}
-                                onSave={handleSaveAnalysis}
-                                onCancel={() => setShowEditForm(false)}
-                              />
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <DownloadIcon className="h-4 w-4 mr-1" />
-                                Export
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                                Export as PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleExport('excel')}>
-                                Export as Excel
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          
-                          <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                            <DialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2Icon className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Delete Analysis</DialogTitle>
-                                <DialogDescription>
-                                  Are you sure you want to delete this benefit-cost analysis? This action cannot be undone.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <DialogFooter>
-                                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                                <Button variant="destructive" onClick={() => handleDeleteAnalysis(selectedAnalysis.id)}>Delete</Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-4">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <h3 className="text-sm font-medium text-gray-500 mb-1">Benefit-Cost Ratio</h3>
-                            <p className="text-3xl font-bold">
-                              {selectedAnalysis.benefitCostRatio.toFixed(2)}
-                            </p>
+    <ProtectedRoute>
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Benefit-Cost Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Benefit-Cost Ratio</h3>
+                  <p className="text-3xl font-bold">
+                    {selectedAnalysis.benefitCostRatio.toFixed(2)}
+                  </p>
                             <Badge 
                               variant={selectedAnalysis.benefitCostRatio >= 1 ? "default" : "secondary"}
                               className="mt-2"
@@ -1709,6 +1375,33 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
                           </CardContent>
                         </Card>
                       </div>
+                      
+                      {/* Add the map visualization card */}
+                      <Card className="mt-6">
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            Spatial Distribution of Benefits
+                            <Button variant="outline" onClick={() => setShowMapVisualization(!showMapVisualization)}>
+                              {showMapVisualization ? 'Hide Map' : 'Show Map'}
+                            </Button>
+                          </CardTitle>
+                          <CardDescription>
+                            Geographic visualization of project impacts
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {showMapVisualization && (
+                            <div className="h-[400px] w-full rounded-md overflow-hidden">
+                              <BaseMap
+                                initialCenter={[-122.4194, 37.7749]} 
+                                initialZoom={12}
+                                onMapLoad={handleMapLoad}
+                                className="h-full w-full"
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     </TabsContent>
                     
                     <TabsContent value="insights" className="mt-4">
@@ -2368,125 +2061,23 @@ export default function BenefitCostAnalysisPage({ params: pageParams }: { params
               )
             )}
           </div>
-        </div>
-      )}
-      
-      {/* Analysis details section */}
-      {selectedAnalysis && (
-        <div className="space-y-4">
-          {/* ... existing code ... */}
-          
-          <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-5 w-full">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="data">Data</TabsTrigger>
-              {sensitivityAnalysis && (
-                <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
-              )}
-              <TabsTrigger value="equity">Equity</TabsTrigger>
-              <TabsTrigger value="timeline" onClick={timelineData ? undefined : handleGenerateTimeline}>
-                <div className="flex items-center space-x-2">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>Timeline</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* ... existing TabsContent for "overview", "data", "sensitivity", and "equity" tabs ... */}
-            
-            {/* Timeline Tab */}
-            <TabsContent value="timeline">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Project Timeline Analysis</CardTitle>
-                      <CardDescription>
-                        Visualize how benefits and costs accrue over the {selectedAnalysis.analysisHorizon}-year project lifecycle
-                      </CardDescription>
-                    </div>
-                    {timelineData && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Clock className="h-4 w-4 mr-2" />
-                            Timing Scenarios
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56">
-                          <DropdownMenuLabel>Timing Scenarios</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className={cn(activeTimeScenario === null && "bg-accent")} 
-                            onClick={() => {
-                              setActiveTimeScenario(null);
-                              handleGenerateTimeline();
-                            }}
-                          >
-                            <Check className={cn("h-4 w-4 mr-2", activeTimeScenario === null ? "opacity-100" : "opacity-0")} />
-                            Base Case
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isTimelineLoading ? (
-                    <div className="flex justify-center items-center h-64">
-                      <div className="flex flex-col items-center space-y-4">
-                        <Spinner />
-                        <p className="text-sm text-muted-foreground">Generating timeline visualization...</p>
-                      </div>
-                    </div>
-                  ) : timelineData ? (
-                    <TimelineChart data={timelineData} />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                      <CalendarDays className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">Click "Generate Timeline" to visualize project cash flows over time</p>
-                      <Button onClick={handleGenerateTimeline}>
-                        Generate Timeline
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-                {timelineData && (
-                  <CardFooter className="border-t pt-6 flex flex-col items-start space-y-4">
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Timeline Insights</h4>
-                        <ul className="text-sm space-y-1">
-                          <li>• Project breaks even after {timelineData.paybackYear ? 
-                            timelineData.paybackYear.toFixed(1) : 'N/A'} years</li>
-                          <li>• Highest annual benefit occurs in year {
-                            timelineData.netBenefitsTimeline.reduce(
-                              (maxYear: number, current: any, index: number) => 
-                                current.benefitValue > timelineData.netBenefitsTimeline[maxYear]?.benefitValue 
-                                  ? index : maxYear, 0) + 1
-                          }</li>
-                          <li>• Net benefits become positive in year {
-                            timelineData.netBenefitsTimeline.findIndex(
-                              (item: any) => item.netBenefit > 0) + 1
-                          }</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Recommendations</h4>
-                        <ul className="text-sm space-y-1">
-                          <li>• Consider phasing capital costs to improve early cash flow</li>
-                          <li>• Monitor actual benefits during years 1-5 closely</li>
-                          <li>• The project is most sensitive to changes in early-year costs</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </CardFooter>
-                )}
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
-    </div>
+        </main>
+         {/* Dialog for Delete Confirmation */}
+         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Delete Analysis</DialogTitle>
+                <DialogDescription>
+                    Are you sure you want to delete this benefit-cost analysis? This action cannot be undone.
+                </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={() => selectedAnalysis && handleDeleteAnalysis(selectedAnalysis.id)}>Delete</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      </div>
+    </ProtectedRoute>
   );
 } 

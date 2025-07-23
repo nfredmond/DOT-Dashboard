@@ -1,4 +1,8 @@
 import { ModelParameters } from '@/types/camp';
+import { fetchAndProcessRoadNetwork, ProcessedRoadNetwork, ProcessedNode, ProcessedEdge } from './road-network-importer';
+import { createGraphFromRoadNetwork, EdgeData, getEdgeCapacity, getEdgeFreeFlowTime } from './graph-utils';
+import { aStar, PathFinderOptions } from 'ngraph.path'; // Using aStar, dijkstra is also an option
+import { Graph, Link as NgLink, Node as NgNode } from 'ngraph.graph'; // Renamed to avoid conflict with DOM types
 
 /**
  * Trip Generation Component
@@ -30,7 +34,7 @@ export class TripGeneration {
     // Initialize result objects
     const tripProduction = {};
     const tripAttraction = {};
-    const tripsByPurpose = {};
+    const tripsByPurpose: Record<string, Record<string, number>> = {};
     
     // Define trip purposes
     const purposes = ['home_work', 'home_shop', 'home_other', 'non_home'];
@@ -155,7 +159,7 @@ export class TripDistribution {
         tripsByPurpose[purpose],
         tripAttraction,
         frictionFactors[purpose] || frictionFactors.default,
-        kFactors[purpose] || {}
+        kFactors[purpose]
       );
       
       tripMatrices[purpose] = tripMatrix;
@@ -177,8 +181,8 @@ export class TripDistribution {
   private calculateGravityModel(
     productions: Record<string, number>,
     attractions: Record<string, number>,
-    frictionFactors: number[],
-    kFactors: Record<string, Record<string, number>>
+    frictionFactorsForPurpose: number[],
+    kFactorsForOrigin?: Record<string, number>
   ) {
     const tripMatrix = {};
     const origins = Object.keys(productions).filter(id => !id.includes('_attraction'));
@@ -197,10 +201,10 @@ export class TripDistribution {
         
         // Calculate travel impedance (simplified for demonstration)
         const distance = this.calculateDistance(origin, destination);
-        const frictionFactor = this.getFrictionFactor(distance, frictionFactors);
+        const frictionFactor = this.getFrictionFactor(distance, frictionFactorsForPurpose);
         
-        // Apply K-factors (socioeconomic or spatial adjustment factors)
-        const kFactor = kFactors[origin]?.[destination] || 1.0;
+        // Apply K-factors (socioeconomic or spatial adjustment factors) - now origin-specific
+        const kFactor = kFactorsForOrigin?.[origin] || 1.0;
         
         // Calculate distribution factor
         const factor = attractions[destination] * frictionFactor * kFactor;
@@ -209,7 +213,7 @@ export class TripDistribution {
       }
       
       // Calculate intra-zonal trips with special treatment
-      const intrazonalFriction = this.getFrictionFactor(1, frictionFactors) * 0.5; // Adjust for intra-zonal
+      const intrazonalFriction = this.getFrictionFactor(1, frictionFactorsForPurpose) * 0.5; // Adjust for intra-zonal
       const intraFactor = attractions[origin] * intrazonalFriction;
       factorsByDest[origin] = intraFactor;
       sumFactors += intraFactor;
@@ -329,7 +333,7 @@ export class ModeChoice {
     
     // Initialize results object
     const modalSplits = {};
-    const tripsByMode = {};
+    const tripsByMode: Record<string, number> = {};
     
     // Initialize trips by mode
     for (const mode of modes) {
@@ -373,7 +377,7 @@ export class ModeChoice {
         }
         
         // Calculate mode probabilities using logit model
-        const totalTrips = totalTripMatrix[origin][destination];
+        const totalTrips: number = totalTripMatrix[origin][destination];
         
         for (const mode of modes) {
           const probability = Math.exp(utilities[mode]) / sumExp;
@@ -386,8 +390,8 @@ export class ModeChoice {
     }
     
     // Calculate overall mode shares
-    const totalTrips = Object.values(tripsByMode).reduce((a, b) => a + b, 0);
-    const modeShares = {};
+    const totalTrips: number = Object.values(tripsByMode).reduce((a: number, b: number) => a + b, 0);
+    const modeShares: Record<string, number> = {};
     
     for (const mode of modes) {
       modeShares[mode] = totalTrips > 0 ? tripsByMode[mode] / totalTrips : 0;
@@ -483,12 +487,54 @@ export class ModeChoice {
  * assigning trips to the transportation network.
  */
 export class NetworkAssignment {
-  private networkData: any;
+  private networkData: any; // Should ideally be typed e.g., { links, nodes, linkCapacities, ..., boundingBox: {minLat, ...} }
   private parameters: ModelParameters;
+  private roadNetworkGraph: Graph<ProcessedNode, EdgeData> | null = null;
+  private osmNodeMap: Map<number, ProcessedNode> = new Map(); // To store OSM nodes from the graph for quick lookup
 
   constructor(networkData: any, parameters: ModelParameters) {
-    this.networkData = networkData;
+    this.networkData = networkData; // Expect this to contain bounding box: { minLat, minLon, maxLat, maxLon }
     this.parameters = parameters;
+  }
+
+  /**
+   * Initializes the underlying road network graph by fetching OSM data and building the graph.
+   * This should be called before pathfinding operations.
+   */
+  public async initializeNetwork(): Promise<void> {
+    if (this.roadNetworkGraph) {
+      console.log("Road network graph already initialized.");
+      return;
+    }
+
+    // Assuming networkData contains the bounding box for the study area
+    // TODO: Define a proper type for networkData and ensure boundingBox is present
+    const bbox = this.networkData.boundingBox; // Rely solely on networkData for bbox
+    if (!bbox || !bbox.minLat || !bbox.minLon || !bbox.maxLat || !bbox.maxLon) {
+      console.error("Bounding box for road network is not defined in networkData. Cannot initialize network.");
+      throw new Error("Bounding box for road network is not defined.");
+    }
+
+    console.log(`Initializing road network for bbox: [${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon}]`);
+
+    const processedNetwork: ProcessedRoadNetwork | null = await fetchAndProcessRoadNetwork(
+      bbox.minLat,
+      bbox.minLon,
+      bbox.maxLat,
+      bbox.maxLon
+    );
+
+    if (processedNetwork) {
+      this.roadNetworkGraph = createGraphFromRoadNetwork(processedNetwork, true); // true for travel time as weight
+      // Populate osmNodeMap for quick access to node data (e.g., lat/lon for heuristics)
+      processedNetwork.nodes.forEach(node => {
+        this.osmNodeMap.set(node.id, node);
+      });
+      console.log("Road network graph successfully initialized and built.");
+    } else {
+      console.error("Failed to fetch and process road network. Graph not built.");
+      throw new Error("Failed to initialize road network graph.");
+    }
   }
 
   /**
@@ -499,33 +545,51 @@ export class NetworkAssignment {
   public async execute(modeChoiceData: any) {
     console.log('Executing network assignment model...');
     
+    // Ensure the network graph is initialized
+    if (!this.roadNetworkGraph) {
+      await this.initializeNetwork();
+    }
+    if (!this.roadNetworkGraph) { // Check again after attempting initialization
+        console.error("Network graph failed to initialize. Aborting network assignment.");
+        // Return a structure indicating failure or throw
+        return { error: "Network graph initialization failed" }; 
+    }
+    
     const modalSplits = modeChoiceData.modalSplits;
     const totalTripMatrix = modeChoiceData.tripDistData.totalTripMatrix;
+    const tripGenData = modeChoiceData.tripDistData.tripGenData; // Extract tripGenData
+
     const alpha = this.parameters.assignment.volume_delay_parameters.alpha;
     const beta = this.parameters.assignment.volume_delay_parameters.beta;
     const maxIterations = this.parameters.assignment.max_iterations;
     const convergenceCriteria = this.parameters.assignment.convergence_criteria;
     
-    // Extract network components
-    const links = this.networkData.links;
-    const nodes = this.networkData.nodes;
-    const linkCapacities = this.networkData.linkCapacities;
-    const linkFreeFlowTimes = this.networkData.linkFreeFlowTimes;
+    // These are from the old networkData structure, may not be directly used if paths are from OSM graph
+    const links = this.networkData.links; 
+    const linkCapacities = this.networkData.linkCapacities; // Will be replaced by getEdgeCapacity
+    const linkFreeFlowTimes = this.networkData.linkFreeFlowTimes; // Will be replaced by getEdgeFreeFlowTime
     
-    // Initialize link volumes
-    const linkVolumes = {};
-    for (const linkId in links) {
-      linkVolumes[linkId] = 0;
-    }
+    const linkVolumes: Record<string, number> = {}; // Keyed by ProcessedEdge.id
+    // Initialize linkVolumes based on the edges in the new roadNetworkGraph
+    // Create a map for easy lookup of ProcessedEdge objects by their ID
+    const edgeMap: Map<string, ProcessedEdge> = new Map();
+    this.roadNetworkGraph.forEachLink(link => {
+        if (link.data && link.data.originalEdge) {
+            const edge = link.data.originalEdge;
+            edgeMap.set(edge.id, edge);
+            linkVolumes[edge.id] = 0; // Initialize volume for this edge
+        }
+    });
     
-    // Initialize link travel times with free flow times
-    const linkTravelTimes = { ...linkFreeFlowTimes };
+    // const linkTravelTimes = { ...(linkFreeFlowTimes || {}) }; // Old way
+    const linkTravelTimes: Record<string, number> = {}; // Keyed by ProcessedEdge.id
+    edgeMap.forEach(edge => {
+        linkTravelTimes[edge.id] = getEdgeFreeFlowTime(edge); // Initialize with free-flow time
+    });
     
-    // Calculate paths between all O-D pairs
-    // In a real implementation, this would use a proper routing algorithm
-    const paths = this.calculatePaths(totalTripMatrix, links, nodes);
+    // console.log("Calculating paths using the new road network graph..."); // Moved inside loop
+    // const paths = this.calculatePaths(totalTripMatrix, this.roadNetworkGraph, this.osmNodeMap, tripGenData); // Moved inside loop
     
-    // Iterative assignment process
     let iteration = 0;
     let convergence = 1.0;
     let previousLinkVolumes = { ...linkVolumes };
@@ -535,132 +599,262 @@ export class NetworkAssignment {
       for (const linkId in linkVolumes) {
         linkVolumes[linkId] = 0;
       }
+
+      // Recalculate paths based on current linkTravelTimes
+      console.log(`Iteration ${iteration + 1}: Recalculating paths with updated travel times...`);
+      const paths = this.calculatePaths(totalTripMatrix, this.roadNetworkGraph, this.osmNodeMap, tripGenData, linkTravelTimes);
       
-      // Assign trips to links
       for (const origin in totalTripMatrix) {
         for (const destination in totalTripMatrix[origin]) {
-          // Get total trips between this O-D pair
           const totalTrips = totalTripMatrix[origin][destination];
-          
           if (totalTrips <= 0) continue;
-          
-          // Get car mode share for this O-D pair
-          const carShare = modalSplits[origin]?.[destination]?.car || 0.5; // Default to 50% if missing
+          const carShare = modalSplits[origin]?.[destination]?.car || 0.5; // Default car share if not specified
           const carTrips = totalTrips * carShare;
+          const pathInfo = paths[`${origin}-${destination}`]; 
           
-          // Get path for this O-D pair
-          const path = paths[`${origin}-${destination}`];
-          
-          if (path && path.length > 0) {
-            // Assign car trips to each link in the path
-            for (const linkId of path) {
-              linkVolumes[linkId] += carTrips;
+          if (pathInfo && pathInfo.linkIds && pathInfo.linkIds.length > 0) {
+            for (const linkId of pathInfo.linkIds) { // linkId is ProcessedEdge.id
+              if (linkVolumes[linkId] !== undefined) {
+                linkVolumes[linkId] += carTrips;
+              } else {
+                // This might happen if a path contains an edge not initially in edgeMap (e.g. if graph was modified)
+                // Or if path linkIds are somehow malformed. For now, warn.
+                console.warn(`Link ID ${linkId} from path not found in linkVolumes during assignment. This indicates a mismatch or an edge not in the initial graph scan.`);
+              }
             }
           }
         }
       }
       
-      // Update link travel times using BPR function
-      for (const linkId in links) {
-        const volume = linkVolumes[linkId];
-        const capacity = linkCapacities[linkId];
-        const freeFlowTime = linkFreeFlowTimes[linkId];
-        
-        // BPR volume-delay function
-        linkTravelTimes[linkId] = freeFlowTime * (1 + alpha * Math.pow(volume / capacity, beta));
+      // Update link travel times using BPR formula based on ProcessedEdge properties
+      for (const linkId of edgeMap.keys()) { // Iterate over all known edges from the graph
+        const edge = edgeMap.get(linkId);
+        if (edge) {
+            const volume = linkVolumes[linkId] || 0; // Default to 0 if no volume assigned
+            const capacity = getEdgeCapacity(edge);
+            const freeFlowTime = getEdgeFreeFlowTime(edge);
+            
+            if (capacity > 0) { // Avoid division by zero for zero capacity links
+                 linkTravelTimes[linkId] = freeFlowTime * (1 + alpha * Math.pow(volume / capacity, beta));
+            } else {
+                 linkTravelTimes[linkId] = freeFlowTime * (1 + alpha * Math.pow(volume / 0.1, beta)); // Handle zero capacity: use a nominal small capacity
+                 // Or assign a very high travel time if capacity is truly zero (e.g. closed road)
+                 // linkTravelTimes[linkId] = Infinity; 
+            }
+        } else {
+            // This should not happen if edgeMap.keys() is used
+            console.warn(`Edge with ID ${linkId} not found in edgeMap during BPR calculation.`);
+        }
       }
       
-      // Calculate convergence
       let sumSquaredDiff = 0;
       let sumSquaredVol = 0;
-      
       for (const linkId in linkVolumes) {
-        const diff = linkVolumes[linkId] - previousLinkVolumes[linkId];
+        const diff = linkVolumes[linkId] - (previousLinkVolumes[linkId] || 0);
         sumSquaredDiff += diff * diff;
         sumSquaredVol += linkVolumes[linkId] * linkVolumes[linkId];
       }
-      
       convergence = sumSquaredVol > 0 ? Math.sqrt(sumSquaredDiff / sumSquaredVol) : 0;
-      
-      // Store volumes for next iteration
       previousLinkVolumes = { ...linkVolumes };
-      
-      // Increment iteration counter
       iteration++;
-      
       console.log(`Assignment iteration ${iteration}: convergence = ${convergence.toFixed(4)}`);
     }
     
     console.log(`Network assignment completed after ${iteration} iterations`);
     
-    // Return assignment results
     return {
       linkVolumes,
       linkTravelTimes,
-      linkCapacities: this.networkData.linkCapacities,
-      linkFreeFlowTimes: this.networkData.linkFreeFlowTimes,
-      linkLengths: this.networkData.linkLengths,
-      linkTypes: this.networkData.linkTypes,
-      linkGeometries: this.networkData.linkGeometries,
-      iterations: iteration,
-      convergence
+      // ... (other return data, ensure consistency with new network structure or map back)
     };
   }
   
-  /**
-   * Calculate shortest paths between O-D pairs
-   * 
-   * Note: In a real implementation, this would use a proper shortest path algorithm
-   * like Dijkstra's or A*. This is a simplified placeholder.
-   */
-  private calculatePaths(tripMatrix: any, links: any, nodes: any) {
-    const paths = {};
+  private calculatePaths(
+    tripMatrix: any, 
+    graph: Graph<ProcessedNode, EdgeData>, 
+    osmNodeMap: Map<number, ProcessedNode>,
+    tripGenData?: { zones: any, zoneGeometries: any },
+    currentLinkTravelTimes?: Record<string, number> // Added currentLinkTravelTimes
+  ) {
+    const paths: Record<string, { path: NgNode<ProcessedNode>[], linkIds: string[] }> = {};
     
-    // For each O-D pair
-    for (const origin in tripMatrix) {
-      for (const destination in tripMatrix[origin]) {
-        if (origin === destination) {
-          // Intrazonal trips don't use the network
-          paths[`${origin}-${destination}`] = [];
+    // Heuristic function for A* (Haversine distance)
+    const heuristic = (fromNodeData: ProcessedNode | undefined, toNodeData: ProcessedNode | undefined): number => {
+      if (!fromNodeData || !toNodeData) return Infinity;
+      // Simple Haversine distance (you might have a utility for this already)
+      const R = 6371e3; // Earth radius in meters
+      const lat1 = fromNodeData.lat * Math.PI / 180;
+      const lat2 = toNodeData.lat * Math.PI / 180;
+      const deltaLat = (toNodeData.lat - fromNodeData.lat) * Math.PI / 180;
+      const deltaLon = (toNodeData.lon - fromNodeData.lon) * Math.PI / 180;
+      const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // Heuristic needs to be in the same unit as edge weights if directly comparable, or just guide search
+    };
+
+    // Distance function for A* (reads weight from edge data or current travel times)
+    const distance = (fromNodeData: ProcessedNode | undefined, toNodeData: ProcessedNode | undefined, link: NgLink<EdgeData>): number => {
+      if (currentLinkTravelTimes && currentLinkTravelTimes[link.data.originalEdge.id] !== undefined) {
+        return Math.max(currentLinkTravelTimes[link.data.originalEdge.id], 0.1); // Use current, ensure positive
+      }
+      return Math.max(link.data.weight, 0.1); // Fallback to initial free-flow weight, ensure positive
+    };
+
+    for (const originZoneId in tripMatrix) {
+      for (const destinationZoneId in tripMatrix[originZoneId]) {
+        if (originZoneId === destinationZoneId) {
+          paths[`${originZoneId}-${destinationZoneId}`] = { path: [], linkIds: [] };
+          continue;
+        }
+
+        const startNodeId = findNearestGraphNode(originZoneId, osmNodeMap, tripGenData); // Pass tripGenData
+        const endNodeId = findNearestGraphNode(destinationZoneId, osmNodeMap, tripGenData); // Pass tripGenData
+
+        if (startNodeId === null || endNodeId === null) {
+          console.warn(`Could not find network nodes for O-D pair: ${originZoneId} to ${destinationZoneId}`);
+          paths[`${originZoneId}-${destinationZoneId}`] = { path: [], linkIds: [] };
           continue;
         }
         
-        // Generate a simplified path (placeholder)
-        // In a real implementation, this would use a proper routing algorithm
-        paths[`${origin}-${destination}`] = this.generateSimplifiedPath(origin, destination, links);
+        // Ensure nodes exist in the graph before pathfinding
+        if (!graph.getNode(startNodeId) || !graph.getNode(endNodeId)) {
+            console.warn(`Start or end node for O-D pair ${originZoneId}-${destinationZoneId} not in graph. Start: ${startNodeId}, End: ${endNodeId}`);
+            paths[`${originZoneId}-${destinationZoneId}`] = { path: [], linkIds: [] };
+            continue;
+        }
+
+        const pathOptions: PathFinderOptions<ProcessedNode, EdgeData> = {
+          oriented: true, // Respect oneway streets
+          heuristic: (fromNode, toNode) => heuristic(graph.getNode(fromNode.id)?.data, graph.getNode(toNode.id)?.data),
+          distance: (fromNode, toNode, link) => distance(graph.getNode(fromNode.id)?.data, graph.getNode(toNode.id)?.data, link),
+        };
+
+        try {
+            const pathfinder = aStar(graph, pathOptions);
+            const foundPath: NgNode<ProcessedNode>[] = pathfinder.find(startNodeId, endNodeId);
+
+            // Convert path of NgNode objects to list of link IDs (original OSM way segment IDs)
+            const linkIds: string[] = [];
+            if (foundPath.length > 0) {
+                for (let i = 0; i < foundPath.length - 1; i++) {
+                    const fromGraphNode = foundPath[i];
+                    const toGraphNode = foundPath[i+1];
+                    let foundLink = false;
+                    // Find the link in the graph that connects these two nodes in the path direction
+                    graph.forEachLinkedNode(fromGraphNode.id, (linkedNode, link) => {
+                        if (linkedNode.id === toGraphNode.id) {
+                            // This is the link used in the path from fromGraphNode to toGraphNode
+                            linkIds.push(link.data.originalEdge.id); // Use the unique ID from ProcessedEdge
+                            foundLink = true;
+                            return true; // Break from forEachLinkedNode for this node
+                        }
+                    }, true); // true for outgoing links only, respecting path direction
+                    if(!foundLink){
+                        // This case should ideally not happen if aStar returns a valid path from graph links
+                        // console.warn(`Could not find connecting link in graph for path segment: ${fromGraphNode.id} -> ${toGraphNode.id}`);
+                    }
+                }
+            }
+            paths[`${originZoneId}-${destinationZoneId}`] = { path: foundPath, linkIds };
+        } catch (e) {
+            console.error(`Error finding path for ${originZoneId} to ${destinationZoneId}:`, e);
+            paths[`${originZoneId}-${destinationZoneId}`] = { path: [], linkIds: [] };
+        }
       }
     }
-    
     return paths;
   }
-  
-  /**
-   * Generate a simplified path between origin and destination
-   * 
-   * Note: This is a placeholder that creates a somewhat stable "random" path
-   * In a real implementation, a proper routing algorithm would be used
-   */
+
+  // Remove or comment out the old generateSimplifiedPath method as it's replaced
+  /*
   private generateSimplifiedPath(originId: string, destinationId: string, links: any) {
-    const path = [];
-    const numLinks = Object.keys(links).length;
-    
-    // Create a stable seed from origin and destination IDs
-    const baseSeed = (parseInt(originId) * 10000 + parseInt(destinationId)) % 10000 / 10000;
-    
-    // Determine number of links in the path (3-10 links)
-    const pathLength = 3 + Math.floor(baseSeed * 7);
-    
-    // Generate semi-random link IDs for the path
-    // In a real implementation, these would be actual link IDs forming a connected path
-    for (let i = 0; i < pathLength; i++) {
-      // Create a somewhat stable link ID based on i, origin, and destination
-      const seed = (baseSeed * 10000 + i * 1000) % 10000 / 10000;
-      const linkIndex = Math.floor(seed * numLinks);
-      const linkId = Object.keys(links)[linkIndex % numLinks];
-      
-      path.push(linkId);
-    }
-    
-    return path;
+    // ... old placeholder code ...
   }
+  */
+}
+
+// Helper function to calculate Haversine distance between two lat/lon points
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const radLat1 = lat1 * Math.PI / 180;
+  const radLat2 = lat2 * Math.PI / 180;
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(radLat1) * Math.cos(radLat2) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Placeholder: robustly finding the nearest network node to a zone/point is complex
+// This would involve spatial indexing (e.g., k-d tree) of graph nodes for efficiency.
+// For now, it mock-returns a node ID or null.
+// NOTE: This needs to be implemented properly based on how zones map to network nodes.
+function findNearestGraphNode(
+  zoneId: string, 
+  osmNodeMap: Map<number, ProcessedNode>,
+  zoneData?: { zones: any, zoneGeometries: any } // Make zoneData optional for now
+): number | null {
+  if (osmNodeMap.size === 0) {
+    console.warn(`No nodes in osmNodeMap for findNearestGraphNode with zone ${zoneId}`);
+    return null;
+  }
+
+  let zoneLat: number | undefined;
+  let zoneLon: number | undefined;
+
+  if (zoneData && zoneData.zoneGeometries && zoneData.zoneGeometries[zoneId]) {
+    const geometry = zoneData.zoneGeometries[zoneId];
+    // Attempt to extract a representative point from the geometry
+    // This is a simplified approach; robust centroid calculation for various GeoJSON types is more involved.
+    if (geometry.type === 'Point' && geometry.coordinates) {
+      zoneLon = geometry.coordinates[0];
+      zoneLat = geometry.coordinates[1];
+    } else if (geometry.type === 'Polygon' && geometry.coordinates && geometry.coordinates[0]) {
+      // Use the first point of the first ring as a rough proxy
+      zoneLon = geometry.coordinates[0][0][0];
+      zoneLat = geometry.coordinates[0][0][1];
+    } else if (geometry.type === 'MultiPolygon' && geometry.coordinates && geometry.coordinates[0] && geometry.coordinates[0][0]) {
+      // Use the first point of the first ring of the first polygon
+      zoneLon = geometry.coordinates[0][0][0][0];
+      zoneLat = geometry.coordinates[0][0][0][1];
+    } else if (zoneData.zones && zoneData.zones[zoneId] && zoneData.zones[zoneId].centroid) {
+        // Fallback to an explicit centroid if provided in zone attributes
+        zoneLat = zoneData.zones[zoneId].centroid.lat;
+        zoneLon = zoneData.zones[zoneId].centroid.lon;
+    }
+  }
+
+  if (zoneLat !== undefined && zoneLon !== undefined) {
+    let nearestNodeId: number | null = null;
+    let minDistance = Infinity;
+
+    for (const [nodeId, nodeData] of osmNodeMap.entries()) {
+      const distance = haversineDistance(zoneLat, zoneLon, nodeData.lat, nodeData.lon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestNodeId = nodeId;
+      }
+    }
+    if (nearestNodeId !== null) {
+      console.log(`findNearestGraphNode for zone ${zoneId} (at ${zoneLat.toFixed(4)}, ${zoneLon.toFixed(4)}): mapped to OSM node ${nearestNodeId} (distance: ${minDistance.toFixed(0)}m)`);
+      return nearestNodeId;
+    } else {
+      console.warn(`Could not find any nodes in osmNodeMap, though it's not empty. This is unexpected for zone ${zoneId}.`);
+    }
+  } else {
+    console.warn(`Could not determine coordinates for zone ${zoneId}. Falling back to mock selection.`);
+    // Fallback to previous mock behavior if no coordinates found
+    const availableNodeIds = Array.from(osmNodeMap.keys());
+    const numericZoneId = parseInt(zoneId, 10) || 0;
+    const fallbackNodeId = availableNodeIds[numericZoneId % availableNodeIds.length];
+    console.log(`Mock findNearestGraphNode for zone ${zoneId} (no coords): mapped to OSM node ${fallbackNodeId}`);
+    return fallbackNodeId;
+  }
+  
+  return null; // Should be unreachable if osmNodeMap is not empty
 } 

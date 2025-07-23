@@ -197,15 +197,12 @@ export default function GenerateReport() {
       setIsGenerating(true);
       
       // Type assertion for proper typing
-      const reportData = {
+      const _report = await generateReport({
         ...values,
         elements: values.elements as ReportElement[],
         format: values.format as ReportFormat,
         createdBy: "current-user-id", // In real app, get from auth context
-      };
-      
-      // Generate the report
-      const report = await generateReport(reportData);
+      });
       
       // Show success message
       toast({

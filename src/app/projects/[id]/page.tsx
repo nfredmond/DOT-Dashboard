@@ -39,7 +39,7 @@ import { ProjectTodoList } from '@/components/ui/Todo';
 // In a real app, this would be replaced with a database call
 
 // Dynamic import for the map component to avoid SSR issues
-const ProjectLocationMap = dynamic(() => import("@/components/projects/ProjectLocationMap"), {
+const _ProjectLocationMap = dynamic(() => import("@/components/projects/ProjectLocationMap"), {
   ssr: false,
   loading: () => <div className="h-[300px] bg-gray-100 animate-pulse rounded-md flex items-center justify-center">Loading map...</div>
 });
@@ -92,9 +92,12 @@ export default function ProjectDetail() {
         // Fetch project data
         const response = await fetch(`/api/projects/${projectId}`);
         if (!response.ok) throw new Error('Failed to fetch project');
-        const data = await response.json();
+        const result = await response.json();
         
-        setProject(data);
+        // Check if the response has a 'data' property (from API) or is the project directly (demo mode)
+        const projectData = result.data || result;
+        
+        setProject(projectData);
       } catch (error) {
         console.error('Error fetching project:', error);
         toast({

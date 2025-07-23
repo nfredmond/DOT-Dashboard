@@ -69,7 +69,7 @@ export function UserMapPreferences() {
   
   // State for user preferences
   const [userPreferences, setUserPreferences] = useState<UserMapPreference[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [_selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   // Form state
@@ -188,6 +188,11 @@ export function UserMapPreferences() {
   const getStyleNameById = (styleId: string | undefined): string => {
     if (!styleId) return "Default";
     
+    const style = getAvailableMapStyles().find(s => s.id === styleId);
+    return style ? style.label : styleId;
+  };
+  
+  const getStyleLabel = (styleId: string) => {
     const style = getAvailableMapStyles().find(s => s.id === styleId);
     return style ? style.label : styleId;
   };

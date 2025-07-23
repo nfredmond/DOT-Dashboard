@@ -15,6 +15,7 @@ export enum BenefitCategory {
   VEHICLE_OPERATING_COSTS = 'Vehicle Operating Costs',
   HEALTH = 'Health',
   PROPERTY_VALUE = 'Property Value',
+  ECONOMIC_DEVELOPMENT = 'Economic Development',
   OTHER = 'Other'
 }
 
@@ -260,16 +261,25 @@ export interface BenefitCostTemplate {
   id: string;
   name: string;
   description: string;
+  parameters: MonetizationParameters;
+  benefitCategories: BenefitCategory[];
+  costCategories: CostCategory[];
   defaultDiscountRate: number;
   defaultAnalysisHorizon: number;
-  suggestedBenefits: {
-    category: string;
-    description: string;
-  }[];
-  suggestedCosts: {
-    category: string;
-    description: string;
-  }[];
+  methodologies?: BenefitCostAnalysisMethod[];
+  sensitivityDefaults?: {
+    parameters: string[];
+    lowAdjustment: number;
+    highAdjustment: number;
+  };
+  distributionalDefaults?: {
+    demographicGroups: string[];
+  };
+  grantProgram?: {
+    name: string;
+    requirements: string[];
+    thresholds: { minBCR?: number; [key: string]: any };
+  };
 }
 
 export interface BenefitItem {
@@ -290,70 +300,10 @@ export interface CostItem {
   presentValue: number;
 }
 
-export interface SensitivityAnalysisItem {
-  parameter: string;
-  variationPercent: number;
-  results: {
-    decrease: SensitivityAnalysisResult;
-    increase: SensitivityAnalysisResult;
-  };
-}
-
-export interface SensitivityAnalysisResult {
-  benefitCostRatio: number;
-  netPresentValue: number;
-}
-
 export interface BenefitCostCashFlow {
   year: number;
   benefits: number;
   costs: number;
   net: number;
   cumulative: number;
-}
-
-export interface DistributionalAnalysis {
-  id: string;
-  analysisId: string;
-  incomeGroups: {
-    group: string;
-    benefitShare: number;
-    costShare: number;
-    netBenefits: number;
-  }[];
-}
-
-export interface MonteCarloSimulation {
-  id: string;
-  analysisId: string;
-  iterations: number;
-  parameters: {
-    parameterName: string;
-    distribution: 'normal' | 'uniform' | 'triangular' | 'custom';
-    mean?: number;
-    standardDeviation?: number;
-    min?: number;
-    max?: number;
-    mode?: number;
-    customValues?: number[];
-  }[];
-  results: {
-    metric: string;
-    mean: number;
-    median: number;
-    standardDeviation: number;
-    percentiles: {
-      p5: number;
-      p10: number;
-      p25: number;
-      p75: number;
-      p90: number;
-      p95: number;
-    };
-    probabilityPositive: number;
-    probabilityThreshold?: {
-      threshold: number;
-      probability: number;
-    };
-  }[];
 } 

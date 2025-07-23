@@ -1,19 +1,15 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  return new Response(JSON.stringify({ message: 'This is a placeholder API route' }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+export async function GET(_request: NextRequest) {
+  return NextResponse.json({
+    message: 'This is a placeholder API route',
+    timestamp: new Date().toISOString()
   });
 }
 
-export async function POST(request: NextRequest) {
-  return new Response(JSON.stringify({ message: 'This is a placeholder API route' }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+export async function POST(_request: NextRequest) {
+  return NextResponse.json({
+    message: 'POST method placeholder',
+    timestamp: new Date().toISOString()
   });
 } 

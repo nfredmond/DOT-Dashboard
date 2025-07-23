@@ -7,6 +7,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { getClient } from './supabase-service';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   BenefitCostAnalysis, 
   BenefitCostAnalysisMethod, 
@@ -17,14 +18,13 @@ import {
   BenefitCostTimeSeries, 
   BenefitValueCalculation,
   CostCategory,
-  // CostValueCalculation,
+  CostValueCalculation,
   // DistributionalAnalysis,
   MonetizationParameters,
   // MonteCarloSimulation,
-  SensitivityAnalysis,
-  SensitivityAnalysisItem
+  SensitivityAnalysis
 } from '../types/benefit-cost';
-import { runAgentQuery, AgentType } from './agents-service';
+import { runAgentQuery, AgentType, RunAgentQueryOptions, AgentQueryResponse } from './agents-service';
 
 // Default monetization parameters
 const DEFAULT_MONETIZATION_PARAMETERS: MonetizationParameters = {
@@ -75,10 +75,10 @@ const DEFAULT_TEMPLATES: BenefitCostTemplate[] = [
     parameters: DEFAULT_MONETIZATION_PARAMETERS,
     benefitCategories: [
       BenefitCategory.TRAVEL_TIME_SAVINGS,
-      BenefitCategory.ACCIDENT_COSTS,
+      BenefitCategory.SAFETY,
       BenefitCategory.VEHICLE_OPERATING_COSTS,
       BenefitCategory.EMISSIONS,
-      BenefitCategory.HEALTH_BENEFITS,
+      BenefitCategory.HEALTH,
       BenefitCategory.ECONOMIC_DEVELOPMENT,
     ],
     costCategories: [
@@ -115,7 +115,7 @@ const DEFAULT_TEMPLATES: BenefitCostTemplate[] = [
     parameters: DEFAULT_MONETIZATION_PARAMETERS,
     benefitCategories: [
       BenefitCategory.TRAVEL_TIME_SAVINGS,
-      BenefitCategory.ACCIDENT_COSTS,
+      BenefitCategory.SAFETY,
       BenefitCategory.VEHICLE_OPERATING_COSTS,
       BenefitCategory.EMISSIONS,
       BenefitCategory.ECONOMIC_DEVELOPMENT,
@@ -155,7 +155,7 @@ const DEFAULT_TEMPLATES: BenefitCostTemplate[] = [
  * @returns Array of benefit-cost analysis templates
  */
 export async function getBenefitCostTemplates(organizationId?: string): Promise<BenefitCostTemplate[]> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   
   // Get templates from database
   const { data: dbTemplates, error } = await supabase
@@ -172,6 +172,133 @@ export async function getBenefitCostTemplates(organizationId?: string): Promise<
   return dbTemplates.length > 0 ? dbTemplates : DEFAULT_TEMPLATES;
 }
 
+// Helper function to reconstruct MonetizationParameters from flat table rows
+function reconstructMonetizationParameters(rows: any[]): MonetizationParameters {
+  const params: any = JSON.parse(JSON.stringify(DEFAULT_MONETIZATION_PARAMETERS)); // Start with defaults as a base
+
+  for (const row of rows) {
+    if (row.category && row.name) {
+      if (!params[row.category]) {
+        params[row.category] = {};
+      }
+      // Ensure value is parsed as a number if it's a numeric field
+      // This is a simplified assumption; a more robust solution would check the type of the target field in MonetizationParameters
+      const numericValue = parseFloat(row.value);
+      params[row.category][row.name] = isNaN(numericValue) ? row.value : numericValue;
+    } else if (row.name && typeof params[row.name] !== 'object') { // Direct top-level parameter like discountRate (if stored flatly)
+        const numericValue = parseFloat(row.value);
+        params[row.name] = isNaN(numericValue) ? row.value : numericValue;
+    }
+  }
+  return params as MonetizationParameters;
+}
+
+export async function getOrganizationMonetizationParameters(organizationId: string): Promise<MonetizationParameters> {
+  const supabase = getClient(organizationId) as SupabaseClient;
+  const { data, error } = await supabase
+    .from('benefit_cost_parameters')
+    .select('name, category, value, unit, year_valid')
+    .eq('organization_id', organizationId);
+
+  if (error) {
+    console.error('Error fetching organization monetization parameters:', error);
+    // Optionally, could throw error or handle differently. For now, defaults to system defaults.
+    return DEFAULT_MONETIZATION_PARAMETERS;
+  }
+
+  if (!data || data.length === 0) {
+    return DEFAULT_MONETIZATION_PARAMETERS;
+  }
+
+  return reconstructMonetizationParameters(data);
+}
+
+// Helper function to flatten MonetizationParameters for database storage
+function flattenMonetizationParameters(
+  params: MonetizationParameters, 
+  organizationId: string
+): any[] {
+  const rows: any[] = [];
+  const now = new Date().toISOString();
+
+  function processObject(obj: any, currentCategory: string | null) {
+    for (const key in obj) {
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        processObject(obj[key], currentCategory ? `${currentCategory}.${key}` : key);
+      } else {
+        // Attempt to get unit and year_valid from DEFAULT_MONETIZATION_PARAMETERS structure as a simple heuristic
+        // A more robust system might involve explicit unit/year per parameter in MonetizationParameters type or a detailed mapping
+        let unit = 'unknown';
+        // Safely access discount.year with a type assertion for the known structure of DEFAULT_MONETIZATION_PARAMETERS
+        const defaultDiscountInfo = DEFAULT_MONETIZATION_PARAMETERS.discount as { rate?: number; year?: number };
+        let yearValid = defaultDiscountInfo?.year || new Date().getFullYear(); 
+        
+        // Example: try to find unit for valueOfTime.commuter
+        if (currentCategory === 'valueOfTime' && DEFAULT_MONETIZATION_PARAMETERS.valueOfTime && (DEFAULT_MONETIZATION_PARAMETERS.valueOfTime as any)[key]) {
+            unit = '$/hour'; // Assuming based on context
+        } else if (currentCategory === 'emissions' && DEFAULT_MONETIZATION_PARAMETERS.emissions && (DEFAULT_MONETIZATION_PARAMETERS.emissions as any)[key]) {
+            unit = key === 'co2' ? '$/metric ton' : '$/ton'; // Assuming
+        } else if (currentCategory === 'discount' && key === 'rate') {
+            unit = '%'; // Rate is a percentage
+        }
+        // ... more specific unit/year logic could be added here based on parameter paths
+
+        rows.push({
+          organization_id: organizationId,
+          category: currentCategory, // This will be the path like 'valueOfTime' or 'emissions'
+          name: key, // This will be the specific parameter like 'commuter' or 'co2'
+          value: obj[key],
+          unit: unit, 
+          year_valid: yearValid,
+          // id: uuidv4(), // If primary key is UUID and not auto-generated by DB policy for this table per row
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    }
+  }
+
+  processObject(params, null);
+  return rows;
+}
+
+export async function saveOrganizationMonetizationParameters(
+  organizationId: string, 
+  params: MonetizationParameters
+): Promise<void> {
+  const supabase = getClient(organizationId) as SupabaseClient;
+
+  // Delete existing parameters for the organization
+  const { error: deleteError } = await supabase
+    .from('benefit_cost_parameters')
+    .delete()
+    .eq('organization_id', organizationId);
+
+  if (deleteError) {
+    console.error('Error deleting existing organization monetization parameters:', deleteError);
+    throw new Error('Failed to delete existing parameters: ' + deleteError.message);
+  }
+
+  // Flatten and insert new parameters
+  const rowsToInsert = flattenMonetizationParameters(params, organizationId);
+
+  if (rowsToInsert.length === 0) {
+    console.warn('No parameters to save for organization:', organizationId);
+    return;
+  }
+  
+  // Supabase insert usually wants an array of objects. UUIDs for each row might be needed if not auto-generated.
+  // Assuming 'id' in benefit_cost_parameters is auto-generated or we add uuidv4() in flattenMonetizationParameters
+  const { error: insertError } = await supabase
+    .from('benefit_cost_parameters')
+    .insert(rowsToInsert);
+
+  if (insertError) {
+    console.error('Error inserting new organization monetization parameters:', insertError);
+    throw new Error('Failed to save new parameters: ' + insertError.message);
+  }
+}
+
 /**
  * Create a new benefit-cost analysis template
  * @param template Template to create
@@ -182,7 +309,7 @@ export async function createBenefitCostTemplate(
   template: Omit<BenefitCostTemplate, 'id'>,
   organizationId: string
 ): Promise<BenefitCostTemplate> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   const newTemplate = {
     ...template,
     id: uuidv4(),
@@ -375,6 +502,7 @@ export function calculatePaybackPeriod(
  * @param parameters Monetization parameters
  * @param analysisHorizon Analysis horizon in years
  * @param baseYear Base year for analysis
+ * @param discountRate Discount rate for present value calculations
  * @returns Benefit calculation result
  */
 export function calculateBenefitCategory(
@@ -382,7 +510,8 @@ export function calculateBenefitCategory(
   inputs: any,
   parameters: MonetizationParameters,
   analysisHorizon: number,
-  baseYear: number
+  baseYear: number,
+  discountRate: number
 ): BenefitValueCalculation {
   const annualValues: BenefitCostTimeSeries[] = [];
   
@@ -406,11 +535,24 @@ export function calculateBenefitCategory(
             commercialValue = commercialHours * (parameters.valueOfTime.commercial || 32.6);
             freightValue = freightHours * (parameters.valueOfTime.freight || 38.5);
           } else {
-            // Use legacy parameter
-            const valueOfTime = parameters.valueOfTime_legacy || parameters.valueOfTime as number || 18.8;
-            commuterValue = commuterHours * valueOfTime;
-            commercialValue = commercialHours * valueOfTime * 1.5; // Assumption for commercial
-            freightValue = freightHours * valueOfTime * 1.7; // Assumption for freight
+            // Use legacy parameter (parameters.valueOfTime might be a number, or use valueOfTime_legacy)
+            let legacyVOT: number | undefined = undefined;
+            if (typeof parameters.valueOfTime === 'number') {
+              legacyVOT = parameters.valueOfTime;
+            } else if (typeof parameters.valueOfTime_legacy === 'number') {
+              legacyVOT = parameters.valueOfTime_legacy;
+            }
+            const valueOfTimeForCommuter = legacyVOT !== undefined ? legacyVOT : 18.8; // Default for commuter
+            
+            commuterValue = commuterHours * valueOfTimeForCommuter;
+
+            if (legacyVOT !== undefined) { // A single VOT value was found from legacy fields
+                commercialValue = commercialHours * legacyVOT * 1.5; // Apply multiplier
+                freightValue = freightHours * legacyVOT * 1.7;   // Apply multiplier
+            } else { // No single legacy/direct number VOT found, use hardcoded defaults for each category
+                commercialValue = commercialHours * 32.6;
+                freightValue = freightHours * 38.5;
+            }
           }
           
           const yearValue = commuterValue + commercialValue + freightValue;
@@ -442,10 +584,14 @@ export function calculateBenefitCategory(
             injuryValue = injuryReduction * (parameters.accidentCosts.injury || 125000);
             pdoValue = pdoReduction * (parameters.accidentCosts.propertyDamage || 4500);
           } else {
-            // Use legacy parameters
-            fatalValue = fatalReduction * (parameters.fatalityCost as number || 11000000);
-            injuryValue = injuryReduction * (parameters.injuryCost as number || 125000);
-            pdoValue = pdoReduction * 4500; // Default if not provided
+            // Use legacy parameters (parameters.fatalityCost, parameters.injuryCost)
+            const legacyFatalityCost = typeof parameters.fatalityCost === 'number' ? parameters.fatalityCost : 11000000;
+            const legacyInjuryCost = typeof parameters.injuryCost === 'number' ? parameters.injuryCost : 125000;
+            const pdoCostDefault = 4500; // Simpler: No direct legacy field for PDO, use hardcoded default.
+
+            fatalValue = fatalReduction * legacyFatalityCost;
+            injuryValue = injuryReduction * legacyInjuryCost;
+            pdoValue = pdoReduction * pdoCostDefault;
           }
           
           const yearValue = fatalValue + injuryValue + pdoValue;
@@ -483,7 +629,8 @@ export function calculateBenefitCategory(
     totalValue += annual.value;
     
     const yearsFromBase = annual.year - baseYear;
-    const discountFactor = 1 / Math.pow(1 + parameters.discount.rate, yearsFromBase);
+    const effectiveDiscountRate = discountRate;
+    const discountFactor = 1 / Math.pow(1 + effectiveDiscountRate, yearsFromBase);
     annual.presentValue = annual.value * discountFactor;
     presentValue += annual.presentValue;
   }
@@ -494,6 +641,109 @@ export function calculateBenefitCategory(
     annualValues,
     presentValue,
     parameters: inputs,
+  };
+}
+
+/**
+ * Calculate costs for a specific category based on input data
+ * @param category Cost category
+ * @param inputs Input data for calculation (e.g., annual cost, specific cost items)
+ * @param parameters Monetization parameters (though less likely to be used for direct costs)
+ * @param analysisHorizon Analysis horizon in years
+ * @param baseYear Base year for analysis
+ * @param discountRate Discount rate for present value calculations
+ * @returns Cost calculation result
+ */
+export function calculateCostCategory(
+  category: CostCategory,
+  inputs: any, 
+  _parameters: MonetizationParameters, // MonetizationParameters typically for benefits, less so direct costs
+  analysisHorizon: number,
+  baseYear: number,
+  discountRate: number
+): CostValueCalculation {
+  const annualValues: BenefitCostTimeSeries[] = [];
+
+  // Calculate annual values based on category - this switch will be simpler for costs
+  // Typically, costs are more direct inputs (e.g., capital cost in year X, annual O&M)
+  switch (category) {
+    case CostCategory.CAPITAL:
+      // Example: Capital costs might be a lump sum or spread over a few years
+      // inputs could be { year: Y, amount: X } or { startYear: Y, endYear: Z, annualAmount: A }
+      if (inputs.totalAmount && inputs.year) { // Lump sum
+        annualValues.push({
+          year: inputs.year,
+          value: inputs.totalAmount,
+          category: category,
+        });
+      } else if (inputs.annualAmount) { // Spread cost
+        const startYear = inputs.startYear || baseYear;
+        const endYear = inputs.endYear || baseYear + (inputs.duration || 1) -1;
+        for (let yr = startYear; yr <= endYear; yr++) {
+          if (yr < baseYear + analysisHorizon) {
+            annualValues.push({
+              year: yr,
+              value: inputs.annualAmount,
+              category: category,
+            });
+          }
+        }
+      }
+      break;
+
+    case CostCategory.OPERATIONS:
+    case CostCategory.MAINTENANCE:
+    case CostCategory.VEHICLES:
+    case CostCategory.OTHER:
+      // Example: O&M costs are typically annual
+      // inputs could be { annualAmount: X, escalationRate?: E }
+      if (inputs.annualAmount) {
+        let currentAnnualAmount = inputs.annualAmount;
+        const escalationRate = inputs.escalationRate || 0;
+        for (let year = 0; year < analysisHorizon; year++) {
+          const currentYearVal = baseYear + year;
+          annualValues.push({
+            year: currentYearVal,
+            value: currentAnnualAmount * Math.pow(1 + escalationRate, year),
+            category: category,
+          });
+        }
+      }
+      break;
+
+    default:
+      // Handle any custom or unimplemented categories if inputs.annualValue exists
+      if (inputs.annualValue) {
+        for (let year = 0; year < analysisHorizon; year++) {
+          const currentYearVal = baseYear + year;
+          annualValues.push({
+            year: currentYearVal,
+            value: inputs.annualValue,
+            category: category,
+          });
+        }
+      }
+      break;
+  }
+
+  // Calculate present values
+  let totalValue = 0;
+  let presentValue = 0;
+
+  for (const annual of annualValues) {
+    totalValue += annual.value;
+    const yearsFromBase = annual.year - baseYear;
+    const discountFactor = 1 / Math.pow(1 + discountRate, yearsFromBase);
+    annual.presentValue = annual.value * discountFactor;
+    presentValue += annual.presentValue;
+  }
+
+  return {
+    category,
+    totalValue,
+    annualValues,
+    presentValue,
+    parameters: inputs, // Store the inputs used for this calculation
   };
 }
 
@@ -575,7 +825,7 @@ export function performSensitivityAnalysis(
       }
       
       return {
-        parameterName,
+        parameterName: paramName,
         baseValue,
         lowValue: baseValue * lowAdjustment,
         highValue: baseValue * highAdjustment,
@@ -586,76 +836,93 @@ export function performSensitivityAnalysis(
 }
 
 /**
- * Create a new benefit-cost analysis
- * @param projectId Project ID
- * @param templateId Template ID (optional)
- * @param userId User ID
- * @param organizationId Organization ID
- * @returns Created benefit-cost analysis
+ * Create a new benefit-cost analysis.
+ * Can be seeded with initial data and/or a template.
+ * @param initialAnalysisData Partial data for the new analysis. Must include projectId.
+ * @param templateId Optional ID of a template to apply.
+ * @param userId Optional ID of the user creating the analysis.
+ * @param organizationId Optional Organization ID.
+ * @returns The created benefit-cost analysis.
  */
 export async function createBenefitCostAnalysis(
-  projectId: string,
-  templateId?: string,
+  initialAnalysisData: Partial<BenefitCostAnalysis>, // Contains projectId and other form data
+  templateId?: string, // templateId now a separate optional parameter
   userId?: string,
   organizationId?: string
 ): Promise<BenefitCostAnalysis> {
-  const supabase = getClient(organizationId);
-  
-  // Get template if provided
-  let template: BenefitCostTemplate | undefined;
-  
-  if (templateId) {
-    const templates = await getBenefitCostTemplates(organizationId);
-    template = templates.find(t => t.id === templateId);
+  const supabase = getClient(organizationId) as SupabaseClient;
+
+  if (!initialAnalysisData.projectId) {
+    throw new Error("Project ID is required to create a benefit-cost analysis.");
   }
-  
-  // Create default analysis
-  const defaultAnalysis: Omit<BenefitCostAnalysis, 'id' | 'createdAt' | 'updatedAt'> = {
-    projectId,
-    name: `Benefit-Cost Analysis (${new Date().toLocaleDateString()})`,
-    description: 'New benefit-cost analysis',
+
+  let newAnalysisBase: Partial<BenefitCostAnalysis> = {
+    id: uuidv4(),
+    parameters: DEFAULT_MONETIZATION_PARAMETERS, // Start with global defaults
+    status: 'draft',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     createdBy: userId || 'system',
-    
-    discountRate: template?.defaultDiscountRate || 0.07,
+    name: 'Untitled Analysis',
+    description: '',
+    discountRate: 0.07,
     baseYear: new Date().getFullYear(),
-    analysisHorizon: template?.defaultAnalysisHorizon || 20,
-    
-    netPresentValue: 0,
-    benefitCostRatio: 0,
-    
+    analysisHorizon: 20,
     benefits: [],
     costs: [],
     annualBenefits: [],
     annualCosts: [],
-    
-    parameters: template?.parameters || DEFAULT_MONETIZATION_PARAMETERS,
-    
+    netPresentValue: 0,
+    benefitCostRatio: 0,
     isPublic: false,
-    status: 'draft',
-    methodology: template?.name || 'Standard benefit-cost analysis',
+    methodology: 'Default',
     assumptions: [],
     limitations: [],
     tags: [],
+    // Overlay with any provided initial data (projectId, name, user-entered benefits/costs etc.)
+    // Important: initialAnalysisData might contain benefits/costs arrays populated by the user in the form.
+    ...initialAnalysisData, 
   };
-  
-  // Insert into database
-  const newAnalysis = {
-    ...defaultAnalysis,
-    id: uuidv4(),
-  };
-  
-  const { data, error } = await supabase
-    .from('benefit_cost_analyses')
-    .insert(newAnalysis)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Error creating benefit-cost analysis:', error);
-    throw new Error(`Failed to create analysis: ${error.message}`);
+
+  // Apply template if templateId is provided
+  if (templateId) {
+    const templates = await getBenefitCostTemplates(organizationId);
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      newAnalysisBase = {
+        ...newAnalysisBase, // Keep user-entered details from initialAnalysisData first
+        // Then overlay template defaults for non-data fields if not already set by user
+        name: initialAnalysisData.name || template.name || newAnalysisBase.name,
+        description: initialAnalysisData.description || template.description || newAnalysisBase.description,
+        methodology: template.name || newAnalysisBase.methodology, 
+        discountRate: initialAnalysisData.discountRate || template.defaultDiscountRate || newAnalysisBase.discountRate,
+        analysisHorizon: initialAnalysisData.analysisHorizon || template.defaultAnalysisHorizon || newAnalysisBase.analysisHorizon,
+        // Parameters merging: take user-defined, then template, then global default.
+        // This is complex if parameters are partially filled. For now, template overwrites if user hasn't started customizing.
+        parameters: initialAnalysisData.parameters && Object.keys(initialAnalysisData.parameters).length > 0 
+                      ? initialAnalysisData.parameters 
+                      : template.parameters || newAnalysisBase.parameters,
+        // DO NOT overwrite benefits/costs arrays here if user has already entered them via initialAnalysisData.
+        // The template's suggested categories are for UI guidance, not for overwriting user data at this stage.
+      };
+    }
   }
   
-  return data;
+  // Ensure all required fields are present before insertion
+  const finalNewAnalysis = newAnalysisBase as BenefitCostAnalysis;
+
+  const { data, error } = await supabase
+    .from('benefit_cost_analyses') 
+    .insert(finalNewAnalysis)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating benefit-cost analysis:', error);
+    throw new Error(`Failed to create benefit-cost analysis: ${error.message}`);
+  }
+  
+  return data as BenefitCostAnalysis;
 }
 
 /**
@@ -668,7 +935,7 @@ export async function getBenefitCostAnalyses(
   projectId: string,
   organizationId?: string
 ): Promise<BenefitCostAnalysis[]> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   
   const { data, error } = await supabase
     .from('benefit_cost_analyses')
@@ -694,7 +961,7 @@ export async function getBenefitCostAnalysis(
   analysisId: string,
   organizationId?: string
 ): Promise<BenefitCostAnalysis | null> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   
   const { data, error } = await supabase
     .from('benefit_cost_analyses')
@@ -722,7 +989,7 @@ export async function updateBenefitCostAnalysis(
   updates: Partial<BenefitCostAnalysis>,
   organizationId?: string
 ): Promise<BenefitCostAnalysis | null> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   
   // Remove read-only fields
   const { id, createdAt, updatedAt, ...validUpdates } = updates as any;
@@ -752,7 +1019,7 @@ export async function deleteBenefitCostAnalysis(
   analysisId: string,
   organizationId?: string
 ): Promise<boolean> {
-  const supabase = getClient(organizationId);
+  const supabase = getClient(organizationId) as SupabaseClient;
   
   const { error } = await supabase
     .from('benefit_cost_analyses')
@@ -775,71 +1042,47 @@ export async function deleteBenefitCostAnalysis(
 export function calculateBenefitCostAnalysis(
   analysis: BenefitCostAnalysis
 ): BenefitCostAnalysis {
-  // Calculate present values
   let totalBenefitsPV = 0;
   let totalCostsPV = 0;
-  
+
   // Process benefits
   for (const benefit of analysis.benefits) {
-    const discountedValues = benefit.annualValues.map(annual => {
-      const yearsFromBase = annual.year - analysis.baseYear;
-      const discountFactor = 1 / Math.pow(1 + analysis.discountRate, yearsFromBase);
-      return {
-        ...annual,
-        presentValue: annual.value * discountFactor
-      };
-    });
-    
+    const calculatedBenefit = calculateBenefitCategory(
+      benefit.category,
+      benefit.parameters, // These are the 'inputs' for the calculation logic inside
+      analysis.parameters,    // These are the global MonetizationParameters
+      analysis.analysisHorizon,
+      analysis.baseYear,
+      analysis.discountRate
+    );
     // Update benefit
-    benefit.annualValues = discountedValues;
-    benefit.presentValue = discountedValues.reduce((sum, item) => sum + (item.presentValue || 0), 0);
+    benefit.annualValues = calculatedBenefit.annualValues;
+    benefit.presentValue = calculatedBenefit.presentValue;
     totalBenefitsPV += benefit.presentValue;
   }
-  
+
   // Process costs
   for (const cost of analysis.costs) {
-    const discountedValues = cost.annualValues.map(annual => {
-      const yearsFromBase = annual.year - analysis.baseYear;
-      const discountFactor = 1 / Math.pow(1 + analysis.discountRate, yearsFromBase);
-      return {
-        ...annual,
-        presentValue: annual.value * discountFactor
-      };
-    });
-    
+    const calculatedCost = calculateCostCategory( // Changed to calculateCostCategory
+      cost.category,
+      cost.parameters, // These are the 'inputs' for the calculation logic inside
+      analysis.parameters,   // Global MonetizationParameters (though less used for costs)
+      analysis.analysisHorizon,
+      analysis.baseYear,
+      analysis.discountRate
+    );
     // Update cost
-    cost.annualValues = discountedValues;
-    cost.presentValue = discountedValues.reduce((sum, item) => sum + (item.presentValue || 0), 0);
+    cost.annualValues = calculatedCost.annualValues;
+    cost.presentValue = calculatedCost.presentValue;
     totalCostsPV += cost.presentValue;
   }
+
+  analysis.netPresentValue = totalBenefitsPV - totalCostsPV;
+  analysis.benefitCostRatio = calculateBCR(totalBenefitsPV, totalCostsPV);
   
-  // Compile annual streams
-  const allBenefitStreams = analysis.benefits.flatMap(b => b.annualValues);
-  const allCostStreams = analysis.costs.flatMap(c => c.annualValues);
-  
-  // Calculate results
-  const npv = totalBenefitsPV - totalCostsPV;
-  const bcr = totalCostsPV > 0 ? totalBenefitsPV / totalCostsPV : 0;
-  
-  // Calculate IRR (all cash flows together)
-  const irr = calculateIRR([
-    ...allBenefitStreams.map(b => ({ ...b, value: b.value })),
-    ...allCostStreams.map(c => ({ ...c, value: -c.value })) // Costs are negative for IRR
-  ]);
-  
-  // Calculate payback period
-  const paybackPeriod = calculatePaybackPeriod(allBenefitStreams, allCostStreams);
-  
-  // Return updated analysis
-  return {
-    ...analysis,
-    netPresentValue: npv,
-    benefitCostRatio: bcr,
-    internalRateOfReturn: irr,
-    paybackPeriod: paybackPeriod,
-    annualBenefits: allBenefitStreams,
-    annualCosts: allCostStreams
-  };
+  // TODO: Calculate IRR and Payback Period if needed and update analysis object
+
+  return analysis;
 }
 
 /**
@@ -877,17 +1120,20 @@ export async function generateBenefitCostInsights(
     };
     
     // Call AI agent for analysis
-    const response = await runAgentQuery({
-      prompt: `Analyze this benefit-cost analysis and provide insights:
-      1. Summarize the overall results in 2-3 sentences
-      2. List 3-5 key insights about the benefit distribution and value drivers
-      3. Provide 2-3 recommendations for strengthening the analysis or improving outcomes`,
-      agentType: AgentType.ANALYSIS,
-      context: context
-    });
+    const agentOptions: RunAgentQueryOptions = {
+        type: AgentType.ANALYSIS,
+        query: `Analyze this benefit-cost analysis and provide insights:
+        1. Summarize the overall results in 2-3 sentences
+        2. List 3-5 key insights about the benefit distribution and value drivers
+        3. Provide 2-3 recommendations for strengthening the analysis or improving outcomes`,
+        context: context
+    };
+
+    const response: AgentQueryResponse = await runAgentQuery(agentOptions);
     
     // Parse the response
-    const insights = response.content.split('\n\n');
+    // Assuming response.result is the string content we need to split
+    const insights = typeof response.result === 'string' ? response.result.split('\n\n') : ['Could not parse AI response'];
     
     // Structure the result
     return {
@@ -987,24 +1233,22 @@ export async function compareBenefitCostAnalyses(
 export function performMockSensitivityAnalysis(
   analysis: BenefitCostAnalysis,
   parameters: string[]
-): SensitivityAnalysisItem[] {
+): SensitivityAnalysis['results'] {
   // For demonstration purposes, we'll create some mock sensitivity analysis results
   return parameters.map(parameter => {
-    const baseValue = parameter === 'discountRate' ? analysis.discountRate : 0;
+    // Mock base value and results - in a real scenario, these would be calculated
+    const baseNetPresentValue = analysis.netPresentValue;
+    // const baseBenefitCostRatio = analysis.benefitCostRatio; // If we need sensitivity on BCR too
+
+    const decreaseResult = baseNetPresentValue * 0.85;
+    const increaseResult = baseNetPresentValue * 1.15;
 
     return {
-      parameter,
-      variationPercent: 20,
-      results: {
-        decrease: {
-          benefitCostRatio: analysis.benefitCostRatio * 0.9,
-          netPresentValue: analysis.netPresentValue * 0.85
-        },
-        increase: {
-          benefitCostRatio: analysis.benefitCostRatio * 1.1,
-          netPresentValue: analysis.netPresentValue * 1.15
-        }
-      }
+      parameterName: parameter,
+      lowValueResult: decreaseResult,
+      baseValueResult: baseNetPresentValue, // Mocked base for this parameter's sensitivity
+      highValueResult: increaseResult,
+      impact: ((increaseResult - decreaseResult) / baseNetPresentValue) * 100 // Mocked impact
     };
   });
 }

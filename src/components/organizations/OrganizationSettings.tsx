@@ -7,8 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { Organization } from '@/types/organization';
 import { LogoUpload } from './LogoUpload';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import logger from '../../lib/logger';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';import { useRouter } from 'next/navigation';import { MessageSquare } from 'lucide-react';import logger from '../../lib/logger';
 
 
 interface OrganizationSettingsProps {
@@ -16,6 +15,7 @@ interface OrganizationSettingsProps {
 }
 
 export function OrganizationSettings({ organizationId }: OrganizationSettingsProps) {
+  const router = useRouter();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -156,6 +156,10 @@ export function OrganizationSettings({ organizationId }: OrganizationSettingsPro
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
           <TabsTrigger value="contact">Contact Information</TabsTrigger>
+          <TabsTrigger value="community-input">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Community Input
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -311,6 +315,25 @@ export function OrganizationSettings({ organizationId }: OrganizationSettingsPro
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="community-input">
+          <Card>
+            <CardHeader>
+              <CardTitle>Community Input Settings</CardTitle>
+              <CardDescription>
+                Configure how community feedback is collected and moderated
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => router.push(`/organizations/${organizationId}/settings/community-input`)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Manage Community Input Settings
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

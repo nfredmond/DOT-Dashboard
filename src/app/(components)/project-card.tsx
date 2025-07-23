@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { AnimatedProgress } from "@/components/ui/animated-progress";
 import { MapPinIcon, CalendarIcon, DollarSignIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -111,9 +111,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project.score}/100
             </span>
           </div>
-          <Progress 
+          <AnimatedProgress 
             value={scoreValue} 
-            className="h-2 transition-all duration-1000 ease-out" 
+            className="h-2" 
+            animationDuration={1500}
+            delay={200}
           />
 
           <div className="grid grid-cols-1 gap-2 text-sm">

@@ -28,10 +28,10 @@ interface RiskFactor {
 }
 
 interface TimelineVisualizerProps {
-  selectedAnalysis: any;
+  analysis: any;
 }
 
-export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps) {
+export function TimelineVisualizer({ analysis }: TimelineVisualizerProps) {
   const { toast } = useToast();
   const [timelineData, setTimelineData] = useState<any>(null);
   const [_isTimelineLoading, setIsTimelineLoading] = useState(false);
@@ -139,15 +139,15 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
 
   // Generate timeline data for the selected analysis
   const handleGenerateTimeline = async (scenarioId?: string) => {
-    if (!selectedAnalysis) return;
+    if (!analysis) return;
     
     setIsTimelineLoading(true);
     
     try {
       // In a real app, this would be an API call
       // Here we'll generate mock timeline data
-      const years = selectedAnalysis.analysisHorizon || 30;
-      const discountRate = selectedAnalysis.discountRate || 0.07;
+      const years = analysis.analysisHorizon || 30;
+      const discountRate = analysis.discountRate || 0.07;
       
       // Apply time scenario adjustments if a scenario is active
       const timeScenario = scenarioId ? 
@@ -171,8 +171,8 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
       const yearlyCosts: any[] = [];
       
       // Get unique benefit and cost categories
-      const benefitCategories = Array.from(new Set(selectedAnalysis.benefits.map((b: any) => b.category)));
-      const costCategories = Array.from(new Set(selectedAnalysis.costs.map((c: any) => c.category)));
+      const benefitCategories = Array.from(new Set(analysis.benefits.map((b: any) => b.category)));
+      const costCategories = Array.from(new Set(analysis.costs.map((c: any) => c.category)));
       
       for (let year = 1; year <= years; year++) {
         // Calculate benefits for this year
@@ -184,7 +184,7 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
         const effectiveYear = year - implementationDelay - constructionDuration;
         
         if (effectiveYear > 0) {
-          for (const benefit of selectedAnalysis.benefits) {
+          for (const benefit of analysis.benefits) {
             // Calculate benefit value based on annual value and growth rate
             const growthRate = benefit.growthRate || 0;
             const growthFactor = Math.pow(1 + growthRate, effectiveYear - 1);
@@ -203,7 +203,7 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
         let yearCostValue = 0;
         const yearCostsByCategory: Record<string, number> = {};
         
-        for (const cost of selectedAnalysis.costs) {
+        for (const cost of analysis.costs) {
           // Calculate cost value based on annual value and growth rate
           const growthRate = cost.growthRate || 0;
           
@@ -291,7 +291,7 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
         costCategories,
         yearlyBenefits,
         yearlyCosts,
-        projectName: selectedAnalysis.name,
+        projectName: analysis.name,
         discountRate: adjustedDiscountRate,
         implementationDelay,
         constructionDuration,
@@ -509,7 +509,7 @@ export function TimelineVisualizer({ selectedAnalysis }: TimelineVisualizerProps
 
   return (
     <div className="space-y-4">
-      {!selectedAnalysis ? (
+      {!analysis ? (
         <Alert>
           <AlertTitle>No Analysis Selected</AlertTitle>
           <AlertDescription>

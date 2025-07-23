@@ -100,7 +100,7 @@ export default function MaintenancePage() {
   });
   
   // Helper to get the asset
-  const getAsset = (assetId: string): Asset | undefined => {
+  const _getAsset = (assetId: string): Asset | undefined => {
     return assets.find(a => a.id === assetId);
   };
   
@@ -141,9 +141,8 @@ export default function MaintenancePage() {
   };
   
   // Format date for display
-  const formatDate = (dateString: string | undefined): string => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const _formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -276,7 +275,7 @@ export default function MaintenancePage() {
                 </TableHeader>
                 <TableBody>
                   {filteredPredictions.map((prediction) => {
-                    const asset = getAsset(prediction.assetId);
+                    const asset = _getAsset(prediction.assetId);
                     
                     return (
                       <TableRow key={prediction.id}>
@@ -412,7 +411,7 @@ export default function MaintenancePage() {
                   .sort((a, b) => b.failureProbability - a.failureProbability)
                   .slice(0, 3)
                   .map((prediction) => {
-                    const asset = getAsset(prediction.assetId);
+                    const asset = _getAsset(prediction.assetId);
                     
                     return (
                       <div key={prediction.id} className="p-3 bg-muted rounded-lg space-y-2">
